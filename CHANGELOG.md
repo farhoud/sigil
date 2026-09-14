@@ -77,11 +77,6 @@
   resolution, terminating import traversal, and preserved ownership and
   visibility. Circular references alone do not satisfy requirements. Compiler
   support remains pending.
-- Define every grouping heading as a local Tag of its component, including in
-  matching expands. Restrict imported Tag use to Facet prose, and make
-  local/import name collisions errors rather than heading rebinding. Document
-  the decision in a [team proposal](spec/proposals/local-concept-tag-headings.md);
-  compiler support remains pending.
 
 - Remove the behavior-algebra reference and proposed comparison machinery from
   the language specification. Mark the behavior algebra as an unaccepted idea
