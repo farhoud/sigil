@@ -1,5 +1,5 @@
-@packages/core/src/model/source.sigil import { SigilSourceModel }
-@packages/core/src/model/diagnostics.sigil import { SigilDiagnosticModel }
+@packages/core/src/model/source.sigil from SigilSourceModel import { SourceModel }
+@packages/core/src/model/diagnostics.sigil from SigilDiagnosticModel import { DiagnosticModel }
 
 component SigilRetrievalModel {
   goal {
@@ -9,7 +9,7 @@ component SigilRetrievalModel {
 
   interface {
     RetrievalModel {
-      SigilSourceModel and SigilDiagnosticModel provide source and diagnostic data.
+      SourceModel and DiagnosticModel provide source and diagnostic data.
 
       PurposeRetrievalResult and its target, graph, evidence, inclusion, exclusion,
       context, and fingerprint data preserve deterministic retrieval output.
@@ -36,7 +36,8 @@ component SigilRetrievalModel {
       RetrievedComponent has one stable component identity, path, one role,
       component-owned links, and one purpose-appropriate contract projection. When
       multiple graph relationships apply, its role uses the first applicable
-      priority: selected, dependency, importer, then cycle-member. A module-index
+      priority: selected, dependency, importer, then cycle-member. An ordinary
+      project
       summary creates one module-context role only when no other RetrievedComponent
       already represents its exact component identity.
 
@@ -47,21 +48,24 @@ component SigilRetrievalModel {
       A selected component contract groups goal, interface, state, logic,
       constraints, decisions, and cases by their owning component.
 
-      Every RetrievedComponent interface groups SemanticUnits by concept when a
-      concept identity exists and retains ungrouped interface units without inventing
-      a concept.
+      Every RetrievedComponent interface groups SemanticUnits by local grouping Tag
+      when a
+      local grouping Tag identity exists and retains ungrouped interface units
+      without inventing
+      a Tag.
 
       A non-selected dependency, importer, or cycle-member contract exposes only its
       goal and interface. A module-context contract exposes its selected summary
       sections only when that component identity has no other projection entry.
 
-      Matching expansion SemanticUnits merge into the owning component and matching
-      concept or section. An expansion is not a presentation component, relationship
-      category, or heading.
+      All SemanticUnits remain under their owning component and matching local
+      grouping Tag or contract. Repeated grouping occurrences collect additively
+      without overriding or duplicating their Facets; no expansion category remains.
 
       OwnershipLink records an advisory implements, uses, or tests relation, a
       repository-relative one-way implementation location, optional symbol, and
-      selected sections. It belongs to its owning component or concept and does not
+      selected sections. It belongs to its owning component or local grouping Tag and
+      does not
       prove implementation completeness or alignment.
     }
   }
@@ -84,7 +88,7 @@ component SigilRetrievalModel {
       identity. Section units retain raw evidence order.
 
       Module-context components sort after cycle members and before no other
-      component category; duplicate module-index summaries are omitted.
+      component category; duplicate ordinary project summaries are omitted.
 
       Projection locations use normalized repository-relative paths and one-based
       line and column values already carried by raw retrieval evidence.
@@ -149,10 +153,11 @@ component SigilRetrievalModel {
       report protocols.
 
       Trade-offs: The projection adds a maintained schema, but avoids making every
-      host reconstruct component, concept, expansion, ownership, and link grouping.
+      host reconstruct component, Tag, ownership, and link grouping.
 
-      Design issues addressed: Flat evidence kinds expose expansions and source
-      slices as peer content, producing repetitive Markdown that is difficult for
+      Design issues addressed: Flat evidence kinds expose source slices as peer
+      content,
+      producing repetitive Markdown that is difficult for
       people and agents to navigate.
 
       Discarded alternatives: Replacing raw v1 with a breaking grouped result and
@@ -168,9 +173,9 @@ component SigilRetrievalModel {
 
   cases {
     RetrievalProjection {
-      A selected component with a MarkdownOutput concept groups its declaration and
-      matching expansion interface units beneath MarkdownOutput without an expansion
-      heading.
+      A selected component with a MarkdownOutput local grouping Tag collects its
+      interface grouping occurrences beneath MarkdownOutput while preserving each
+      authored Facet and its source location.
 
       A selected component exposes its state, logic, constraints, decisions, and
       cases even when direct dependencies expose only their goal and interface.
@@ -181,13 +186,16 @@ component SigilRetrievalModel {
       A graph edge whose endpoint has no projected component produces no
       component-owned link.
 
-      An ownership annotation for a selected concept becomes an OwnershipLink under
-      that concept with the annotation's repository-relative line and column.
+      An ownership annotation for a selected local grouping Tag becomes an
+      OwnershipLink under
+      that local grouping Tag with the annotation's repository-relative line and
+      column.
 
       An implementation-purpose result contains advisory OwnershipLinks with a start
       location only and never embeds implementation-source slices.
 
-      A dependency interface unit with a concept identity occupies that named
+      A dependency interface unit with a local grouping Tag identity occupies that
+      named
       interface group on the dependency RetrievedComponent.
 
       Glossary-definition evidence becomes one projection glossary entry each and
