@@ -43,6 +43,98 @@ Treat that warning as a failure in the authored scope.
 If a Facet has no concept worth a Tag, it is usually not a separate promise.
 Merge it into the Facet it supports, or cut it.
 
+## Reuse a Tag before you define one
+
+Aim for few Tags used by many Facets. Every time two Facets name the same Tag,
+the claims check can compare their promises. A new name cuts that link, even
+when it means the same thing. So a new Tag is the last choice, not the first.
+
+### Take a Tag inventory before drafting
+
+List the Tags that already exist before you write any prose:
+
+```sh
+sigil export design | jq -r '.entities[] | select(.type=="Tag")
+  | "\(.source)  \(.owner | split(":") | last)  \(.label)"'
+```
+
+Each line shows the file, the owning Component, and the exact Tag name. If the
+command is unavailable, read the workspace `.sigil` files. Collect each
+`*inline definition*`, each group heading, and each `import { ... }` list.
+Keep the inventory next to you while drafting.
+
+### Pick each Tag in this order
+
+For each concept a Facet needs, stop at the first step that works:
+
+1. **Reuse a local Tag this Component owns.** If this Component already owns
+   the concept, write its exact name as a bare reference. A local Tag that
+   names another Component's concept is not reuse. It is a synonym; see below.
+2. **Import it from its owner.** If another Component owns the concept, add
+   `@path.sigil from Owner import { Tag }` to the consumer's file and write the
+   name as a bare reference. Import from the Component that defines the Tag.
+   Sigil has no re-exports, so a Component that only imports it cannot pass it
+   on.
+3. **Define it in the owner.** If no Tag names the concept yet, define it once,
+   in the Component that owns the concept. If that is another Component in your
+   authored scope, define it there and import it into the consumer.
+4. **Define it locally.** Only when this Component itself owns the concept.
+
+Reuse applies to every role. A Goal, Decisions, or Cases Facet can meet the
+Facet rule by naming an imported Tag. It does not need a new local one.
+
+### Rules that decide what works
+
+- **Import only what you reference.** Every imported Tag needs at least one
+  bare reference in the importing file, or `sigil check` reports
+  `SIGIL_UNUSED_TAG_IMPORT`.
+- **Never group under an imported Tag.** A group heading always introduces a
+  local Tag, so a heading with an imported name collides. Reference the
+  imported Tag in the prose instead.
+- **Put Components that share a Tag in separate files.** An import applies to
+  every Component in its file, including the Tag's owner, which then collides
+  with its own Tag.
+- **Keep the owner's names when revising.** Do not rename a Tag that other
+  files reference or import. If a rename is needed, change every reference and
+  import in the same revision. This never protects a synonym.
+
+### Replace synonyms in the files you edit
+
+When a file you edit has a local Tag that names a concept another Component
+already owns, replace it with an import from that owner. Do this even when the
+request did not mention it.
+
+This is a supported correction, not a scope change. The owner already defines
+the concept, so no ownership moves. Only the duplicate name goes away. Keeping
+it leaves two names the claims check cannot link.
+
+1. Compare the two texts. Replace when they clearly describe the same thing:
+   a calendar view's local `reservation` that "Booking confirms" is Booking's
+   own `booking`.
+2. Import the owner's Tag, rewrite every reference to use its exact name, and
+   remove the local definition.
+3. List each replacement in the report.
+
+Only when the two texts could mean different things, keep the local Tag and
+record the question.
+
+### Do not
+
+- Define a synonym of an existing Tag. The rules cannot link the two names, so
+  a promise about one never meets a promise about the other.
+- Define a local Tag with the same name as an imported one. That is a
+  `SIGIL_TAG_NAME_COLLISION` error.
+- Define the same inline Tag twice in one Component. Reference it instead.
+- Copy a provider's concept into the consumer as a new local Tag. Import it.
+
+A new Tag that only one Facet uses is often a synonym in disguise. Check the
+inventory again before keeping it.
+
+If a concept seems to belong to a Component outside your authored scope, and
+that Component does not define it, the owner is a design question. Record it as
+an open question. Do not define the Tag in the consumer just to clear the
+warning.
+
 ## Name the exact thing
 
 1. **Name the Tag, not the Component, when the promise is about the concept.**
@@ -113,11 +205,21 @@ it. The claims check does not detect this gap on its own.
 Check the authored scope against this list:
 
 - Every Facet names at least one Tag in its own prose.
+- A Tag inventory was taken before drafting.
+- Every new Tag is owned by the Component that defines it, and no Tag in the
+  inventory already names that concept.
+- Every Tag another Component owns is imported from that owner, not redefined.
+- No local Tag in an edited file is a synonym of a Tag another Component owns.
+- Every import is referenced at least once, and no group heading uses an
+  imported name.
 - No Tag shares a name with a Component.
 - The same concept uses the same Tag everywhere.
 - Every requirement has a provider one dependency away, or an open question
   about who provides it.
 - Every Logic step's result has a stated user or a stated end.
+
+Report the result with the draft: which Tags were reused, which were imported
+and from where, and each new Tag with the reason no existing Tag fit.
 
 Fix a failure by editing the prose. Do not add Facets or Tags only to satisfy
 the list. If the fix needs a policy the user has not decided, record it as an

@@ -6,7 +6,12 @@ Read the user's intent, selected design, and relevant provider or linked evidenc
 Use the sibling understanding skill's language authority and interpretation
 boundary. Distinguish authored commitments, supported deductions, unresolved
 human choices, and details implementation can choose. Preserve responsibility,
-contract roles, Tag identities and ownership when revising.
+contract roles, Tag identities and ownership when revising. Replacing a
+local synonym with its owner's Tag keeps identity; it removes a duplicate.
+
+Take the Tag inventory from [contract prose](contract-prose.md) before drafting.
+Reuse and import existing Tags first; define a new Tag only in the Component
+that owns its concept.
 
 Draft or revise the requested scope. Keep Goal and Interface meaningful without
 adding optional sections, exhaustive cases, helper decomposition, or internal

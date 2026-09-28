@@ -15,6 +15,10 @@ or require a functioning compiler.
 Write prose the claims check can read, as described in
 [contract prose](references/contract-prose.md). Every Facet must reference or
 define at least one Tag in its own prose; a group heading does not count.
+List the existing Tags before drafting. Reuse a local Tag first, then import
+it from its owning Component, and define a new Tag only when no existing Tag
+names the concept. In files you edit, replace a local synonym of another
+Component's Tag with an import from its owner.
 
 Read [the writing loop](references/writing-loop.md) before drafting. It consumes
 the evaluator-owned [review contract](../sigil-evaluate/references/review-contract.md);
@@ -32,6 +36,7 @@ another approval request. Retrieve accessible missing evidence yourself. Preserv
 consequential undecided policy for the human and stop repeated or oscillating
 findings with the issue visible. Never delete a meaningful promise to silence review.
 
-Return the current draft, resolved and remaining findings, and actual fresh review
-coverage. If delegation is unavailable or incomplete, return an independently
-unreviewed draft and portable handoff; a same-agent pass cannot replace it.
+Return the current draft, the Tags it reused, imported, and newly defined,
+resolved and remaining findings, and actual fresh review coverage. If
+delegation is unavailable or incomplete, return an independently unreviewed
+draft and portable handoff; a same-agent pass cannot replace it.
