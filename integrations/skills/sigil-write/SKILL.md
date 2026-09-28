@@ -12,6 +12,10 @@ and [grammar](../sigil-understand/references/language/sigil.ebnf) before authori
 These installed siblings supply 0.8.0 authority; do not substitute legacy rules
 or require a functioning compiler.
 
+Write prose the claims check can read, as described in
+[contract prose](references/contract-prose.md). Every Facet must reference or
+define at least one Tag in its own prose; a group heading does not count.
+
 Read [the writing loop](references/writing-loop.md) before drafting. It consumes
 the evaluator-owned [review contract](../sigil-evaluate/references/review-contract.md);
 read that contract before preparing any review request or using a report.

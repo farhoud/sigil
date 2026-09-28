@@ -2,11 +2,13 @@ import {
   isSupportedImplementationSource,
   loadSigilWorkspace,
   normalizePath,
+  orderDiagnostics,
   type ResolvedSigilWorkspace,
   resolveSigilWorkspace,
   type SigilFileSystem,
   type SourceText,
   supportedImplementationSourceGlobPatterns,
+  untaggedFacetDiagnostics,
 } from "@qoherent/sigil-core";
 import {
   definitionAt,
@@ -566,7 +568,12 @@ export class SigilLanguageServer {
     extraUris: readonly string[] = [],
   ): readonly JsonRpcOutgoing[] {
     const grouped = diagnosticsByUri(
-      this.#resolved?.diagnostics ?? [],
+      this.#resolved
+        ? orderDiagnostics([
+          ...this.#resolved.diagnostics,
+          ...untaggedFacetDiagnostics(this.#resolved),
+        ])
+        : [],
       this.#sources,
     );
     const currentUris = new Set<string>([

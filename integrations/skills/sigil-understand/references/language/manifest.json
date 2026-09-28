@@ -8,8 +8,8 @@
     {
       "source": "spec/sigil-reference.md",
       "output": "sigil-reference.md",
-      "sourceSha256": "ce82d60419826eb5a91153ee5b7f3426dc1b5d745539f895cb85f07fd06361e9",
-      "outputSha256": "5ee1c9472d8775da256377696c026e5fef108627903db632ab7d1e64b8e519a0"
+      "sourceSha256": "13efe6bc3394d17ecae67fcbc3ef791f77bca556bda6ad6fc52f5d5faac0c4db",
+      "outputSha256": "5a40ae14e4fa0aaf1db4912146e154f9d8bf7f12dad93c3056bed1670a72868c"
     },
     {
       "source": "spec/sigil.ebnf",

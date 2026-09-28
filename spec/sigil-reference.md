@@ -540,6 +540,14 @@ Recognize Facet boundaries, payloads, and complete links before scanning eligibl
 prose for Tags. Definitions and references cannot span protected regions.
 Attaching a payload must not change recognition in unchanged introductory prose.
 
+### Facet Tags (tag.facet)
+
+Every Facet should reference or define at least one Tag in its own eligible
+prose. A resolved bare reference or a valid inline definition counts. A grouping
+heading, a fenced payload, a complete link, and a component mention do not.
+A Facet without one is valid but receives the advisory `SIGIL_UNTAGGED_FACET`
+warning. Skip this check for sources whose recovery is incomplete.
+
 ## Workspaces and imports
 
 ### Discovery (workspace.discovery)
@@ -772,6 +780,12 @@ require a parser to detect contradictions or a tool to decide arbitrary prose.
 An explicit open question is not a syntax error; whether it blocks a task is an
 interpretation result relative to that task.
 
+### Advisory diagnostics
+
+| Code | Condition | Required result |
+| --- | --- | --- |
+| `SIGIL_UNTAGGED_FACET` | A Facet has no resolved Tag reference or valid inline definition in its own eligible prose. | Warning at the Facet's prose; the source remains valid. |
+
 ### Recovery and suppression (diagnostic.recovery)
 
 Recover at existing Facet or structural boundaries; never silently create a
@@ -930,6 +944,7 @@ Use the complete provider and consumer sources in the guide's
 | Wrap an ordinary paragraph without splitting or creating a Tag reference | One Facet with unchanged references. |
 | Group header containing one paragraph | One Facet, not two. |
 | Group with no Facets | `SIGIL_EMPTY_TAG_GROUP`. |
+| Facet whose only Tag is its group heading | `SIGIL_UNTAGGED_FACET` warning; the source stays valid. |
 | Group inside another group | `SIGIL_NESTED_TAG_GROUP`. |
 | Second Logic section in a component | `SIGIL_DUPLICATE_SECTION`; sections are not merged. |
 | Goal containing only whitespace | `SIGIL_MISSING_GOAL`. |

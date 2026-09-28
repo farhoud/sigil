@@ -2,6 +2,7 @@
 @spec/glossary.sigil from SigilWorkspaceGlossary import { GlossaryFile, ContextResolution, TermRecognition }
 @spec/language.sigil from SigilWorkspaceConfig import { WorkspaceBoundary, ConfigFile }
 @spec/language.sigil from SigilLanguage import { SourceDocument, TagIdentity, EmbeddedContent }
+@packages/core/src/resolver.sigil from SigilResolver import { UntaggedFacet }
 
 component SigilLsp {
   goal {
@@ -45,8 +46,8 @@ component SigilLsp {
     }
 
     DiagnosticPublishing {
-      publishes structural and workspace diagnostics through
-      textDocument/publishDiagnostics
+      publishes structural and workspace diagnostics, including each UntaggedFacet
+      warning, through textDocument/publishDiagnostics
     }
 
     NavigationAndInspection {

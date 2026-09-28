@@ -133,6 +133,7 @@ export async function runCommand(
       ...resolved.diagnostics,
       ...implementationSourceDiscovery.diagnostics,
       ...ownershipDiagnostics,
+      ...core.untaggedFacetDiagnostics(resolved),
     ]).map((diagnostic) => ({
       ...diagnostic,
       sourceLocation: diagnostic.range

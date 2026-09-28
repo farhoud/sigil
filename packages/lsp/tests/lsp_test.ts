@@ -502,7 +502,8 @@ Deno.test("ownership hover cache shares scans and invalidates on watched changes
 Deno.test("navigates imported Tags with full provider and consumer contracts", async () => {
   const server = makeServer();
   await initialize(server);
-  const position = positionOf(consumerSource, "Execution", 1);
+  // Occurrence 2 is the interface use; 0 is the import and 1 the goal.
+  const position = positionOf(consumerSource, "Execution", 2);
   const definition = responseResult(
     await server.handle(
       request(2, "textDocument/definition", {
@@ -1098,17 +1099,17 @@ Deno.test("stdio executable completes initialize, shutdown, and exit", async () 
 
 const contractSource = `component Thing {
   goal {
-    Represent one useful thing.
+    Represent one useful Execution.
   }
 
   interface {
     Execution {
-      run()
+      run() starts an Execution.
     }
   }
   cases {
     Execution {
-      Running succeeds.
+      Running succeeds. Each Execution ends.
     }
   }
 }
@@ -1118,14 +1119,15 @@ const consumerSource = `@contract.sigil from Thing import { Execution }
 
 component Consumer {
   goal {
-    Consume the provider contract.
+    Consume the provider contract for Execution.
   }
 
   interface {
     ConsumerSurface {
       run() uses Execution.
 
-      execution and ExecutionCache remain prose.
+      execution and ExecutionCache remain prose
+      beside Execution.
     }
   }
   constraints {

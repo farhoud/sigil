@@ -49,6 +49,7 @@ import {
   type SigilWorkspace,
   type TagNamespace,
   tagNamespaceFor,
+  untaggedFacetDiagnostics as coreUntaggedFacetDiagnostics,
   type WorkspaceDiscoveryResult,
 } from "@qoherent/sigil-core";
 import { DenoSigilFileSystem } from "./fs-adapter.ts";
@@ -409,6 +410,11 @@ export class CoreAdapter {
     implementationSources: readonly ImplementationSource[],
   ): readonly SigilDiagnostic[] {
     return coreOwnershipDiagnosticsFor(resolved, implementationSources);
+  }
+  untaggedFacetDiagnostics(
+    resolved: ResolvedSigilWorkspace,
+  ): readonly SigilDiagnostic[] {
+    return coreUntaggedFacetDiagnostics(resolved);
   }
   // @sigil implements packages/cli/_module.sigil::SigilCli::OwnershipContext interface,logic,constraints,cases
   async implementationSourcesFor(

@@ -10,7 +10,9 @@ contract roles, Tag identities and ownership when revising.
 
 Draft or revise the requested scope. Keep Goal and Interface meaningful without
 adding optional sections, exhaustive cases, helper decomposition, or internal
-code structure as completion requirements. An omitted detail warrants a design
+code structure as completion requirements. Follow [contract prose](contract-prose.md):
+every Facet names at least one Tag in its own prose, and each promise uses the
+exact Tag and plain relation it is about. An omitted detail warrants a design
 question only if evidence shows a consequential behavior or architectural choice
 that implementation cannot safely decide within the contract. Consolidate
 repetition while retaining independent promises and meaningful constraints.
@@ -30,6 +32,8 @@ errors; submit related authored files together when batch support is available.
 Keep completed diagnostics visible, including unrelated errors that block
 formatting. Do not broaden writes or change policy to clear them. Continue
 meaningful writing and review if tooling or mechanical coverage is unavailable.
+Then run the [contract prose](contract-prose.md) checklist over the authored
+scope and fix failures in the prose before capture.
 
 ## Capture and delegate
 

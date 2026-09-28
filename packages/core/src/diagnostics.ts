@@ -97,7 +97,7 @@ function diagnosticStage(code: SigilDiagnosticCode): DiagnosticStage {
     /^SIGIL_(LINK_TARGET|INTERPRETATION|SEMANTIC|LAYOUT_DEPENDENT)/.test(code)
   ) return "interpretation";
   if (
-    /^SIGIL_(UNRESOLVED|DUPLICATE_COMPONENT|DUPLICATE_TAG|TAG_NAME_COLLISION|UNUSED_TAG)/
+    /^SIGIL_(UNRESOLVED|DUPLICATE_COMPONENT|DUPLICATE_TAG|TAG_NAME_COLLISION|UNUSED_TAG|UNTAGGED_FACET)/
       .test(code)
   ) return "resolution";
   if (/^SIGIL_(MISSING|DUPLICATE_SECTION|EMPTY_TAG|NESTED_TAG)/.test(code)) {

@@ -24,6 +24,12 @@ component SigilResolver {
       Each component exposes its local and selected imported Tag identities, grouping
       occurrences, inline definitions, and actual consumer references.
     }
+
+    UntaggedFacet {
+      untaggedFacetDiagnostics(resolution) returns one SIGIL_UNTAGGED_FACET warning
+      for each UntaggedFacet: a Facet with no resolved Tag reference or valid inline
+      definition in its own prose.
+    }
   }
 
   logic {
@@ -58,6 +64,12 @@ component SigilResolver {
       selection is an error; unresolved or ambiguous selections do not also receive
       unused-import errors.
     }
+
+    UntaggedFacet {
+      A grouping heading, an ambiguous reference, a fenced payload, and a complete
+      link do not tag a Facet. Sources with incomplete recovery report no
+      UntaggedFacet.
+    }
   }
 
   constraints {
@@ -84,6 +96,11 @@ component SigilResolver {
       contract role, implementation claim, or runtime obligation to the provider.
       Language importability does not create public/private runtime access policy.
     }
+
+    UntaggedFacet {
+      resolveSigilRelationships reports no UntaggedFacet; hosts add these warnings
+      only to check and editor diagnostics.
+    }
   }
 
   cases {
@@ -102,6 +119,11 @@ component SigilResolver {
       A longer complete accessible name wins an overlapping bare-reference match. A
       wrapped display paragraph cannot create a reference across physical lines. A
       link label or fenced example does not satisfy import use.
+    }
+
+    UntaggedFacet {
+      A Facet whose only Tag is its grouping heading is an UntaggedFacet. A Facet
+      that references an imported Tag is not.
     }
   }
 }

@@ -372,11 +372,21 @@ Deno.test("check returns 1 for Sigil diagnostics and 0 for a valid empty workspa
 Deno.test("check accepts ungrouped and mixed Interface Facets without warnings", async () => {
   const root = await makeWorkspace("optional-concepts");
   try {
+    // Every Facet names a Tag, so grouping alone is what varies.
     const sources = [
-      validSigil("Feature"),
       `component Feature {
   goal {
-    Read and update records.
+    Test each *feature run*.
+  }
+
+  interface {
+    run() starts a feature run.
+  }
+}
+`,
+      `component Feature {
+  goal {
+    Read and update each *Record*.
   }
 
   interface {
@@ -390,7 +400,7 @@ Deno.test("check accepts ungrouped and mixed Interface Facets without warnings",
       write(Record) updates the stored value.
     }
 
-    Operations complete synchronously.
+    Operations on a Record complete synchronously.
   }
 }
 `,
@@ -403,6 +413,48 @@ Deno.test("check accepts ungrouped and mixed Interface Facets without warnings",
       assertEquals(output.diagnosticCounts.error, 0);
       assertEquals(output.diagnosticCounts.warning, 0);
     }
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("check warns about each Facet with no Tag in its own prose", async () => {
+  const root = await makeWorkspace("untagged-facets");
+  try {
+    await Deno.writeTextFile(
+      `${root}/contract.sigil`,
+      `component Feature {
+  goal {
+    Keep each *Record* current.
+  }
+
+  interface {
+    Record {
+      read() returns the stored value.
+    }
+
+    write() updates Record.
+
+    Operations complete synchronously.
+  }
+}
+`,
+    );
+    const result = await runCli(["check", root, "--format", "json"]);
+    assertEquals(result.exitCode, EXIT_OK);
+    const output = parseJson(result.stdout);
+    assertEquals(output.diagnosticCounts.error, 0);
+    // The grouped Facet and the last Facet name no Tag in their own prose.
+    const untagged = output.diagnostics.filter((
+      d: { code: string },
+    ) => d.code === "SIGIL_UNTAGGED_FACET");
+    assertEquals(untagged.length, 2);
+    assertEquals(output.diagnosticCounts.warning, 2);
+    assert(
+      untagged.every((d: { severity: string; stage: string }) =>
+        d.severity === "warning" && d.stage === "resolution"
+      ),
+    );
   } finally {
     await Deno.remove(root, { recursive: true });
   }

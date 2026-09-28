@@ -57,6 +57,9 @@ component SigilDiagnostics {
       SIGIL_UNUSED_TAG_IMPORT is an error for one resolved imported name without
       qualifying local use.
 
+      SIGIL_UNTAGGED_FACET is a warning DiagnosticCode; a Facet without a Tag in its
+      own prose stays valid.
+
       Removed expand syntax receives the normative structural diagnostic; it is never
       attached to another component.
 

@@ -9,6 +9,7 @@
 @spec/glossary.sigil from SigilWorkspaceGlossary import { GlossaryFile }
 @spec/language.sigil from SigilWorkspaceConfig import { ConfigFile, SourceSelection }
 @spec/language.sigil from SigilLanguage import { LanguageVersion }
+@packages/core/src/resolver.sigil from SigilResolver import { UntaggedFacet }
 
 component SigilCli {
   goal {
@@ -102,7 +103,8 @@ component SigilCli {
       sigil render [path]
 
       check reports resolved workspace diagnostics together with deterministic
-      ownership-annotation diagnostics from supported implementation sources
+      ownership-annotation diagnostics from supported implementation sources and
+      an UntaggedFacet warning for each Facet without a Tag
 
       context reports a scoped glossary projection for the selected component or file
       and its related sources

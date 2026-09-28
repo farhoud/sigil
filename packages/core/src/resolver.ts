@@ -483,3 +483,49 @@ export function resolveSigilRelationships(
     });
   }
 }
+
+/**
+ * Advisory: every Facet should name a Tag in its own prose, so interpretation
+ * can ground claims in something narrower than a component. A group heading
+ * is not part of the Facet's prose and does not count.
+ */
+// @sigil implements packages/core/src/resolver.sigil::SigilResolver::UntaggedFacet interface,logic,constraints,cases
+export function untaggedFacetDiagnostics(
+  resolution: SigilResolution,
+): readonly SigilDiagnostic[] {
+  const complete = new Set(
+    resolution.workspace.files.filter((f) => f.document.complete).map((f) =>
+      normalizePath(f.path)
+    ),
+  );
+  const diagnostics: SigilDiagnostic[] = [];
+  for (const component of resolution.components) {
+    // Absence-based: skip sources whose recovery hides authored content.
+    if (!complete.has(normalizePath(component.filePath))) continue;
+    // An ambiguous reference names no Tag, so it does not count.
+    const tagged = new Set(
+      component.references.filter((r) => r.status === "resolved").map((r) =>
+        r.facetId
+      ),
+    );
+    for (const section of component.declaration.sections) {
+      for (const facet of section.units) {
+        if (tagged.has(facet.id) || facet.definitions.some((d) => d.valid)) {
+          continue;
+        }
+        diagnostics.push(
+          diagnostic(
+            "SIGIL_UNTAGGED_FACET",
+            "Facet has no Tag reference or inline Tag definition in its prose.",
+            {
+              severity: "warning",
+              filePath: component.filePath,
+              range: facet.proseRange,
+            },
+          ),
+        );
+      }
+    }
+  }
+  return orderDiagnostics(diagnostics);
+}
