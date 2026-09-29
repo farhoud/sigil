@@ -15,6 +15,7 @@
 @booking.sigil from Booking import {
   booking request,
   requested range,
+  request limits,
   renter,
   Pending,
   Confirmed,
@@ -28,13 +29,13 @@ component Calendar {
   }
 
   interface {
-    Calendar provides the room calendar for a room, an actor, the clock and a
-    calendar range of room-local dates, shown in the room timezone with its zone
-    label.
+    Calendar provides the room calendar of a room, shown in the room timezone
+    with its zone label. Calendar assumes its caller passes the actor, the clock
+    and a calendar range of room-local dates.
 
     For the room owner, the room calendar shows open time, each blackout, each
-    Confirmed booking request with its renter, each Pending booking request, and
-    each Confirmed one that is outside availability.
+    Confirmed booking request with its renter and each Pending booking request,
+    and marks each Confirmed one that is outside availability.
 
     Calendar requires the *renter display name* of each renter it shows to the
     room owner.
@@ -64,8 +65,8 @@ component Calendar {
 
   constraints {
     A slot on the slot grid is requestable only when it lies within open time,
-    overlaps no Confirmed booking request, starts after the clock and at most
-    180 room-local days after it, as Booking measures the request limits, is
+    overlaps no Confirmed booking request, starts after the clock and within the
+    start horizon of the request limits, is
     not the second occurrence of a repeated local time, the actor is not the
     room owner, and the room is not an archived room;
     range-level rules are checked by Booking on submission.

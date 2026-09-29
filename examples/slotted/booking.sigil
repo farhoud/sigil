@@ -69,8 +69,8 @@ component Booking {
     Booking exclusively owns the archived room mark, since only the archive
     workflow may set or clear it.
 
-    A Declined booking request carries one decline cause: declined by owner,
-    overlapping approval, availability change, or archive.
+    Booking records one decline cause on each Declined booking request:
+    declined by owner, overlapping approval, availability change, or archive.
 
     A requested range is a half-open span of instants that starts and ends on
     the slot grid in the room timezone.
@@ -155,9 +155,9 @@ component Booking {
     A requested range whose end is not after its start is rejected with the
     invalid range rejection reason.
 
-    A requested range must start at most 180 days after the clock and last at
-    most 7 days, both measured in room-local calendar days and clock times in the
-    room timezone.
+    The *request limits* are that a requested range must start at most 180 days
+    after the clock and last at most 7 days, both measured in room-local calendar
+    days and clock times in the room timezone.
 
     A renter must not hold two Pending booking request records with the same
     requested range on the same room.

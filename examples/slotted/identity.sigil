@@ -1,4 +1,5 @@
-@rooms.sigil from Rooms import { room }
+@rooms.sigil from Rooms import { room, room owner }
+@booking.sigil from Booking import { renter, booking request }
 
 component Identity {
   goal {
@@ -18,8 +19,9 @@ component Identity {
   }
 
   state {
-    Each user has one account type; being an owner or a renter comes from the
-    user's relationship to a room or request, not from the user record.
+    Each user has one account type; being a room owner or a renter comes from
+    the user's relationship to a room or booking request, not from the user
+    record.
   }
 
   logic {

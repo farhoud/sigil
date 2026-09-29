@@ -84,8 +84,9 @@ component Slotted {
       mutations.
 
       Each module boundary may depend only on these others, with no cycle:
-      Booking on Availability and Rooms, Availability on Rooms, Rooms on
-      Identity, and Calendar on Booking, Availability and Rooms.
+      Booking on Identity, Availability and Rooms, Availability on Identity and
+      Rooms, Rooms on Identity, and Calendar on Identity, Booking, Availability
+      and Rooms.
 
       Lint rules must enforce the module boundary rules, and a dependency graph
       check must reject cycles and cross-module internal imports in CI.

@@ -1,6 +1,7 @@
 @identity.sigil from Identity import { actor }
 @slotted.sigil from Slotted import { app layer }
 @rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
+@booking.sigil from Booking import { booking request, Pending }
 
 component Availability {
   goal {
@@ -21,7 +22,8 @@ component Availability {
     Availability provides each blackout of a room within a range of room-local
     dates.
 
-    The *clock* is the single caller-supplied source of the current instant.
+    Availability provides the *clock*, the single caller-supplied source of the
+    current instant.
   }
 
   state {
@@ -30,7 +32,8 @@ component Availability {
     A weekly window starts and ends on the slot grid, may end at 24:00, and
     covers the half-open span from its start to its end.
 
-    A weekly window must not overlap another weekly window on the same weekday.
+    Each weekly window must stay clear of every other weekly window on the same
+    weekday.
 
     A *nonexistent local time* is a room-local time skipped by a daylight
     saving jump in the room timezone.
@@ -69,7 +72,8 @@ component Availability {
     Every change to a weekly window or a blackout must run inside the room lock
     and must be invoked only by Booking, never directly by the app layer.
 
-    Availability must not decline, cancel or flag any booking itself; it only
+    Availability must not decline, cancel or flag any booking request itself; it
+    only
     reports open time.
   }
 
@@ -78,7 +82,7 @@ component Availability {
     each weekly window relative to absolute time.
 
     Every change to a weekly window or a blackout goes through Booking because
-    each change requires a sweep of pending requests on the room.
+    each change requires a sweep of Pending booking request records on the room.
   }
 
   cases {
