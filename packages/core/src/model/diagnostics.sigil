@@ -2,7 +2,7 @@
 
 component SigilDiagnosticModel {
   goal {
-    Define immutable diagnostic vocabulary and source-ranged diagnostic data.
+    Define immutable *diagnostics* vocabulary and source-ranged diagnostic data.
   }
 
   interface {
@@ -15,10 +15,10 @@ component SigilDiagnosticModel {
       range when available, and related conflicting locations. The
       [normative
       reference](../../../../spec/sigil-reference.md#diagnostics-and-recovery)
-      owns catalog, ordering, coalescing, recovery, and suppression behavior.
+      owns *catalog*, ordering, coalescing, recovery, and suppression behavior.
 
       Partial results distinguish invalidity and unknown completeness from valid
-      authored content, so incomplete recovery cannot support absence-based checks.
+      authored content, so incomplete recovery cannot support *absence-based checks*.
     }
   }
 }

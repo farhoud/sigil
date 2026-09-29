@@ -12,7 +12,7 @@ import type { PhysicalLine, SourceText } from "./source-text.ts";
 /*
  * @sigil implements packages/core/src/formatter.sigil::SigilFormatter::Formatting interface,logic,cases
  * @sigil implements packages/core/src/formatter.sigil::SigilFormatter::MeaningPreservation logic
- * @sigil implements packages/core/src/formatter.sigil::SigilFormatter::DeterministicFormatting constraints
+ * @sigil implements packages/core/src/formatter.sigil::SigilFormatter::Formatting constraints
  */
 export function formatSigilDocument(
   document: SigilDocument,

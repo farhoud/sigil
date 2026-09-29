@@ -1,17 +1,19 @@
 @integrations/editor/vscode/_module.sigil from SigilVsCodeExtension import { ExtensionPackage }
 @packages/lsp/_module.sigil from SigilLsp import { LspPackage }
-@packages/sigilc/_module.sigil from SigilSemanticCompiler import { FrontendBoundary }
+@packages/sigilc/_module.sigil from SigilSemanticCompiler import { FrontendBoundary, language interpretation }
 @packages/cli/_module.sigil from SigilCli import { CliInvocation, DesignExport }
 @packages/core/_module.sigil from SigilCore import { CorePackage }
 @spec/language.sigil from SigilWorkspaceConfig import { WorkspaceBoundary, ConfigFile }
-@spec/language.sigil from SigilLanguage import { LanguageVersion, ComponentContract, TagIdentity }
+@spec/language.sigil from SigilLanguage import { LanguageVersion, ComponentContract, TagIdentity, resolution }
+@packages/core/src/workspace.sigil from SigilWorkspaceLoader import { ModuleIndexFile }
 
 component Sigil {
   goal {
-    Enable humans and coding agents to preserve, inspect, and evolve software
+    Enable humans and coding agents to preserve, inspect, and *evolve software*
     rationale through one versioned language and toolchain.
 
-    Keep deterministic language facts separate from host-assisted semantic judgment
+    Keep *deterministic language facts* separate from host-assisted semantic
+    judgment
     and explicit human approval.
   }
 
@@ -19,32 +21,34 @@ component Sigil {
     ComponentContractOverview {
       ComponentContractOverview adapts ComponentContract for the root boundary.
 
-      lets humans and coding agents share durable public contracts and operational
+      lets *humans* and coding agents share durable public contracts and operational
       rationale for coherent software parts
     }
 
     WorkspaceBoundarySelection {
       WorkspaceBoundarySelection adapts WorkspaceBoundary for root tool selection.
 
-      lets tools select a configured workspace and discover its included Sigil
+      lets tools select a *configured workspace* and discover its included Sigil
       sources consistently
     }
 
     TagSelectionGuarantee {
       TagSelectionGuarantee exposes the TagIdentity contract at the root boundary.
 
-      keeps every component-owned Tag selectable through an explicit declaring file,
+      keeps every *component-owned Tag selectable* through an explicit declaring
+      file,
       provider component, and exact Tag name
     }
 
     ToolchainSurfaces {
-      provides non-interactive command-line automation, editor-neutral language
+      provides *non-interactive command-line automation*, editor-neutral language
       intelligence, and a VS Code authoring surface
 
       CliInvocation, LspPackage, and ExtensionPackage provide the command-line,
       language-server, and VS Code surfaces through their owning components
 
-      keeps command-line and language-server operations from modifying .sigil source,
+      keeps *command-line* and language-server operations from modifying .sigil
+      source,
       except for explicitly requested CLI source formatting
     }
 
@@ -52,7 +56,7 @@ component Sigil {
       SkillWorkflowIntegration integrates SkillWorkflow into the host-neutral root
       workflow.
 
-      provides a host-neutral agent workflow for design clarification, semantic
+      provides a *host-neutral agent workflow* for design clarification, semantic
       review, explicit approval, and Sigil-guided implementation
     }
 
@@ -67,22 +71,23 @@ component Sigil {
 
   state {
     ReleaseMaturity {
-      Sigil artifacts are pre-production.
+      *Sigil artifacts* are pre-production.
     }
   }
 
   logic {
     DeterministicSemantics {
-      Core computes parsing, configuration, workspace, resolution, graph, projection,
+      Core computes parsing, configuration, workspace, resolution, graph,
+      projection,
       and diagnostic facts shared by toolchain surfaces.
     }
 
     SkillWorkflow {
       The host skill applies semantic judgment, conducts design and review
-      conversations, and honors the user's existing authorization for scoped Sigil
+      *conversations*, and honors the user's existing authorization for scoped Sigil
       and implementation.
 
-      Writing and evaluation use a verified compatible CLI for mechanical checks
+      Writing and *evaluation* use a verified compatible CLI for mechanical checks
       when available. Writing checks the real workspace, applies supported
       corrections, formats only authored targets, and rechecks before capturing
       exact bytes for fresh independent review. Evaluation runs check and fmt
@@ -100,19 +105,17 @@ component Sigil {
 
   constraints {
 
-    CurrentAndHistoricalDesign {
-      Bind current designs to [the reference](spec/sigil-reference.md),
+      Bind current *designs* to [the reference](spec/sigil-reference.md),
       [grammar](spec/sigil.ebnf), and [migration guide](spec/migrating-to-0.8.md).
       These designs specify intended 0.8 behavior pending implementation and do not
       claim legacy compiler validation or current implementation conformance.
 
       Retain [the historical skill](integrations/skills/sigil/SKILL.md) as frozen 0.7
-      material outside active 0.8 discovery and compatibility. The current
+      material outside *active 0.8 discovery* and compatibility. The current
       [understanding](integrations/skills/sigil-understand/SKILL.md),
       [writing](integrations/skills/sigil-write/SKILL.md), and
       [evaluation](integrations/skills/sigil-evaluate/SKILL.md) siblings own current
       design workflows.
-    }
 
     RootLanguageVersion {
       LanguageVersion owns the single language and workspace-configuration version
@@ -121,7 +124,7 @@ component Sigil {
 
     ArtifactVersionOwnership {
       Package and integration manifests own distributable artifact versions; the root
-      Sigil contract does not duplicate them.
+      *Sigil contract* does not duplicate them.
     }
 
     RootComponentContract {
@@ -135,26 +138,24 @@ component Sigil {
       declared members.
     }
 
-    ModuleIndexFile {
-      _module.sigil is an ordinary source with no directory-import, namespace,
-      re-export, or workspace-discovery authority.
-    }
+    The root ModuleIndexFile is an ordinary source with no directory-import,
+    namespace, re-export, or workspace-discovery authority.
 
     ToolchainSurfaces {
       CLI and LSP workspace operations report or project Sigil semantics without
-      modifying .sigil source, except explicit source-formatting commands scoped to
+      modifying .sigil source, except *explicit source-formatting commands* scoped to
       the selected Sigil files.
     }
 
     SkillWorkflow {
-      Host-assisted semantic judgment remains outside deterministic core packages.
+      Host-assisted semantic judgment remains outside *deterministic core packages*.
 
-      Current understanding, writing, and independent evaluation follow the sibling
+      Current understanding, writing, and *independent evaluation* follow the sibling
       skills and the user existing scoped authorization. Undecided consequential
       policy remains human-owned; determined preservation corrections proceed
       autonomously.
 
-      Mechanical observations identify the actual CLI, workspace, selected targets,
+      Mechanical observations identify the *actual CLI*, workspace, selected targets,
       assessed bytes, outcomes, and diagnostics separately from semantic findings.
       Configuration and other CLI inputs remain part of that observation's scope.
       A captured review claims live mechanical evidence only when the relevant
@@ -162,14 +163,14 @@ component Sigil {
 
       Missing or incompatible tooling, unavailable workspace context, or denied
       access leaves mechanical validation unavailable while design work continues.
-      Completed diagnostics remain findings, never unavailable or clean results.
+      *Completed diagnostics* remain findings, never unavailable or clean results.
       Mechanical success proves neither design coherence nor implementation
       conformance. Formatting after capture invalidates review freshness, and
       unrelated workspace diagnostics never authorize broader source edits.
     }
 
     SemanticCompilation {
-      Native sigilc owns semantic laws, content identity and disposable worlds.
+      Native sigilc owns semantic laws, content identity and *disposable worlds*.
       Independent Implementation workers receive exactly one captured source, the
       fixed ontology and the frozen Design identity catalog, without Design prose or
       relationships. No provider framework, compiler facade, receipt verifier,
@@ -180,7 +181,7 @@ component Sigil {
     }
 
     ReleaseMaturity {
-      Pre-production artifacts make no production-readiness or compatibility
+      Pre-production artifacts make no *production-readiness* or compatibility
       guarantee beyond their declared versioned contracts.
     }
   }
@@ -205,20 +206,22 @@ component Sigil {
     }
 
     SkillWorkflow {
-      A consequential policy not settled by supplied intent remains visible for human
+      A consequential policy not settled by supplied intent remains visible for
+      *human*
       decision; intent-preserving corrections follow current writing/evaluation
       guidance.
     }
 
     ArtifactVersionOwnership {
-      Changing a distributable artifact version updates its owning manifest without
+      Changing a *distributable artifact version* updates its owning manifest without
       requiring a duplicate root-contract version edit.
     }
 
     SemanticCompilation {
       The language CLI exports structural Design without a semantic runtime. Native
-      preparation and ingestion produce disposable source-local objects; global
-      closure derives shared meaning without a model-owned verdict. The editor
+      preparation and ingestion produce disposable source-local objects;
+      *global closure* derives shared meaning without a model-owned verdict. The
+      editor
       consumes native named states and diagnostics directly. A scoped green result
       never authorizes deployment or proves full delivery.
     }

@@ -4,7 +4,7 @@
 
 component SigilResolver {
   goal {
-    Resolve explicit Tag selections and component-owned vocabulary collectively
+    Resolve *explicit Tag selections* and component-owned vocabulary collectively
     across one loaded workspace, retaining deterministic partial results.
   }
 
@@ -16,12 +16,14 @@ component SigilResolver {
     }
 
     ImportUse {
-      Each resolved selection records qualifying bare-reference use in its source,
+      Each resolved *selection* retains qualifying *bare-reference use* in its
+      source,
       including exact Facet owner, contract role, kind, and authoritative range.
     }
 
     TagResolution {
-      Each component exposes its local and selected imported Tag identities, grouping
+      Each component exposes its local and *selected imported Tag identities*,
+      grouping
       occurrences, inline definitions, and actual consumer references.
     }
 
@@ -39,7 +41,8 @@ component SigilResolver {
       owner-file/component/selected-name tuple against that owner. Preserve
       diagnostics for missing, duplicate, and ambiguous identities.
 
-      Resolve collective mutual imports independently of source order; visited source
+      Resolve *collective mutual imports* independently of source order; visited
+      source
       and identity sets terminate cycles. Cycles alone are valid and do not establish
       requirement satisfaction.
     }
@@ -51,18 +54,19 @@ component SigilResolver {
       identity.
 
       Match bare references on original physical lines against accessible exact
-      names, using the normative complete-name boundaries and longest-match ordering.
+      names, using the *normative complete-name boundaries* and longest-match
+      ordering.
       Preserve every qualifying range and its consumer-owned Facet.
     }
 
     ImportUse {
       All seven contracts can use selected Tags, including introducing prose before
-      an embedded payload. Complete links and images and fenced payloads are inert.
+      an *embedded payload*. Complete links and images and fenced payloads are inert.
 
       Diagnose duplicate selections, unknown selections, local/import collisions, and
       different accessible identities with the same exact spelling. A resolved unused
       selection is an error; unresolved or ambiguous selections do not also receive
-      unused-import errors.
+      *unused-import errors*.
     }
 
     UntaggedFacet {
@@ -74,7 +78,8 @@ component SigilResolver {
 
   constraints {
     LanguageAuthority {
-      Follow [the normative reference](../../../spec/sigil-reference.md),
+      Follow the *normative sources* at [the normative
+      reference](../../../spec/sigil-reference.md),
       [grammar](../../../spec/sigil.ebnf), and [migration
       guidance](../../../spec/migrating-to-0.8.md).
     }
@@ -87,11 +92,13 @@ component SigilResolver {
     }
 
     TagResolution {
-      Names are case-sensitive with no whitespace or Unicode normalization, aliases,
+      Names are case-sensitive with no *whitespace* or Unicode normalization,
+      aliases,
       dotted qualification, shadowing, or re-export. Unmatched ordinary words are not
       unresolved Tags. Directory imports and expansion collection do not exist.
 
-      Provider interpretation uses its complete component declaration. Only selected
+      Provider interpretation uses its *complete component declaration*. Only
+      selected
       names enter consumer scope. References never transfer a consumer Facet,
       contract role, implementation claim, or runtime obligation to the provider.
       Language importability does not create public/private runtime access policy.
@@ -106,17 +113,17 @@ component SigilResolver {
   cases {
     RelationshipResolution {
       One valid and one invalid selection retain the valid identity and diagnostics
-      for the invalid selection. An unused valid selection produces its own error.
+      for the invalid selection. An *unused valid selection* produces its own error.
 
-      Mutual valid Tag selections terminate and preserve both owners. Invalid
+      Mutual valid Tag selections terminate and preserve both *owners*. Invalid
       selections inside a cycle remain invalid.
     }
 
     TagResolution {
       A local grouping and one inline definition share one exact Tag identity;
-      another inline definition conflicts. A same-spelled imported Tag collides.
+      another *inline definition conflicts*. A same-spelled imported Tag collides.
 
-      A longer complete accessible name wins an overlapping bare-reference match. A
+      A longer *complete accessible name* wins an overlapping bare-reference match. A
       wrapped display paragraph cannot create a reference across physical lines. A
       link label or fenced example does not satisfy import use.
     }

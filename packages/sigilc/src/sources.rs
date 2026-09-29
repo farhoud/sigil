@@ -64,7 +64,7 @@ pub fn implementation_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
-// @sigil implements packages/sigilc/sources.sigil::SigilSourceIdentity::SourceSelection interface
+// @sigil implements packages/sigilc/sources.sigil::SigilSourceIdentity::CompilerInputSelection interface
 pub fn discover(root: &Path, selection: &Selection) -> Result<SourceManifest, String> {
     let root = root.canonicalize().map_err(|e| e.to_string())?;
     for vendor in &selection.vendor_dirs {

@@ -136,7 +136,7 @@ test("editor title compile action uses the same focus-selection command as the s
 
 /*
  * @sigil tests integrations/editor/vscode/_module.sigil::SigilVsCodeExtension::ExtensionPackage interface,constraints,cases
- * @sigil tests integrations/editor/vscode/_module.sigil::SigilVsCodeExtension::ArtifactVersionOwnership constraints
+ * @sigil tests _module.sigil::Sigil::ArtifactVersionOwnership constraints
  */
 test("package command derives the VSIX filename from the manifest version", async () => {
   const manifest = JSON.parse(await readFile("package.json", "utf8"));

@@ -1,6 +1,6 @@
 component ReleaseFixture {
   goal {
-    Exercise the packaged native runtime.
+    Exercise the *packaged native runtime*.
   }
   interface {
     *fixture operation* accepts a deterministic input.

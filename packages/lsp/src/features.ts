@@ -191,7 +191,7 @@ export function diagnosticsByUri(
   }
   return grouped;
 }
-// @sigil implements packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+// @sigil implements packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
 export function documentSymbols(
   document: SigilDocument,
 ): readonly DocumentSymbol[] {

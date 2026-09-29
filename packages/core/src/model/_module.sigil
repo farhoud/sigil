@@ -11,7 +11,7 @@
 
 component SigilSemanticModel {
   goal {
-    Summarize the independently owned immutable deterministic core
+    Summarize the *deterministic model core*
     model contracts without owning their domain behavior or data definitions.
   }
 
@@ -28,25 +28,26 @@ component SigilSemanticModel {
   constraints {
     DomainModelAssembly {
       This ordinary summary describes domain model contracts only; each component
-      owns its independently evolving immutable data shapes.
+      owns its *owned data shapes*.
     }
   }
 
   decisions {
     DomainModelDecomposition {
       Decision: Split the former aggregate model contract into domain components and
-      let consumers select needed Tags directly from their domain owners.
+      let *consumers* select needed Tags directly from their domain owners.
 
       Scope: Governs core model contract ownership and import paths; excludes
-      operational parsing, loading, resolution, graph, and retrieval behavior.
+      *operational parsing*, loading, resolution, graph, and retrieval behavior.
 
-      Trade-offs: Consumers use explicit owner imports where shared vocabulary is
+      Trade-offs: Consumers use explicit owner imports where *shared Tag vocabulary*
+      is
       needed and Inline Links for supporting documents.
 
       Design issues addressed: Independently evolving model domains no longer
-      converge on one ownership boundary.
+      converge on one *model ownership* boundary.
 
-      Consequences: Model changes remain localized while this ordinary source
+      Consequences: Model changes remain localized while this *ordinary source*
       supplies
       documentary context without re-exporting vocabulary.
     }

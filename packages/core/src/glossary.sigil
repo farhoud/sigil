@@ -1,13 +1,17 @@
 @packages/core/src/diagnostics.sigil from SigilDiagnostics import { DiagnosticConstruction }
 @packages/core/src/model/glossary.sigil from SigilGlossaryModel import { GlossaryModel }
+@packages/core/src/model/workspace.sigil from SigilWorkspaceModel import { selected source }
 @spec/glossary.sigil from SigilWorkspaceGlossary import { GlossaryFile, GlossarySchema, ContextResolution, TermRecognition }
 
+@packages/core/src/model/diagnostics.sigil from SigilDiagnosticModel import { diagnostics }
+@spec/language.sigil from SigilLanguage import { SourceDocument }
+@packages/cli/_module.sigil from SigilCli import { CLI }
 component SigilGlossaryEngine {
   goal {
-    Parse, validate, resolve, and project reviewed workspace glossary data for
+    Parse, validate, resolve, and project reviewed *workspace glossary data* for
     deterministic core consumers.
 
-    Keep vocabulary extraction, semantic judgment, approval, presentation, and
+    Keep *vocabulary extraction*, semantic judgment, approval, presentation, and
     source mutation outside core.
   }
 
@@ -15,7 +19,8 @@ component SigilGlossaryEngine {
     GlossaryInterpretation {
       GLOSSARY_SCHEMA_VERSION identifies the supported GlossarySchema version
 
-      parseSigilGlossary(source, filePath?) returns validated WorkspaceGlossary data
+      parseSigilGlossary(source, filePath?) returns validated
+      *WorkspaceGlossary data*
       or accumulated diagnostics
     }
 
@@ -31,7 +36,7 @@ component SigilGlossaryEngine {
       ContextResolutionEngine adapts ContextResolution into deterministic engine
       behavior.
 
-      resolveGlossaryForFile(glossary, filePath) returns the effective entries,
+      resolveGlossaryForFile(glossary, filePath) returns the *effective entries*,
       matched context, and diagnostics
     }
 
@@ -40,14 +45,14 @@ component SigilGlossaryEngine {
       behavior.
 
       glossaryOccurrencesForDocument(glossary, document) returns ordered
-      source-ranged occurrences
+      *source-ranged occurrences*
     }
 
     GlossaryInspection {
-      glossaryProjectionForWorkspace(workspace) returns contexts, entries,
+      glossaryProjectionForWorkspace(workspace) returns contexts, *entries*,
       occurrences, diagnostics, and the exact workspace.workspaceSnapshotIdentity
 
-      glossaryContextForFiles(projection, filePaths) returns the glossary path,
+      glossaryContextForFiles(projection, filePaths) returns the *glossary path*,
       agent-visible effective entries, resolved contexts, and occurrences relevant to
       normalized selected files plus scoped diagnostics
     }
@@ -66,9 +71,9 @@ component SigilGlossaryEngine {
       Apply ContextResolution only to normalized workspace-relative paths belonging
       to loaded Sigil documents.
 
-      Diagnose every loaded source matched by more than one bounded context.
+      Diagnose every loaded source matched by more than one *bounded context*.
 
-      Build each source's effective spelling map from workspace entries followed by
+      Build each source's *effective spelling map* from workspace entries followed by
       its matched context entries.
     }
 
@@ -76,7 +81,7 @@ component SigilGlossaryEngine {
       Apply TermRecognition to recovered Facet prose while excluding inline code and
       URLs.
 
-      Emit non-overlapping occurrences in deterministic source order.
+      Emit non-overlapping occurrences in *deterministic source order*.
     }
 
     GlossaryInspection {
@@ -84,10 +89,10 @@ component SigilGlossaryEngine {
       diagnostics without changing source data.
 
       Copy workspaceSnapshotIdentity from the supplied SigilWorkspace into every
-      GlossaryProjection without recomputing it.
+      *GlossaryProjection* without recomputing it.
 
       Filter a workspace projection by normalized selected source paths while
-      preserving deterministic source and declaration order.
+      preserving *deterministic source* and declaration order.
 
       Preserve source-less diagnostics, diagnostics attached to a selected source
       path, and GlossaryFile diagnostics whose range overlaps the declaration range
@@ -103,26 +108,27 @@ component SigilGlossaryEngine {
     GlossaryInterpretation {
       Every glossary diagnostic emitted by this engine uses DiagnosticConstruction.
 
-      JSON syntax failures produce SIGIL_GLOSSARY_PARSE.
+      diagnostics.
 
-      Schema and field failures produce SIGIL_GLOSSARY_INVALID.
+      Schema and *field failures* produce SIGIL_GLOSSARY_INVALID.
 
-      An invalid glossary yields no active definitions.
+      An invalid glossary yields no *active definitions*.
     }
 
     ContextResolutionEngine {
-      Overlap produces SIGIL_GLOSSARY_CONTEXT_OVERLAP.
+      *Overlap* produces SIGIL_GLOSSARY_CONTEXT_OVERLAP.
 
-      Duplicate or ambiguous spellings produce SIGIL_GLOSSARY_TERM_COLLISION.
+      Duplicate or *ambiguous spellings* produce SIGIL_GLOSSARY_TERM_COLLISION.
     }
 
     TermRecognitionEngine {
-      Recognition uses source ranges already owned by recovered Sigil documents.
+      Recognition uses source ranges already owned by recovered SourceDocument.
 
-      Unknown prose remains ordinary text without a missing-glossary-term diagnostic.
+      Unknown prose remains ordinary text without a *missing-glossary-term*
+      diagnostic.
 
       EmbeddedContent type and body content are excluded without independently
-      tracking fence state.
+      tracking *fence state*.
     }
 
     GlossaryInspection {
@@ -137,29 +143,29 @@ component SigilGlossaryEngine {
     GlossaryInterpretation {
       Missing optional GlossaryFile returns no glossary and no diagnostic.
 
-      Valid empty terms and contexts produce an active empty glossary.
+      Valid empty terms and contexts produce an *active empty glossary*.
     }
 
     ContextResolutionEngine {
-      Context-local spellings override workspace spellings without changing other
+      Context-local spellings override *workspace spellings* without changing other
       contexts.
     }
 
     TermRecognitionEngine {
       Longest-first matching emits one workspace root occurrence rather than
-      overlapping workspace and workspace root occurrences.
+      overlapping workspace and *workspace root occurrences*.
 
-      A glossary spelling appearing only inside a EmbeddedContent produces no
+      A *glossary spelling* appearing only inside a EmbeddedContent produces no
       occurrence.
     }
 
     GlossaryInspection {
-      CLI and LSP consumers receive the same resolved occurrence ranges from core.
+      CLI and LSP consumers receive the same *resolved occurrence* ranges from core.
 
-      Selecting a component source and its related provider sources returns their
+      Selecting a component source and its *related provider sources* returns their
       effective bounded-context definitions without unrelated workspace vocabulary.
 
-      An entry excluded from agent context remains present in the complete glossary
+      An entry excluded from *agent context* remains present in the complete glossary
       projection.
     }
   }

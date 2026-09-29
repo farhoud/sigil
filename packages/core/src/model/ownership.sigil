@@ -3,7 +3,7 @@
 
 component SigilImplementationOwnershipModel {
   goal {
-    Define immutable ownership-annotation evidence and resolved implementation
+    Define immutable ownership-annotation evidence and *resolved implementation*
     target data.
   }
 

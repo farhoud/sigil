@@ -3,16 +3,16 @@
 
 component SigilGraphModel {
   goal {
-    Define immutable component and file dependency graph data.
+    Define immutable component and *file dependency graph* data.
   }
 
   interface {
     GraphModel {
-      SourceModel and ResolutionModel provide graph evidence. SigilGraph
-      and its component, selected-Tag import, and file-dependency edges preserve
-      deterministic graph output.
+      SourceModel and ResolutionModel provide graph evidence. SigilGraph preserves
+      its component, selected-Tag import, and file-dependency *graph edges* in
+      deterministic order.
 
-      Edges preserve originating owner and selection evidence without synthesizing
+      Edges preserve originating owner and *selection evidence* without synthesizing
       expansion, directory-index, re-export, runtime-call, or consumer-to-provider
       obligation relationships. Cycles remain traversable graph relationships.
     }

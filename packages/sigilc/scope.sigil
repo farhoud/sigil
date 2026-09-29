@@ -1,16 +1,16 @@
 @packages/core/src/design-input.sigil from SigilDesignInput import { ResolvedDesignInput }
-@packages/sigilc/sources.sigil from SigilSourceIdentity import { SourceSelection, SemanticInputs }
+@packages/sigilc/sources.sigil from SigilSourceIdentity import { CompilerInputSelection, SemanticInputs }
 
 component SigilComparisonScope {
   goal {
     Focus native Design and Implementation comparison on explicit source membership
-    so callers do not need duplicate scope assembly.
+    so callers do not need duplicate *comparison scope assembly*.
   }
 
   interface {
     ScopeInput {
       Accept a versioned scope containing ordered workspace-relative Design root
-      paths and Implementation SourceSelection. Design roots name authored Sigil
+      paths and CompilerInputSelection. Design roots name authored Sigil
       files in the validated ResolvedDesignInput bundle. Reject unknown
       fields, duplicate roots, missing roots, paths outside the workspace, and
       accidental empty selection. Intentional emptiness is explicit for each side and
@@ -20,7 +20,7 @@ component SigilComparisonScope {
     }
 
     FocusOrder {
-      Preserve the caller's explicit root order as focus priority. Do not sort it
+      Preserve the caller's *explicit root order* as focus priority. Do not sort it
       away during normalization or replace it with filesystem discovery order. Return
       that order from scoped commands so the frontend and caller can see what to
       address first and next without a temporary priority table. Report dependency
@@ -33,7 +33,7 @@ component SigilComparisonScope {
     }
 
     DesignMembership {
-      Resolve Design roots through frontend imports and structural ownership to a
+      Resolve Design *roots* through frontend imports and structural ownership to a
       closed set of physical files. Include transitive import targets and owner
       declarations required by selected Tags and Facets. Terminate cycles with a
       visited set. Preserve every authored unit in each included file with its
@@ -67,13 +67,15 @@ component SigilComparisonScope {
     StructuralScope {
       Use schema 2 exact selections and explicit owner files. _module.sigil is
       ordinary source with no re-export or directory-import closure. Preserve all
-      Facet references, links, contract roles, exact ranges and selected Tag origins;
+      *Facet references*, links, contract roles, exact ranges and selected Tag
+      origins;
       imports alone do not prove runtime or semantic dependence.
     }
     SemanticIdentity {
       Scope membership affects assembled worlds and reports. A scope name, filename
       or external requirement ID is not a per-source semantic input. Reuse a
-      projection when its existing complete semantic binding is unchanged. A changed
+      projection when its *existing complete semantic binding* is unchanged. A
+      changed
       effective Design identity catalog still invalidates Implementation projections
       under the existing full-catalog binding policy. Scoping never gives
       Implementation interpreters Design prose or relationships; their inputs remain
@@ -84,7 +86,9 @@ component SigilComparisonScope {
   cases {
     DependencyClosure {
       Selecting a file that imports another includes both and reports why the second
-      file is present. Import cycles terminate. Selecting consumer Tag use preserves
+      file is present. The *import closure* includes each source at most once, even
+      when imports form a cycle. Selecting consumer Tag use
+      preserves
       its Facet owner and includes the selected provider declaration with complete
       interpretation context. An unrelated excluded file contributes no assertions or
       obligations. An unresolved import cannot manufacture a smaller successful
@@ -93,7 +97,7 @@ component SigilComparisonScope {
 
     ScopeChanges {
       Reordering the same roots changes reported focus order and its identity, while
-      preserving membership identity. Adding a source changes world membership
+      preserving *membership identity*. Adding a source changes world membership
       without invalidating unchanged per-source inputs. Removing a file from scope
       does not delete it or its cached projection. Narrowing Design enough to change
       catalog identity invalidates dependent Implementation projections instead of
@@ -101,7 +105,8 @@ component SigilComparisonScope {
     }
 
     ObservedPriority {
-      Preserve caller-defined priority in native scope output so callers can address
+      Preserve *caller-defined priority* in native scope output so callers can
+      address
       selected roots in the reported order without maintaining a second
       focus-priority table. Selecting roots A then B reports A first. Reprioritizing
       B then A reports B first without invalidating otherwise identical per-source
@@ -109,13 +114,14 @@ component SigilComparisonScope {
       enumeration changes. The caller still establishes which interpretation is
       complete.
 
-      Focus order is a priority and reporting order, not a demand to serialize
+      Focus order is a priority and reporting order, not a *demand* to serialize
       independent reconstructions. External callers may prepare independent sources
       concurrently while native publication remains authoritative.
     }
 
     ScopeLimits {
-      A typo in a root fails instead of producing an empty green result. A successful
+      A typo in a root fails instead of producing an *empty green result*. A
+      successful
       focused comparison is not reported as complete-refactor convergence. Gate exits
       retain their subcommand-specific named states.
     }

@@ -3,12 +3,12 @@
 
 component SigilWorldClosure {
   goal {
-    Enrich one asserted world with finite compiler-owned egglog laws.
+    Enrich one asserted world with *finite compiler-owned egglog laws*.
   }
 
   interface {
     IndependentComparison {
-      Compare finite Design obligations with independently saturated Implementation
+      Compare finite Design *obligations* with independently saturated Implementation
       facts in a third fixed eqval instance. Design facts never enter Implementation
       closure or its matching tables. A missing positive relation cannot satisfy a
       prohibition. Return Drift for positive disagreement, Converged for unresolved
@@ -28,7 +28,7 @@ component SigilWorldClosure {
       Disjoint for contradictions, Loose for unresolved required meaning, and
       Coherent when neither remains. Operational errors return no state.
 
-      Lower provides to a positive provides obligation, requires to availability of
+      Lower provides to a *positive obligation*, requires to availability of
       provides, excludes to a uses prohibition, and required propositions to their
       exact predicate and expected value. Latency budgets require bounded
       Implementation latency. Required states need an owner, and exclusive ownership
@@ -47,7 +47,7 @@ component SigilWorldClosure {
 
     RuntimeIdentity {
       Fingerprint the actual compiled eqval, lowering code and pinned runtime
-      dependencies. Reports identify the engine that produced their evidence.
+      *dependencies*. Reports identify the engine that produced their evidence.
     }
   }
 
@@ -56,11 +56,13 @@ component SigilWorldClosure {
     StructuralProvenance {
       Carry schema 2 Tag, selection, reference, link, Facet-owner, contract-role and
       source-range provenance beside saturation inputs and results. This structural
-      companion adds no implication law, obligation-satisfaction shortcut, behavioral
+      companion adds no *implication law*, obligation-satisfaction shortcut,
+      behavioral
       equivalence, or change to the existing finite behavior algebra.
     }
     IsolatedClosure {
-      Workers cannot supply rules or fill compiler-owned tables. Keep raw conflicting
+      Workers cannot supply rules or fill compiler-owned tables. Keep
+      *raw conflicting*
       values so minimum and maximum merges cannot hide contradictions. Use bounded
       tuple witnesses without concatenated semantic IDs or recursively expanding
       proof strings. Reject unsupported numeric path sums. Bound input rows, runtime
@@ -73,7 +75,8 @@ component SigilWorldClosure {
   cases {
     IsolatedClosure {
       Linking A dependsOn B in one object with B dependsOn C in another derives A
-      reachable C without modifying either object. Saturating a world separately does
+      *reachable C* without modifying either object. Saturating a world separately
+      does
       not carry those facts into it. Positive cost cycles terminate through minimum
       merge; reachable risk propagates through maximum merge.
     }

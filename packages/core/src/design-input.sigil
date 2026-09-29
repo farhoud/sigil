@@ -3,7 +3,7 @@
 
 component SigilDesignInput {
   goal {
-    Preserve resolved authored language structure at the TypeScript to sigilc
+    Preserve *resolved authored language structure* at the TypeScript to sigilc
     boundary without precomputing semantic meaning.
   }
 
@@ -16,7 +16,7 @@ component SigilDesignInput {
       introductions and grouping occurrences, explicit import selections, bare
       references, and Inline Links.
 
-      Record config and glossary buffers used during loading, including absent
+      Record config and glossary buffers used during *loading*, including absent
       optional inputs. Rust validates current bytes and owns their fingerprints. Keep
       Facets attributed to their physical file, canonical component owner, and
       contract role. Preserve units even when owner resolution fails, alongside
@@ -29,17 +29,18 @@ component SigilDesignInput {
   constraints {
 
     SourceFidelity {
-      Preserve exact Tag names and owner identity, selection provenance, link labels,
+      Preserve *exact Tag names* and owner identity, selection provenance, link
+      labels,
       targets and ranges, optional grouping identity, and all references per Facet;
       no exported visibility, expand form, or single-Concept field remains.
 
       Invalid UTF-8 returns a language failure with diagnostics and no purportedly
       faithful JSON bundle. Other language failures retain structurally representable
       partial results and diagnostics; native consumers never treat them as
-      successful compilation.
+      *successful compilation*.
     }
     StructuralBoundary {
-      The bundle contains no Turtle, semantic laws, inferred relationships,
+      The bundle contains no *Turtle*, semantic laws, inferred relationships,
       obligations, implementation requirements, ranking, or semantic verdicts.
       Imports provide language visibility, never automatic runtime dependencies.
       Source ranges identify authored units, not evidence of implementation. Input
@@ -50,12 +51,12 @@ component SigilDesignInput {
   cases {
     PhysicalInventory {
       Multiple components or Facets produce source inventories with exact owners and
-      physical ranges. Prose, Inline Links, and fenced payloads remain in captured
+      physical ranges. Prose, Inline Links, and *fenced payloads* remain in captured
       source even when no model interprets them.
     }
 
     SourceCapture {
-      A config or source changing after loading cannot change the captured bundle.
+      A config or source changing after loading cannot change the *captured bundle*.
       Rust rejects publication against mismatching current inputs.
     }
   }

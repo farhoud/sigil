@@ -3,7 +3,8 @@
 
 component SigilEntityCatalog {
   goal {
-    Share canonical semantic identities without exposing Design relationships to
+      Share canonical semantic identities without exposing Design entity
+      *relationships* to
     independent Implementation reconstruction.
   }
 
@@ -32,7 +33,7 @@ component SigilEntityCatalog {
     }
 
     ImplementationIdentity {
-      Validate every Implementation domain subject and resource object against the
+      Validate every *Implementation domain subject* and resource object against the
       frozen catalog. Ontology classes and literal datatypes are vocabulary. Permit
       exact type and label repetition but reject identity mutation. Empty assertions
       remain valid. Catalog membership supplies no evidence that an entity or
@@ -42,7 +43,7 @@ component SigilEntityCatalog {
   constraints {
 
     TagCatalog {
-      Tag identity preserves exact names and component owners independently of
+      Tag identity preserves exact names and *component owners* independently of
       selection or occurrence order. The native vocabulary fingerprint changes for
       Tags. Keep consumer Facet provenance in the structural companion rather than
       transferring consumer promises or exposing Design relationships through the

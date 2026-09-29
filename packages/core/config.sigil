@@ -1,19 +1,21 @@
 @packages/core/src/diagnostics.sigil from SigilDiagnostics import { DiagnosticConstruction }
-@spec/language.sigil from SigilWorkspaceConfig import { ConfigFile }
+@spec/language.sigil from SigilWorkspaceConfig import { ConfigFile, workspace discovery }
 @packages/core/src/model/configuration.sigil from SigilConfigurationModel import { ConfigurationModel }
 
+@packages/core/src/filesystem.sigil from SigilFileSystem import { host filesystem access }
 component SigilConfigurationParser {
   goal {
     Parse and validate one Sigil ConfigFile into deterministic configuration data
     and diagnostics before workspace source loading begins.
 
-    Keep configuration interpretation separate from workspace discovery and loading
+    Keep *configuration interpretation* separate from workspace discovery and
+    loading
     while reusing the configuration model and diagnostic vocabulary.
   }
 
   interface {
     ConfigurationParsing {
-      parseSigilConfig(source, filePath?) returns a SigilConfigParseResult with
+      parseSigilConfig(source, filePath?) returns a *SigilConfigParseResult* with
       validated configuration when available and accumulated diagnostics
 
       ConfigurationModel owns the result and configuration data; the
@@ -27,9 +29,10 @@ component SigilConfigurationParser {
       ConfigFile shape before returning configuration data.
 
       Disk-backed input is strictly decoded from UTF-8 bytes before parser entry by
-      the workspace boundary; this in-memory parser performs no filesystem reads.
+      the workspace boundary; this in-memory parser performs no
+      host filesystem access.
 
-      Preserve recoverable configuration diagnostics without selecting workspace
+      Preserve *recoverable configuration diagnostics* without selecting workspace
       sources or performing filesystem access.
     }
   }
@@ -44,9 +47,9 @@ component SigilConfigurationParser {
     }
 
     RecoverableConfiguration {
-      Invalid configuration returns diagnostics and no validated configuration.
+      *Invalid configuration* returns diagnostics and no validated configuration.
 
-      Host filesystem and runtime failures remain outside this parser boundary.
+      Host filesystem and runtime failures remain outside this *parser* boundary.
     }
   }
 
@@ -63,7 +66,7 @@ component SigilConfigurationParser {
       do not duplicate ConfigFile validation.
 
       Revisit when: Configuration interpretation requires workspace loading or
-      host-specific policy.
+      *host-specific policy*.
     }
   }
 
@@ -71,7 +74,7 @@ component SigilConfigurationParser {
     ConfigurationParsing {
       Valid ConfigFile returns validated configuration without diagnostics.
 
-      Malformed JSON or invalid fields returns configuration diagnostics and no
+      Malformed JSON or *invalid fields* returns configuration diagnostics and no
       validated configuration.
     }
   }

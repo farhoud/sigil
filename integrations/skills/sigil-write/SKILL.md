@@ -15,6 +15,8 @@ or require a functioning compiler.
 Write prose the claims check can read, as described in
 [contract prose](references/contract-prose.md). Every Facet must reference or
 define at least one Tag in its own prose; a group heading does not count.
+Choose at least one Tag from a meaningful subject or object in each Facet;
+do not reuse the group label automatically.
 List the existing Tags before drafting. Reuse a local Tag first, then import
 it from its owning Component, and define a new Tag only when no existing Tag
 names the concept. In files you edit, replace a local synonym of another

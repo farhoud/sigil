@@ -1,9 +1,9 @@
-@packages/core/src/model/source.sigil from SigilSourceModel import { SourceModel }
+@packages/core/src/model/source.sigil from SigilSourceModel import { SourceModel, source location, contract }
 @packages/core/src/model/workspace.sigil from SigilWorkspaceModel import { WorkspaceModel }
 
 component SigilResolutionModel {
   goal {
-    Define immutable import, component, Tag, and contract-resolution data.
+    Define immutable import, component, Tag, and *contract-resolution data*.
   }
 
   interface {
@@ -13,7 +13,7 @@ component SigilResolutionModel {
       and *dependency contexts* preserve relationship-resolution output.
 
       Repeated Concept occurrences preserve their collective *Tag identity* and
-      each contribution's *contract* and *source location*. *Imported reuse*
+      each contribution's contract and source location. *Imported reuse*
       preserves the originating Tag identity without transferring consumer
       requirements upstream.
 

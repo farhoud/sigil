@@ -228,7 +228,7 @@ component ${name} {
   }
 });
 
-// @sigil tests packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+// @sigil tests packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
 Deno.test("returns hierarchical symbols, provider definitions and complete component hover", async () => {
   const server = makeServer();
   await initialize(server);
@@ -298,7 +298,7 @@ Deno.test("returns hierarchical symbols, provider definitions and complete compo
   );
 });
 
-// @sigil tests packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+// @sigil tests packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
 Deno.test("component hover includes clickable owned implementation links", async () => {
   const source = `component Thing {
   goal {
@@ -656,7 +656,7 @@ Deno.test("highlights, explains, and navigates reviewed glossary terms", async (
 });
 
 /*
- * @sigil tests packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+ * @sigil tests packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
  * @sigil tests packages/lsp/_module.sigil::SigilLsp::TagLanguageFeatures interface,logic,constraints,cases
  * @sigil tests packages/lsp/_module.sigil::SigilLsp::GlossaryLanguageFeatures interface,logic,constraints,cases
  */
@@ -821,7 +821,7 @@ Deno.test("accepts exact Tag spelling without legacy identifier-style hints", as
   assertEquals(diagnostics.length, 0);
 });
 
-// @sigil tests packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+// @sigil tests packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
 Deno.test("explicit file imports navigate to the original provider declaration", async () => {
   const modulePath = `${root}/module/_module.sigil`;
   const indexedContractPath = `${root}/module/contract.sigil`;
@@ -910,7 +910,7 @@ Deno.test("renders a whole document to Markdown through executeCommand", async (
   assertEquals(errorCode(unknown), -32602);
 });
 
-// @sigil tests packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+// @sigil tests packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
 Deno.test("renders complete component source paths relative to the workspace root", async () => {
   const server = makeServer();
   await initialize(server);

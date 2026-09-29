@@ -1,8 +1,8 @@
 @packages/core/src/design-input.sigil from SigilDesignInput import { ResolvedDesignInput }
-@packages/core/src/context-retrieval.sigil from SigilContextRetrieval import { PurposeRetrievalRequest }
-@packages/core/src/compilation-boundary.sigil from SigilCompilationBoundary import { BoundarySelection }
+@packages/core/src/context-retrieval.sigil from SigilContextRetrieval import { PurposeRetrievalRequest, PurposeRetrievalResult }
+@packages/core/src/compilation-boundary.sigil from SigilCompilationBoundary import { BoundarySelection, loaded workspace }
 @packages/core/src/implementation-ownership.sigil from SigilImplementationOwnership import { OwnedImplementationLookup }
-@packages/core/src/projections.sigil from SigilProjections import { ContractProjection }
+@packages/core/src/projections.sigil from SigilProjections import { ContractProjection, resolved workspace }
 @packages/core/src/pipeline.sigil from SigilWorkspaceResolutionPipeline import { WorkspaceResolution }
 @packages/core/src/graph.sigil from SigilGraphBuilder import { GraphConstruction }
 @packages/core/src/resolver.sigil from SigilResolver import { RelationshipResolution }
@@ -15,14 +15,16 @@
 @packages/core/src/diagnostics.sigil from SigilDiagnostics import { DiagnosticConstruction }
 @packages/core/src/model/_module.sigil from SigilSemanticModel import { DomainModelAssembly }
 @packages/core/config.sigil from SigilConfigurationParser import { ConfigurationParsing }
-@spec/language.sigil from SigilLanguage import { SourceDocument }
+@spec/language.sigil from SigilLanguage import { SourceDocument, resolution }
+@spec/language.sigil from SigilWorkspaceConfig import { host integrations }
 
 component SigilCore {
   goal {
-    Provide the deterministic language implementation shared by Sigil command-line,
+    Provide the *deterministic language implementation* shared by Sigil
+    command-line,
     language-server, editor, and agent integrations.
 
-    Compose source interpretation, configuration, workspace loading, glossary
+    Compose *source interpretation*, configuration, workspace loading, glossary
     interpretation, relationship resolution, graph construction, projections, and
     diagnostics without owning host interaction or semantic judgment.
   }
@@ -42,7 +44,7 @@ component SigilCore {
       resolution remain language operations; the export never invokes sigilc,
       reconstructs semantic assertions or presents compiler verdicts.
 
-      hosts consume those cohesive contracts without reimplementing source
+      hosts consume those *cohesive contracts* without reimplementing source
       interpretation, workspace rules, relationship resolution, or projections
     }
   }
@@ -50,7 +52,8 @@ component SigilCore {
   constraints {
 
     CorePackageBoundary {
-      This ordinary source is a concise documentary package-boundary summary, with no
+      This ordinary source is a *concise documentary package-boundary summary*, with
+      no
       language namespace assembly or re-export.
 
       Operational parsing, formatting, path, configuration, workspace, resolution,
@@ -59,78 +62,81 @@ component SigilCore {
     }
 
     PackageVersionOwnership {
-      packages/core/deno.json owns the @qoherent/sigil-core artifact version.
+      packages/core/deno.json owns the @qoherent/sigil-core *artifact version*.
 
-      The package contract does not duplicate its manifest-owned version literal.
+      The package contract does not duplicate its *manifest-owned version literal*.
     }
 
     DeterministicCore {
       Core computes structural facts and performs no model-assisted semantic
-      judgment.
+      *judgment*.
 
-      Core does not own CLI arguments, LSP transport, editor APIs, agent-host
+      Core does not own *CLI arguments*, LSP transport, editor APIs, agent-host
       behavior, approval decisions, or user-interface presentation.
     }
 
-    DependencyDirection {
-      SigilSemanticModel, SigilDiagnostics, and SigilFileSystem are foundation
-      contracts.
+    CoreDependencies {
+      SigilSemanticModel, SigilDiagnostics, and SigilFileSystem are
+      the foundation contracts.
 
-      SigilConfigurationParser and SigilParser consume the foundation contracts.
+      SigilConfigurationParser and SigilParser consume the *foundation contracts*.
 
       SigilFormatter consumes parser output and foundation contracts.
 
       SigilPath is a filesystem-independent foundation contract consumed by core and
       host integrations.
 
-      SigilGlossaryEngine consumes model and diagnostic contracts.
+      GlossaryInterpretation consumes the DomainModelAssembly and
+      DiagnosticConstruction contracts.
 
-      SigilWorkspaceLoader composes configuration, filesystem, parser, and glossary
+      WorkspaceLoading composes configuration, filesystem, parser, and glossary
       contracts into a loaded workspace.
 
       SigilResolver consumes the loaded workspace, and SigilGraphBuilder consumes
       resolver output.
 
-      SigilProjections consumes resolver and graph output.
+      ContractProjection consumes resolver and graph output.
 
-      SigilWorkspaceResolutionPipeline composes resolver, graph, and glossary output.
+      WorkspaceResolution composes resolver, graph, and glossary output.
 
       SigilImplementationOwnership consumes a resolved workspace and supplied
       implementation evidence.
 
-      SigilContextRetrieval consumes graph, glossary, and ownership evidence.
+      PurposeRetrievalResult carries graph, glossary, and ownership evidence.
 
-      SigilCompilationBoundary consumes the resolved Tag-selection and consumer-use
+      SigilCompilationBoundary consumes the *resolved Tag-selection* and consumer-use
       graph to resolve a compilation seed into a covering boundary.
 
       Core operational components depend on their focused providers; this summary
-      adds no language namespace or runtime dependency.
+      adds no language namespace or *runtime dependency*.
 
       Host integrations consume core semantics instead of implementing independent
-      Sigil parsers, workspace rules, resolvers, or Tag interpretation.
+      *Sigil parsers*, workspace rules, resolvers, or Tag interpretation.
     }
   }
 
   decisions {
     DeterministicCore {
       Decision: Centralize reproducible Sigil semantics in one typed shared core and
-      keep host interaction and model-assisted judgment outside it.
+      keep *host interaction* and model-assisted judgment outside it.
 
       Scope: Governs parsing, configuration, workspace loading, resolution, graphs,
       diagnostics, and primitive projections; excludes transport, presentation,
       elicitation, and approval.
 
-      Trade-offs: Hosts must consume core projections and semantic readiness remains
+      Trade-offs: Hosts must consume core projections and *semantic readiness*
+      remains
       a separate workflow responsibility.
 
-      Discarded alternatives: Host-specific parsers and direct model access from core
+      Discarded alternatives: Host-specific parsers and *direct model access* from
+      core
       were rejected.
 
-      Consequences: Compatible hosts derive structural facts from the same
+      Consequences: *Compatible hosts* derive structural facts from the same
       implementation boundary.
 
       Revisit when: A required shared semantic fact cannot be represented without
-      host coupling.
+      *host coupling*.
     }
   }
 

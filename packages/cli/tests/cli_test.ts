@@ -300,7 +300,7 @@ Deno.test("init defaults workspace name to directory basename", async () => {
 
 /*
  * @sigil tests packages/cli/_module.sigil::SigilCli::WorkspaceInspection interface,logic,cases
- * @sigil tests packages/cli/_module.sigil::SigilCli::ArtifactVersionOwnership constraints
+ * @sigil tests _module.sigil::Sigil::ArtifactVersionOwnership constraints
  */
 Deno.test("version reports tool and resolved contract versions", async () => {
   const root = await providerWorkspace();
@@ -1635,7 +1635,7 @@ Deno.test("usage errors include help for the longest recognized command path", a
 
 /*
  * @sigil tests packages/cli/_module.sigil::SigilCli::CliInvocation interface,logic,cases
- * @sigil tests packages/cli/_module.sigil::SigilCli::ArtifactVersionOwnership constraints
+ * @sigil tests _module.sigil::Sigil::ArtifactVersionOwnership constraints
  */
 Deno.test("version flag reports CLI information", async () => {
   const version = await runCli(["--version"]);

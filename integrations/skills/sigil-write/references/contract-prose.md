@@ -43,6 +43,45 @@ Treat that warning as a failure in the authored scope.
 If a Facet has no concept worth a Tag, it is usually not a separate promise.
 Merge it into the Facet it supports, or cut it.
 
+## Pick Tags from subjects and objects
+
+The best Tag candidates are the subject and the object of each promise. The
+claims check reads a promise as a row: subject, relation, object. The two ends
+of that row are the things it can link across Facets, so they should be Tags.
+
+In "Booking requires the recurring booking series":
+
+- `Booking` is the subject. It is a Component, so it needs no Tag.
+- "requires" is the relation. Keep it a plain verb, never a Tag.
+- `recurring booking series` is the object. It should be a Tag.
+
+So:
+
+1. Find the subject and object of the sentence before choosing Tags.
+2. Give each Facet at least one Tag on a meaningful subject or object that is
+   not its owning Component. Reuse or import an existing identity first, as the
+   next section says.
+3. Keep verbs, adjectives, clauses, and complete claims in the prose. A
+   compound noun phrase is a good Tag when it names the subject or object;
+   "exclusively" and "must not" stay in the prose as relation or modality.
+4. Do not repeat a group label by default. Choose the noun phrase that names
+   what the Facet is about or what it acts on. If the sentence names no concept
+   as a subject or object, rewrite it so one is. "It is saved for later" names
+   nothing. "Wishlist keeps each saved product" names the object.
+
+### One Tag names one concept
+
+Keep each Tag a short noun phrase for one subject or object. Do not tag a whole
+claim, a verb phrase, or a sentence. Leave the action, condition, and modality
+in ordinary prose.
+
+Split coordinated names when they refer to independently meaningful objects:
+use `*line* and *column*`, not `*line and column*`; use `*identity* and
+*access*`, not `*identity and access*`. Keep an established compound name when
+it names one concept whose parts are not independently meant in that Facet.
+When one Facet concerns several concepts, it can reference or define several
+Tags.
+
 ## Reuse a Tag before you define one
 
 Aim for few Tags used by many Facets. Every time two Facets name the same Tag,
@@ -205,11 +244,16 @@ it. The claims check does not detect this gap on its own.
 Check the authored scope against this list:
 
 - Every Facet names at least one Tag in its own prose.
+- Every Facet has at least one Tag on a meaningful subject or object in
+  its prose; the grouping heading alone does not count.
+- Tags name concepts, not verbs, adjectives, clauses, or complete claims.
 - A Tag inventory was taken before drafting.
 - Every new Tag is owned by the Component that defines it, and no Tag in the
   inventory already names that concept.
 - Every Tag another Component owns is imported from that owner, not redefined.
 - No local Tag in an edited file is a synonym of a Tag another Component owns.
+- Repeated concepts reuse one Tag identity across Components, including when
+  Logic Facets read or update concepts introduced in State.
 - Every import is referenced at least once, and no group heading uses an
   imported name.
 - No Tag shares a name with a Component.

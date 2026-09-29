@@ -75,7 +75,7 @@ export interface SigilLanguageServerOptions {
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::ProtocolSession interface,state,logic,constraints,cases
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::DocumentSynchronization interface,state,logic,cases
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::DiagnosticPublishing interface
- * @sigil implements packages/lsp/_module.sigil::SigilLsp::NavigationAndInspection interface,logic,constraints,cases
+ * @sigil implements packages/lsp/_module.sigil::SigilLsp::LanguageFeatures interface,logic,constraints,cases
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::TagLanguageFeatures interface,logic,constraints,cases
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::GlossaryLanguageFeatures interface,logic,constraints,cases
  * @sigil implements packages/lsp/_module.sigil::SigilLsp::WorkspaceSupport interface,state,constraints,cases

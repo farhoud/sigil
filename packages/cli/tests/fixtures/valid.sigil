@@ -1,11 +1,11 @@
 component Local {
   goal {
-    Test a small local Sigil component.
+    Test a *small local Sigil* component.
   }
 
   interface {
     LocalCall {
-      local()
+      *local()*
     }
   }
 }

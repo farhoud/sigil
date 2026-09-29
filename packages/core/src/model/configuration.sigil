@@ -2,7 +2,8 @@
 
 component SigilConfigurationModel {
   goal {
-    Define immutable configuration data exchanged between configuration parsing and
+    *Define immutable configuration data* exchanged between configuration parsing
+    and
     workspace loading.
   }
 

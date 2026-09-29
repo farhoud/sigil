@@ -3,7 +3,7 @@
 component SigilSemanticCompiler {
   goal {
     Derive disposable Design and Implementation worlds using fixed semantic laws
-    while keeping language interpretation and external workers separate.
+    while keeping *language interpretation* and external workers separate.
   }
 
   interface {
@@ -22,19 +22,20 @@ component SigilSemanticCompiler {
     TagTransport {
       Validate components, Facets, exact Tag introductions and local groupings,
       import selections, bare references, and Inline Links including their ownership,
-      contract roles, source ranges, and related diagnostics. Reject schema 1,
+      contract roles, source ranges, and related diagnostics. Reject *schema* 1,
       unsupported language, removed expand/visibility/single-Concept fields, and
       incompatible structural relations.
 
       The structural companion preserves provenance alongside semantic
-      inputs/results; it introduces no behavior-algebra laws or implication rules.
+      inputs/results; it introduces no *behavior-algebra laws* or implication rules.
       Source/context freshness checks remain native-owned. Invalid UTF-8 has no
       faithful frontend bundle and cannot enter compilation.
     }
 
     FrontendBoundary {
       No obligations, semantic closure, rules, implementation evidence, model
-      configuration or production metadata can enter through frontend transport. Unit
+      configuration or production metadata can enter through *frontend transport*.
+      Unit
       inventory records physical authored ranges without asserting their meaning.
       Invalid input never supplies a completed semantic verdict.
     }
@@ -42,7 +43,7 @@ component SigilSemanticCompiler {
 
   cases {
     FrontendBoundary {
-      Reject a semantic result inserted at either the bundle or entity level.
+      Reject a *semantic result* inserted at either the bundle or entity level.
       Preserve valid unresolved imports and units with null owners so diagnostics can
       explain failed language resolution without inventing identities.
     }
