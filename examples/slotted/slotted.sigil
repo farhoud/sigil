@@ -1,7 +1,7 @@
-@design/identity.sigil from Identity import { session gate, actor }
-@design/rooms.sigil from Rooms import { room, room lock }
-@design/availability.sigil from Availability import { open time, clock, slot grid }
-@design/booking.sigil from Booking import {
+@identity.sigil from Identity import { session gate, actor }
+@rooms.sigil from Rooms import { room, room lock }
+@availability.sigil from Availability import { open time, clock, slot grid }
+@booking.sigil from Booking import {
   booking request,
   Confirmed,
   no-overlap rule,
@@ -9,7 +9,7 @@
   archive workflow,
   timezone workflow,
 }
-@design/calendar.sigil from Calendar import { room calendar }
+@calendar.sigil from Calendar import { room calendar }
 
 component Slotted {
   goal {

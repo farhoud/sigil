@@ -1,6 +1,6 @@
-@design/identity.sigil from Identity import { actor }
-@design/slotted.sigil from Slotted import { app layer }
-@design/rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
+@identity.sigil from Identity import { actor }
+@slotted.sigil from Slotted import { app layer }
+@rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
 
 component Availability {
   goal {

@@ -1,12 +1,12 @@
-@design/identity.sigil from Identity import { user, actor }
-@design/rooms.sigil from Rooms import {
+@identity.sigil from Identity import { user, actor }
+@rooms.sigil from Rooms import {
   room,
   room owner,
   room timezone,
   archived room,
   room lock,
 }
-@design/availability.sigil from Availability import {
+@availability.sigil from Availability import {
   open time,
   weekly window,
   blackout,
