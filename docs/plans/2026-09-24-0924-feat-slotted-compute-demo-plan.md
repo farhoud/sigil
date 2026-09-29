@@ -13,36 +13,42 @@ execution: code
 ## Goal Capsule
 
 - **Objective:** A reader with no prior Sigil exposure can follow the demo doc, run the computed claims loop against a realistic multi-module design, and see the intended Coherent, Loose, and Disjoint gradient with structured findings and gate exit codes, alongside any variation observed across independent runs — then see what advisory review says about the same final design.
-- **Means:** Update examples/slotted in place: refactor its interfaces to plain prose, complete the modules its constraints already name, embed a deliberate spread of realistic problems; write the demo narrative at docs/computed-evaluation-demo.md outside the example; and update the root README's Examples section.
-- **Product authority:** Repo maintainer's direction in the 2026-09-23/24 brainstorm session.
-- **Execution profile:** code — a repo content change (design files and READMEs).
-- **Open blockers:** None. Tooling is verified present: the `sigil` CLI builds via `deno task build:cli`, and the `sigil-claims` binary exists under packages/sigilc.
+- **Means:** Build the demo on the maintainer's rewritten six-component Slotted design. Fix its imports in place (KTD1), plant the four deliberate problems in Booking and Calendar (KTD2), rewrite docs/computed-evaluation-demo.md and the README's Slotted section for the new files, and retarget the VS Code extension test (KTD9).
+- **Product authority:** Repo maintainer's direction in the 2026-09-23/24 brainstorm session and the 2026-09-29 re-planning session.
+- **Execution profile:** code — a repo content change (design files, one test, and docs).
+- **Open blockers:** None. `sigil check` currently fails with 17 unresolved-import errors; U1 fixes them.
 - **Who finishes:** the implementing agent or the maintainer, executing the Implementation Units below.
 
 ---
 
 ## Product Contract
 
-Product Contract preservation: R9–R13 and R17 retain the session-settled choice to put the narrative outside the example; R13 is clarified below to report two observed independent runs without promising future model stability. The six user-directed choices in Key Decisions remain unchanged; every other contract decision is unchanged.
+Product Contract preservation — changed: R1, R3, R4, R5, R6, R8, R10, R15, R16, R17, F1. The maintainer replaced the Slotted design with six new all-prose components (Slotted, Identity, Rooms, Availability, Booking, Calendar), so every requirement that named old files now names the new ones. R2 is removed: the ASCII wireframe and SVG no longer exist. R16 now expects the VS Code extension test to change, because it opened the deleted `auth.sigil`. The six original Key Decisions still hold; two new ones are added.
 
 ### Summary
 
-Slotted becomes the worked demo of computed evaluation: a complete, all-prose room-booking design whose named modules exist as files, carrying a deliberate spread of realistic problems the claims loop catches. A demo doc outside the example walks the computed gradient — Coherent, Loose, and Disjoint with structured findings and gate exit codes — then shows what sigil-evaluate finds in the same design on its own merits. The example stays bare design files, so evaluation cannot read the answer key. The design files are authored through sigil-write, so the example itself demonstrates the full skill story: written by the writer, reviewed by the evaluator, computed by the claims loop.
+Slotted becomes the worked demo of computed evaluation: a complete, all-prose room-booking design in six components, with every facet anchored by a Tag and shared concepts reused from one owning component. The maintainer's rewrite is the base. The plan fixes its imports, plants four realistic problems in Booking and Calendar, and runs the claims loop on all six files. A demo doc outside the example walks the computed gradient — Coherent, Loose, and Disjoint with structured findings and gate exit codes — then shows what sigil-evaluate finds in the same design. The example stays bare design files, so evaluation cannot read the answer key.
 
 ### Problem Frame
 
-The claims loop is the repository's flagship computed capability, but nothing realistic demonstrates it. Its observed evidence runs used two-facet stubs (docs/skill-evaluation/sigil-compute.md), examples/ contains no README anywhere, and a README visitor reading the skills table cannot see what a computed Coherent, Loose, or Disjoint means on a design the size of a real product.
+The claims loop is the repository's flagship computed capability. The first version of this demo shipped, but on a design the maintainer has since replaced. The new Slotted is a richer design: a booking lifecycle, a room lock, time-zone arithmetic, and a no-overlap rule. But nothing around it matches yet:
 
-The gap is old. The slotted example — the product-modeling showcase — still carries TypeScript shapes that the 0.8 verification already called obsolete (docs/verification/sigil-080/design-review.md), and its module constraints name Resource Management, Booking, and Scheduling and Recurrence with no corresponding files. A newcomer today must read skill references and Rust sources to understand the computed-versus-advisory distinction, and the example teaches an interface idiom the language has moved past.
+- Every import points at a `design/` folder that does not exist, so `sigil check` reports 17 errors.
+- None of the four deliberate problems survived the rewrite, so the demo has nothing to show beyond Coherent.
+- docs/computed-evaluation-demo.md, the README's Slotted section, and the VS Code extension test all refer to deleted files (`auth.sigil`, `profile.sigil`, `user.sigil`, and others).
+
+The first run also taught something. Across two passes, the ownership conflict never appeared, the dead-end step never produced an `unreached-step` finding, and Booking's contradiction appeared in only one pass. The new placement has to be phrased so the interpretation child reliably produces those claims.
 
 ### Key Decisions
 
-- **Intentional problems live in the example itself.** (session-settled: user-directed — chosen over a coherent baseline plus a flawed variant: one source of truth, always re-runnable.) Governs R7, R8, R9.
-- **The example expands to the full module set and demos the complete finding-class spread.** (session-settled: user-directed — chosen over a single focused problem: "showcase all the problems" needs the taxonomy, not one instance.) Governs R5, R7, R8.
+- **Intentional problems live in the example itself.** (session-settled: user-directed — chosen over a coherent baseline plus a flawed variant: one source of truth, always re-runnable. Re-confirmed on 2026-09-29 over "no planted problems" and "only two problems".) Governs R7, R8, R9.
+- **The example demos the complete finding-class spread.** (session-settled: user-directed — chosen over a single focused problem: "showcase all the problems" needs the taxonomy, not one instance.) Governs R5, R7, R8.
 - **Mixed states across sources.** (session-settled: user-directed — chosen over uniform Disjoint or uniform Loose: the computed state belongs to the selected source, so the demo shows a gradient.) Governs R8.
-- **The demo narrative is a narrative-only doc outside the example.** (session-settled: user-directed — chosen over an in-example README and committed run captures: the example stays bare design files, so advisory evaluation of the design cannot read the documented problems.) Governs R9, R10, R11, R12, R13.
-- **Interfaces become plain prose.** (session-settled: user-directed — chosen over keeping TypeScript shapes: examples/promise/promise.sigil keeps signature-style interfaces, so no language coverage is lost.) Governs R1, R2, R4.
+- **The demo narrative is a narrative-only doc outside the example.** (session-settled: user-directed — chosen over an in-example README and committed run captures: the example stays bare design files, so advisory evaluation cannot read the documented problems.) Governs R9, R10, R11, R12, R13.
+- **Interfaces are plain prose.** (session-settled: user-directed — chosen over TypeScript shapes: examples/promise/promise.sigil keeps signature-style interfaces.) The maintainer's rewrite already satisfies this. Governs R1, R4.
 - **Design files are authored through the sigil-write skill.** (session-settled: user-directed — chosen over hand-editing: the example dogfoods the writer, and its delegated sigil-evaluate review joins the demo story.) Governs R14.
+- **The maintainer's rewrite is the base design.** (session-settled: user-directed — the maintainer replaced the old nine files with six new ones and asked for the plan to follow.) Edits to it are limited to fixing imports, planting the four problems, and fixing unintended design findings. Governs R1, R5, R19.
+- **analyze-demo/ stays out of scope.** (session-settled: user-directed — chosen over rewriting its three docs for the new runs or deleting them.) Their links to deleted files stay broken until separate work handles them.
 
 ### Actors
 
@@ -53,48 +59,49 @@ The gap is old. The slotted example — the product-modeling showcase — still 
 
 ### Requirements
 
-**Example refactor (prose)**
+**Design base**
 
-- R1. examples/slotted/auth.sigil and examples/slotted/profile.sigil carry only ordinary prose facets: every TypeScript type block and signature-style line is rewritten as prose that preserves the same behavioral meaning (user identity, email, role signal; profile fields, ownership, updates). The profile component is named `Profile`; its public `UserProfile` Tag remains available to importers.
-- R2. The ASCII wireframe and SVG reference in examples/slotted/booking-calendar-view.sigil remain unchanged; layout-dependent notation stays a fenced payload.
-- R3. The import header in examples/slotted/auth.sigil is exactly `@profile.sigil from Profile import { UserProfile }`, so the component and imported Tag have distinct, unambiguous entity names.
-- R4. Technology commitments (Next.js, Neon Postgres, Drizzle ORM, JWT sessions) survive as prose constraints; the refactor changes interface notation, not product commitments.
-
-**Module expansion**
-
-- R5. Design files exist for every module Slotted's constraints name: Resource Management (rooms, room metadata, base availability rules), Booking (booking creation, conflict detection, lifecycle, cancellation rules), and Scheduling and Recurrence (recurring booking patterns, series, exceptions). Each file is a complete Sigil 0.8 component — goal and interface required, other sections as content warrants — written in prose facets.
-- R6. The new modules respect the boundaries the Slotted module already fixes: Booking answers availability through Resource Management, permission checks go through Identity and Access, and no module reaches into another module's private details.
+- R1. The six Slotted files carry only ordinary prose facets, and each concept has one owning component: Identity owns users, sessions, the actor, and the session gate; Rooms owns rooms, room owners, the room timezone, archiving, and the room lock; Availability owns weekly windows, blackouts, open time, the slot grid, and the clock; Booking owns booking requests, their lifecycle, the no-overlap rule, and the three cross-module workflows; Calendar owns the room calendar.
+- R3. Every import names a file in the workspace root (for example `@identity.sigil`), and every imported Tag resolves to its owning component.
+- R4. Technology commitments (Next.js, PostgreSQL 18, Drizzle ORM, Better Auth, the Temporal polyfill, Vitest, Playwright) stay prose constraints and decisions.
+- R5. Design files exist for every module Slotted names: Slotted (the root), Identity, Rooms, Availability, Booking, and Calendar. Each is a Sigil 0.8 component with prose facets.
+- R6. Modules respect the boundaries Slotted states: only Booking may call a transaction entry, the app layer uses only public entries, and module dependencies follow Slotted's allowed list with no cycle.
+- R19. Beyond the four planted problems, an unintended design finding from the writer's review or the claims loop is fixed in the design prose, not just reported. Valid run-to-run variance is still reported, never forced away (R15).
 
 **Intentional problem spread**
 
 - R7. The example deliberately contains realistic problems covering the four designable finding classes: one contradiction, one ownership conflict, one unmet obligation, and one flow-class unreached step. Each reads as a plausible design mistake a real author could make.
-- R8. The problems are placed to target a per-source state gradient: at least one clean source is expected coherent, at least one warning-only source is expected loose (including a flow warning and no contradiction), and at least one source is expected disjoint with a gate failure. The observed outcomes are reported under R13; they are not a guarantee for future model runs.
+- R8. The problems are placed to target a per-source state gradient: slotted.sigil, identity.sigil, rooms.sigil, and availability.sigil are expected Coherent; calendar.sigil is expected Loose with a flow warning and no contradiction; booking.sigil is expected Disjoint with a gate failure. Observed outcomes are reported under R13; they are not a guarantee for future model runs.
 - R9. Every intentional problem is marked as intentional in the demo doc and in the root README's Slotted paragraph, so no later author "fixes" the fixture unknowingly.
 
 **Demo doc**
 
-- R10. docs/computed-evaluation-demo.md tells the demo story: what the example is, the module map, which intentional problem triggers which finding class in which source, the exact commands (export, prepare, ingest), and the expected state and exit code per source.
+- R10. docs/computed-evaluation-demo.md is rewritten for the six-component design. It tells the demo story: what the example is, the module map, which intentional problem triggers which finding class in which source, the exact commands (export, prepare, ingest), and the expected state and exit code per source. Results from the replaced design are removed.
 - R11. The demo doc explains the remedy for each intentional problem — as prose or diffs — and the state the design returns to, without committing a second fixed variant.
 - R12. The demo doc contrasts computed and advisory evaluation on the same final design snapshot: the claims loop's state, structured findings, and exit-code gate versus a separate fresh sigil-evaluate review's advisory prose with no state and no gate, and when each is the right tool. Per-file writer reviews are authoring evidence, not the final whole-design comparison.
-- R13. The demo doc states that interpretation is a model run and reports the outcomes of two independent computed gradients against one captured export. The intended states and finding classes are expected outcomes, not guarantees: fresh interpretations can change findings or states as well as wording. It also reports each prepare's presented/reused counts, since a fresh child may receive only rows not reused from the seeded store. The doc describes observed divergence and makes no claim about future runs.
+- R13. The demo doc states that interpretation is a model run and reports the outcomes of two independent computed gradients against one captured export. The intended states and finding classes are expected outcomes, not guarantees. It also reports each prepare's presented/reused counts. The doc describes observed divergence and makes no claim about future runs.
 
 **Authoring and verification**
 
 - R14. All .sigil changes are authored through the sigil-write skill loop — mechanical check, format of authored files, recheck, delegated fresh sigil-evaluate review — with the intentional problems preserved as documented deliberate content rather than corrected away.
-- R15. Implementation runs two independent complete claims gradients over each of the six selected demo sources against one captured export per settled design revision. It records each source's actual state, finding classes, and prepare presented/reused counts; prose is refined for unintended design findings, while valid run-to-run variance is documented rather than forced away. Run records are not committed.
-- R16. Mechanical health holds after the change: `sigil check` passes on the slotted workspace, and the existing core and VS Code extension tests keep passing.
+- R15. Implementation runs two independent complete claims gradients over each of the six Slotted files against one captured export per settled design revision. It records each source's actual state, finding classes, and prepare presented/reused counts. Run records are not committed.
+- R16. Mechanical health holds after the change: `sigil check` passes on the slotted workspace, the core suite passes unchanged, and the VS Code extension test is retargeted to a new Slotted file and passes.
+
+**Tag precision and reuse**
+
+- R18. Every facet in the Slotted workspace introduces or references at least one precise Tag. A concept has one owning component; other components reuse it through explicit Tag imports rather than defining a duplicate. Choose existing owning Tags wherever they name the intended concept, and add a local Tag only for genuinely new vocabulary.
 
 **Root README**
 
-- R17. README.md's Examples section describes Slotted's demo role, marks the intentional problems as deliberate fixture content, links the demo doc, and replaces the "TypeScript-shaped public interface" description (README.md:721-723) to match the prose refactor.
+- R17. README.md's Examples section describes Slotted's demo role and its six components, marks the intentional problems as deliberate fixture content, and links the demo doc. It no longer names deleted files.
 
 ### Key Flows
 
 - F1. Reader runs the computed gradient
   - **Trigger:** A1 follows docs/computed-evaluation-demo.md.
   - **Actors:** A1, A3
-  - **Steps:** The demo doc directs the reader to run the claims loop on a clean source, then the flow-warning source, then the contradiction source.
-  - **Outcome:** The reader sees the intended progression of coherent (exit 0, no findings), loose (exit 0, unreached-step warning), and disjoint (exit 1, contradiction and ownership-conflict findings); the doc reports the states and findings actually observed in its two runs.
+  - **Steps:** The demo doc directs the reader to run the claims loop on a clean source (rooms.sigil), then calendar.sigil, then booking.sigil.
+  - **Outcome:** The reader sees the intended progression of coherent (exit 0, no findings), loose (exit 0, unmet-obligation and unreached-step warnings), and disjoint (exit 1, contradiction and ownership-conflict findings); the doc reports the states and findings actually observed in its two runs.
   - **Covers:** R8, R10.
 - F2. Reader contrasts advisory review
   - **Trigger:** A1 asks for a design review of the same example.
@@ -112,8 +119,8 @@ The gap is old. The slotted example — the product-modeling showcase — still 
 ### Acceptance Examples
 
 - AE1. **Covers R7, R8, R15.** **Given** the updated workspace, **When** two independent completed runs cover a clean source, **Then** each coherent result is reported as observed and any different valid result is disclosed rather than discarded.
-- AE2. **Covers R7, R8, R15.** **Given** the updated workspace, **When** two independent completed runs cover the flow-warning source, **Then** each loose result with its flow-class unreached-step warning is reported as observed, and any different valid result is disclosed rather than discarded.
-- AE3. **Covers R7, R8, R15.** **Given** the updated workspace, **When** two independent completed runs cover the contradiction source, **Then** each disjoint result includes contradiction findings citing both conflicting facets' sections and the ownership-conflict evidence, while any different valid result is disclosed.
+- AE2. **Covers R7, R8, R15.** **Given** the updated workspace, **When** two independent completed runs cover calendar.sigil, **Then** each loose result with its unmet-obligation and unreached-step warnings is reported as observed, and any different valid result is disclosed rather than discarded.
+- AE3. **Covers R7, R8, R15.** **Given** the updated workspace, **When** two independent completed runs cover booking.sigil, **Then** each disjoint result includes contradiction findings citing both conflicting facets and the ownership-conflict evidence, while any different valid result is disclosed.
 - AE4. **Covers R12.** **Given** the same final design snapshot, **When** the reader runs sigil-evaluate, **Then** the separate review returns advisory prose naming the intentional problems, with no computed state and no exit-code gate.
 - AE5. **Covers R10, R12, R13.** **Given** only the repo and the demo doc, **When** a reader follows the doc's commands, **Then** they can reproduce the protocol and understand the observed outcomes and any disclosed run-to-run variance without needing other documentation.
 
@@ -122,37 +129,35 @@ The gap is old. The slotted example — the product-modeling showcase — still 
 - The skills themselves stay untouched: no changes to sigil-compute, sigil-evaluate, sigil-write, sigil-understand, or sigil-egglog content.
 - examples/promise stays untouched; it keeps the repo's signature-style interface coverage.
 - No real application code: the example stays design-only, and the stack names stay prose commitments.
-- No committed raw claims-run records or separate verification reports beyond the required `docs/computed-evaluation-demo.md`; no CI or test pins the example's computed states. The existing core and VS Code suites are regression checks only; they do not pin computed outcomes for this fixture.
-- The Notification module stays out of scope, per the Slotted module's own constraint.
-- No README or other explanatory file inside examples/slotted: the demo narrative lives under docs/, and the example stays bare design files and the SVG.
+- No committed raw claims-run records or separate verification reports beyond docs/computed-evaluation-demo.md; no CI or test pins the example's computed states.
+- No README or other explanatory file inside examples/slotted.
+- analyze-demo/ is not edited (see Key Decisions).
+- The core suite's Slotted test uses an in-memory copy of the old files, not the real example, so it stays unchanged.
 
 ### Dependencies / Assumptions
 
-- Tooling is present: the `sigil` CLI builds from packages/cli and the `sigil-claims` binary exists under packages/sigilc; both verified in-repo.
-- Verification runs need a host that can delegate a fresh interpretation child for each source run; final advisory comparison also needs a separate fresh evaluator. If either delegation is unavailable at implementation time, report that limit and do not describe the missing result as verified.
-- The claims laws decide actual states: a crafted problem may not trip its intended law on the first pass. Observed cases confirm contradiction and unreached-step are craftable; ownership-conflict and unmet-obligation follow from the claims laws. Facet prose iterates during verification until each intended class surfaces.
-- One claims run covers one selected source, with closure sources as context; each intentional problem lives in the source whose run must expose it. `examples/slotted/_module.sigil` is eligible in the export but is module context, not one of the six selected demo sources.
+- Tooling is present: build/sigil exists, and the `sigil-claims` binary builds under packages/sigilc.
+- Verification runs need a host that can delegate a fresh interpretation child for each source run; the final advisory comparison also needs a separate fresh evaluator. If either is unavailable, report that limit and do not describe the missing result as verified.
+- The claims laws decide actual states: a crafted problem may not trip its intended law on the first pass. Facet prose iterates during verification until each intended class surfaces (KTD7).
+- One claims run covers one selected source, with its import closure as context; each intentional problem lives in the source whose run must expose it.
+- Import cycles are allowed (spec/sigil-reference.md, "Cycles"), so Rooms and Availability importing `app layer` from Slotted while Slotted imports them is valid.
 
 ### Outstanding Questions
 
-- **Resolve Before Planning:** none.
-- **Deferred to implementation:** the exact facet prose for each intentional problem — it iterates against real claims runs until the intended classes surface (per R15); component names inside the new files are an authoring choice settled by sigil-write.
+- **Deferred to implementation:** the exact facet prose for each intentional problem. It iterates against real claims runs until the intended classes surface (R15, KTD7).
 
 ### Sources / Research
 
 - integrations/skills/sigil-compute/references/computed-evaluation.md — the loop contract: states, exit codes, finding classes, one-source-per-run.
-- docs/skill-evaluation/sigil-compute.md — observed loop cases: contradiction → disjoint (exit 1); unreached step → loose (exit 0).
-- docs/plans/2026-09-18-1719-feat-claims-flow-decomposition-plan.md — dropping a step's outgoing edge yields exactly one unreached-step warning with exit 0.
-- packages/sigilc/src/claims/findings.rs — the finding-class enum and the exclusive-ownership law name.
-- packages/core/tests/core_test.ts — an existing regression test resolves an in-memory slotted fixture whose import reads `{ Profile }`; it does not pin the real auth.sigil import line or the example's computed outcomes.
-- integrations/editor/vscode/tests/extension/index.ts and integrations/editor/vscode/scripts/run-extension-tests.mjs — existing extension regression coverage compiles the copied real auth.sigil and copies examples/slotted wholesale; it does not pin computed outcomes.
-- packages/sigilc/tests/claims_findings.rs, packages/sigilc/tests/claims_laws.rs, packages/sigilc/tests/claims_prepare.rs, and packages/sigilc/tests/claims_cli.rs — existing claims behavior references; none pins the Slotted example's model-computed states.
-- spec/sigil-reference.md — layout-dependent notation must stay a fenced payload, so the wireframe stays.
-- README.md:710-731 — the current Examples text that R17 updates.
-- integrations/skills/sigil-write/SKILL.md — the writer loop: check, format authored files, recheck, delegated review, and preserving human choices.
-- packages/sigilc/src/claims/findings.rs and packages/sigilc/src/claims/claims.egg — gate semantics and attribution: only contradiction and ownership-conflict findings make Disjoint; unmet-obligation, interpretation, and flow findings warn; a finding is retained only when the selected source authored one of its cited claims.
-- spec/glossary.md — the descriptive-filename rule that governs the new file names; ADR-012's index-era rules are doubly superseded.
-- integrations/skills/sigil-write/references/writing-loop.md — the concrete authoring loop the units execute.
+- docs/computed-evaluation-demo.md (the pre-rewrite version) — observed lessons: the ownership conflict never appeared, the dead-end step produced `suppressed-graph` or nothing instead of `unreached-step`, and Booking's contradiction appeared in one pass of two.
+- packages/sigilc/src/claims/guidance/examples.md — the exclusivity pattern: an ownership claim plus an `exclusive` property, from prose like "the only one whose…".
+- packages/sigilc/src/claims/guidance/vocabulary.md — flow steps and edges: an edge to `graph` declares an end, and ending is declared, never inferred.
+- packages/sigilc/src/claims/findings.rs and packages/sigilc/src/claims/claims.egg — gate semantics and attribution: only contradiction and ownership-conflict findings make Disjoint; a finding is retained only when the selected source authored one of its cited claims.
+- spec/glossary.md ("Import", "Import cycle") — `@path` imports resolve from the workspace root; cycles are allowed.
+- integrations/editor/vscode/tests/extension/index.ts — opens `auth.sigil`, hovers the `UserProfile` import and a section component reference, and pins the compile report's roots and sources.
+- packages/core/tests/core_test.ts — its Slotted workspace test uses in-memory files, not the real example.
+- README.md, "Examples" section — the Slotted text that R17 rewrites.
+- integrations/skills/sigil-write/references/writing-loop.md — the authoring loop the units execute.
 - docs/quickstart.md — the command-first documentation style the demo doc follows.
 
 ---
@@ -161,36 +166,64 @@ The gap is old. The slotted example — the product-modeling showcase — still 
 
 ### Key Technical Decisions
 
-- KTD1. **New files follow the glossary's descriptive-filename rule.** The three module files are `examples/slotted/resource-management.sigil`, `examples/slotted/booking.sigil`, and `examples/slotted/scheduling-and-recurrence.sigil`. ADR-012's index-era naming rules are doubly superseded; the "Descriptive Sigil filename" rule in spec/glossary.md governs, and `_module.sigil` is an ordinary filename in 0.8. Governs U2, U3, U4.
-- KTD2. **Problem placement follows the tool's witness-attribution rules.** Only contradiction and ownership-conflict findings gate Disjoint; unmet-obligation, interpretation, and flow findings are warnings that produce Loose. Ingest retains a finding only when the selected source authored one of its cited claims or holds the finding's component, so each problem lives in the source whose run must expose it: the contradiction is authored wholly inside booking.sigil (a cross-file contradiction would make both ends Disjoint), the exclusive-ownership marking lives in booking.sigil with the competing `owns` claims straddling booking and scheduling, and scheduling-and-recurrence.sigil authors both the unmet requirement and the dead-end logic step. The ownership-conflict report may cite only the exclusivity-law marker; the demo doc must also identify both supporting `owns` declarations so readers can inspect the full evidence. Governs R7, R8; instantiated in U3, U4.
-- KTD3. **The Calendar Read Model stays a module-described composition.** No file is created for it: BookingCalendarView keeps referencing it exactly as today, and a read-model file would add nothing to the problem spread. Constrains U2–U4.
-- KTD4. **Authoring executes the sigil-write writing loop mechanically.** (session-settled: user-directed — chosen over hand-editing: the example dogfoods the writer, and its delegated sigil-evaluate review joins the demo story.) Check and format authored files against examples/slotted as the workspace root (build/sigil exists, CLI 0.9.0), recheck, capture exact bytes, and delegate a fresh sigil-evaluate child after each draft or semantic revision; determined corrections apply autonomously, while the intentional problems land as design choices the writer preserves. Supply the evaluator's exact captures and read-only instructions. Record the actual host restrictions, including when read-only is instruction-only, and do not claim stronger isolation than the host enforces. Governs R14.
-- KTD5. **Verification runs the claims loop under the compute contract's private-root discipline.** For each settled design revision, capture one export from the slotted workspace and select the six demo sources by their exact `sources[].path` values; `_module.sigil` is exported module context, not a selected run. Retain a scratch manifest of the source-file byte hashes associated with the export. For every selected-source run, prepare, fresh interpretation, and ingest use one private root outside the workspace, seeded from the workspace interpretation store; each reported state passes the completed-ingest identity checks before it counts. The fresh child has no inherited conversation, receives only the prepared request, binding, every prepared guidance path, and the resolved `sigil-understand` and `sigil-egglog` entrypoints, and returns data-only rows through its assigned artifact. Use the host's narrowest available read-only restrictions for those inputs and output, do not pass credentials or unrelated context, and record actual restrictions, including instruction-only limits. Run records stay outside the repo — `.sigil/claims/` is gitignored. Governs R15, AE1–AE3.
-- KTD6. **Repeat the full gradient to measure observed model variance.** Run two independent complete gradients against KTD5's same captured export, with a distinct private root and fresh interpretation child for every selected source in each pass. Compare states and finding classes source by source. Refine prose when a valid finding demonstrates an unintended design issue; do not alter settled design choices solely to force identical model output. If outcomes still diverge, preserve that observation in the doc and label the state map as expected behavior, never a guarantee. Do not commit run artifacts. Governs R13, R15.
+- KTD1. **Imports are rewritten in place; the files stay in the workspace root.** Each `@design/<file>.sigil` becomes `@<file>.sigil`. The six filenames stay as the maintainer chose them. (session-settled: user-directed — chosen over moving all six files into examples/slotted/design/: keeps the flat layout the README and tests already expect.) Governs R3; instantiated in U1.
+- KTD2. **Problem placement follows the witness-attribution rule.** Ingest keeps a finding only when the selected source authored one of its cited claims. So each problem lives in the one source whose run must show it:
+  1. The contradiction is authored wholly inside booking.sigil: an interface promise and a constraint that forbids it. A cross-file contradiction would make both files Disjoint.
+  2. The ownership conflict centres on Rooms' `archived room` Tag. booking.sigil claims the archived-room mark is Booking's alone, because only Booking's archive workflow may change it. rooms.sigil states that Rooms owns it. The exclusivity marker lives in booking.sigil, so only Booking's report carries the conflict.
+  3. calendar.sigil authors both warnings: a requirement nothing provides, and a logic step whose output nothing uses.
+  Calendar is a leaf that only Slotted imports, so its warnings cannot be cited by another source's claims. (session-settled: user-approved — chosen over putting the warnings in Availability.) Governs R7, R8; instantiated in U2, U3, U4.
+- KTD3. **All six files are selected sources, slotted.sigil included.** The old root file was context only. The new root carries real constraints, decisions, and cases, so it is run and expected Coherent. (session-settled: user-approved — chosen over treating slotted.sigil as context only.) Governs R8, R15.
+- KTD4. **Authoring executes the sigil-write writing loop mechanically.** (session-settled: user-directed — chosen over hand-editing.) Check and format authored files against examples/slotted as the workspace root, recheck, capture exact bytes, and delegate a fresh sigil-evaluate child after each draft or semantic revision. Determined corrections apply autonomously; the intentional problems land as design choices the writer preserves. Record the actual host restrictions, including when read-only is instruction-only. Governs R14.
+- KTD5. **Verification runs the claims loop under the compute contract's private-root discipline.** For each settled design revision, capture one export from the slotted workspace and select the six sources by their exact `sources[].path` values. Keep a scratch manifest of source-file byte hashes. Each selected-source run uses its own private root outside the workspace, seeded from the workspace interpretation store. The fresh child has no inherited conversation. It receives only the prepared request, binding, every prepared guidance path, and the resolved `sigil-understand` and `sigil-egglog` entrypoints, and returns data-only rows through its assigned artifact. Record actual child restrictions. A state counts only after the completed-ingest identity checks pass. Governs R15, AE1–AE3.
+- KTD6. **Repeat the full gradient to measure observed model variance.** Run two independent complete gradients against KTD5's one export, with a fresh private root and child for every source in each pass. Compare states and finding classes source by source. Do not alter settled design choices only to force identical model output. Do not commit run artifacts. Governs R13, R15.
+- KTD7. **Phrase the planted problems the way the interpretation guidance reads them.** The first run showed that loose phrasing loses the ownership conflict and the dead-end step. So:
+  1. Ownership: booking.sigil states both halves the exclusivity pattern needs — that Booking owns the archived-room mark, and that Booking is the only one that may set or clear it. rooms.sigil states plainly that Rooms owns the archived-room mark.
+  2. Dead-end step: in Calendar's logic, every other step reaches an explicit end ("returns the room calendar"). The planted step writes a Tag that no later step reads, the interface never returns, and no sentence ends the flow.
+  3. Unmet obligation: a firm requirement in a committing section, such as the room owner's view needing a renter display name, which no component provides.
+  4. Contradiction: an interface promise and a constraint phrased as a required-false form, both about the same Tag in booking.sigil.
+  Governs R7; instantiated in U3, U4.
+- KTD8. **Unintended findings are fixed in the design prose.** (session-settled: user-approved — chosen over only reporting them.) One known candidate: Slotted's allowed-dependency list leaves out Identity, but Booking, Availability, and Calendar import `actor` from Identity. Fixes go through the writer loop and never remove a planted problem. Governs R19.
+- KTD9. **The extension test is retargeted to booking.sigil.** booking.sigil has a multi-Tag import list and a component reference in prose ("Booking depends on Availability"), which are the two things the test hovers. Its import closure spans Identity, Rooms, and Availability, so the compile-report source assertions stay meaningful. The native compile state is observed on the new file and pinned as found, not assumed to stay Loose. Governs R16; instantiated in U8.
 
 ### High-Level Technical Design
 
-The target shape is the state gradient across one workspace. The table describes intended outcomes; U5 records what each of the two independent passes actually produced, and U6 reports any divergence:
+The target is a state gradient across one workspace. The table shows intended outcomes; U5 records what each pass actually produced.
 
 | Selected source | What its own prose authors | Expected findings | State (exit) |
 | --- | --- | --- | --- |
-| auth.sigil | clean prose interfaces | none | coherent (0) |
-| profile.sigil | clean prose interfaces | none | coherent (0) |
-| booking-calendar-view.sigil | unchanged wireframe component | none | coherent (0) |
-| resource-management.sigil | rooms and availability, clean | none | coherent (0) |
-| scheduling-and-recurrence.sigil | unmet requirement plus dead-end flow step | one unmet-obligation, one unreached-step (warnings) | loose (0) |
-| booking.sigil | in-file contradiction plus exclusive-ownership marking | contradiction rows citing both facets, one ownership-conflict | disjoint (1) |
+| slotted.sigil | module map, boundaries, stack | none | coherent (0) |
+| identity.sigil | users, sessions, session gate | none | coherent (0) |
+| rooms.sigil | rooms, archiving, room lock, and a plain "Rooms owns the archived-room mark" | none | coherent (0) |
+| availability.sigil | weekly windows, blackouts, open time | none | coherent (0) |
+| calendar.sigil | room calendar plus unmet requirement and dead-end step | one unmet-obligation, one unreached-step (warnings) | loose (0) |
+| booking.sigil | lifecycle plus in-file contradiction and exclusive archived-room claim | contradiction rows citing both facets, one ownership-conflict, and possibly one `exclusive-foreign-write` flow warning | disjoint (1) |
 
-The witness rule drives the import structure: booking.sigil imports the recurring-series tag from scheduling-and-recurrence.sigil and availability from resource-management.sigil, so its run sees both `owns` claims on the recurring series; auth.sigil imports the `UserProfile` Tag from component `Profile` in profile.sigil. Although `_module.sigil` is present in the export, it is context only and is not selected for a gradient run.
+Imports after U1 (arrows mean "imports Tags from"):
 
 ```mermaid
 flowchart TB
-  auth["auth.sigil — coherent"] -->|imports UserProfile| up["profile.sigil / Profile — coherent"]
-  booking["booking.sigil — disjoint"] -->|imports| rm["resource-management.sigil — coherent"]
-  booking -->|imports| sched["scheduling-and-recurrence.sigil — loose"]
+  slotted["slotted.sigil — coherent"] --> identity["identity.sigil — coherent"]
+  slotted --> rooms["rooms.sigil — coherent"]
+  slotted --> avail["availability.sigil — coherent"]
+  slotted --> booking["booking.sigil — disjoint"]
+  slotted --> calendar["calendar.sigil — loose"]
+  rooms --> identity
+  rooms -->|app layer| slotted
+  avail --> identity
+  avail --> rooms
+  avail -->|app layer| slotted
+  booking --> identity
+  booking --> rooms
+  booking --> avail
+  calendar --> identity
+  calendar --> rooms
+  calendar --> avail
+  calendar --> booking
 ```
 
-booking-calendar-view.sigil stands alone (no imports) and is untouched by this work.
+Booking imports `archived room` from Rooms, so Booking's run sees both ownership claims. The same exclusivity marker also meets the step-ownership law in packages/sigilc/src/claims/claims.egg: Booking's archive-workflow step writes a Tag that Rooms defines, so Booking's report may carry one `exclusive-foreign-write` flow warning. That warning is part of the planted ownership problem, and flow warnings never gate, so the state stays Disjoint. Slotted's interface also says "Rooms owns … archiving"; the ownership finding is expected to cite only Booking's exclusivity marker, so Slotted should stay Coherent. U5 checks this.
+
+Run protocol per settled revision:
 
 ```mermaid
 flowchart TD
@@ -209,118 +242,159 @@ flowchart TD
 
 ### Sequencing
 
-U1 first — the prose refactor sets the facet style every later file imitates. U2 and U3 follow in either order, then U4 (its imports need U2 and U3), then U5's two-pass gradient and U6's separate final advisory review, then U7's README update and final sweep. U6 follows the final semantic edits to the design; any later semantic edit requires another fresh advisory review. The sigil-write loop runs per file throughout. U5 may loop back into U1–U4 to address unintended findings; it records persistent model variance instead of silently treating it as a design defect.
+1. U1 first — nothing else can be checked until imports resolve.
+2. U2, then U3 and U4 in either order. U4 needs U2's Rooms ownership sentence.
+3. U8 runs after U5, once booking.sigil's content is final, so the compile state it pins does not go stale.
+4. U5 runs after U2–U4. It may loop back into U2–U4 for unintended findings (KTD8). Any semantic edit restarts both passes with a new export.
+5. U6 follows the last semantic edit. A later semantic edit requires another fresh advisory review.
+6. U7 last.
 
 ---
 
 ## Implementation Units
 
-### U1. Refactor auth and profile interfaces to prose
+### U1. Fix Slotted imports and get the workspace green
 
-- **Goal:** examples/slotted/auth.sigil and examples/slotted/profile.sigil carry only ordinary prose facets with unchanged behavioral meaning.
-- **Requirements:** R1, R3, R4
+- **Goal:** All six Slotted files resolve, and `sigil check` passes with no diagnostics.
+- **Requirements:** R1, R3, R4, R6, R16, R18
 - **Dependencies:** none
-- **Files:** examples/slotted/auth.sigil, examples/slotted/profile.sigil; existing regression references: packages/core/tests/core_test.ts (in-memory fixture, not a pin of auth.sigil), integrations/editor/vscode/tests/extension/index.ts, integrations/editor/vscode/scripts/run-extension-tests.mjs
-- **Approach:** Author through the sigil-write loop (KTD4). Rewrite each TypeScript type block and signature line as short prose facets that preserve the same commitments: user identity, email, and the owner role signal in auth; the profile's display name, optional picture, single-owner rule, and owning-user updates in profile.sigil. Keep the import header equal to R3 and the technology commitments (JWT, Next.js) as prose constraints (R4). Auth's role permissions are constraints, while session presence remains state. booking-calendar-view.sigil is untouched (R2).
-- **Patterns to follow:** Root `_module.sigil` and packages/core/src/pipeline.sigil for section and facet style; the worked facet forms in packages/sigilc/src/claims/guidance/examples.md so the interpretation child reads them cleanly.
-- **Verification scenarios:**
-  - Target: each auth.sigil run is coherent, exit 0, with zero findings. Record actual outcomes from both runs; U6 reports any valid divergence. Covers AE1.
-  - Target: each profile.sigil run is coherent, exit 0, with zero findings. Record actual outcomes from both runs; U6 reports any valid divergence. Covers AE1.
-  - `sigil check` on the slotted workspace passes with the refactored files.
-  - The existing core and VS Code suites remain regression checks; neither is a pin of computed states for the real example.
-- **Verification:** build/sigil check is green; the target is coherent with zero findings on both sources, actual outcomes and any valid divergence are recorded, and the import line is unchanged.
+- **Files:** examples/slotted/slotted.sigil, examples/slotted/identity.sigil, examples/slotted/rooms.sigil, examples/slotted/availability.sigil, examples/slotted/booking.sigil, examples/slotted/calendar.sigil
+- **Approach:**
+  1. Rewrite each `@design/<file>.sigil` import as `@<file>.sigil` (KTD1).
+  2. Run the check and fix what it reports next: unresolved Tag selections, unused imports, and untagged facets (R18).
+  3. Format the six files, recheck, and run the writer's delegated review (KTD4). Apply determined corrections, including KTD8 fixes such as the dependency list that omits Identity.
+- **Patterns to follow:** examples/promise/.sigil/config.json and the README's note that `@` imports resolve from the workspace directory.
+- **Test scenarios:**
+  - `sigil check examples/slotted` reports zero errors and zero warnings.
+  - Each selected Tag in every import list resolves to the component that defines it.
+  - Every facet in the six files references or defines a Tag.
+  - `sigil fmt --check` is clean on the six files.
+- **Verification:** the workspace checks and formats clean, and the writer's review found no unresolved design issue other than the ones U2–U4 will plant.
 
-### U2. Create resource-management.sigil (clean source)
+### U2. Tighten the four clean sources
 
-- **Goal:** The Resource Management module exists as a complete, clean component owning rooms, room metadata, and base availability rules.
-- **Requirements:** R5, R6, R8
-- **Dependencies:** U1 recommended first for facet style; not strictly required.
-- **Files:** examples/slotted/resource-management.sigil (new); existing regression references: integrations/editor/vscode/tests/extension/index.ts, integrations/editor/vscode/scripts/run-extension-tests.mjs (the harness copies the example; it does not pin computed states)
-- **Approach:** Author through the sigil-write loop (KTD4). Complete component with goal and interface plus the sections the content warrants; declare rooms and availability ownership per the Slotted module's constraints, and provide the availability answers Booking will require. Keep prose simple and grounded — coherent means zero findings of any class, including interpretation defects (KTD2).
-- **Patterns to follow:** U1's refactored facet style; root `_module.sigil` ownership phrasing.
-- **Verification scenarios:**
-  - Target: resource-management.sigil is coherent, exit 0, with zero findings in each pass. Record actual outcomes; U6 reports any valid divergence. Covers AE1.
-  - `sigil check` passes with the new file included.
-- **Verification:** the target is coherent with zero findings; actual outcomes and any valid divergence are recorded, and the file is formatted and checked.
+- **Goal:** slotted.sigil, identity.sigil, rooms.sigil, and availability.sigil are ready to compute Coherent, and rooms.sigil states the ownership that Booking's conflict needs.
+- **Requirements:** R6, R8, R18, R19
+- **Dependencies:** U1
+- **Files:** examples/slotted/rooms.sigil; examples/slotted/slotted.sigil, examples/slotted/identity.sigil, and examples/slotted/availability.sigil only where the writer review finds an unintended issue
+- **Approach:** Author through the writer loop (KTD4). Add a plain sentence to rooms.sigil saying Rooms owns the archived-room mark (KTD7 item 1). Do not state exclusivity there. Keep other edits to fixes of unintended issues (KTD8).
+- **Patterns to follow:** the ownership phrasing already in slotted.sigil's interface.
+- **Test scenarios:**
+  - Target: each clean source is Coherent, exit 0, with zero findings in each pass. Covers AE1.
+  - rooms.sigil's own run does not report an ownership conflict, because it authors no exclusivity marker.
+  - `sigil check` stays green.
+- **Verification:** the four sources are checked, formatted, and reviewed; U5 records their actual states.
 
-### U3. Create scheduling-and-recurrence.sigil (the loose source)
+### U3. Plant the two warnings in calendar.sigil (the loose source)
 
-- **Goal:** The Scheduling and Recurrence module exists complete, hosting the two warning-class problems.
-- **Requirements:** R5, R6, R7, R8
-- **Dependencies:** U1 recommended first for facet style; not strictly required.
-- **Files:** examples/slotted/scheduling-and-recurrence.sigil (new); existing regression references: integrations/editor/vscode/tests/extension/index.ts, integrations/editor/vscode/scripts/run-extension-tests.mjs (the harness copies the example; it does not pin computed states)
-- **Approach:** Author through the sigil-write loop (KTD4). Realistic module content for recurring booking patterns, series, and exceptions per the module constraints, then embed the two intentional problems as plausible mistakes (KTD2):
-  1. An unmet obligation: a firm constraint in a committing section stating the module requires something nothing in its closure provides — phrased as a requirement, not a decision or a permitted case.
-  2. A dead-end flow step: a logic section whose other branches declare ends, plus one step whose output nothing consumes and which never finishes the flow.
-- **Execution note:** Both problems are verified only by real claims runs; expect to iterate the facet prose until exactly the two warning findings surface.
-- **Patterns to follow:** packages/core/src/pipeline.sigil for logic-section step prose; the flow vocabulary in packages/sigilc/src/claims/guidance/vocabulary.md — flow ends are declared, never inferred.
-- **Verification scenarios:**
-  - Target: scheduling-and-recurrence.sigil is loose, exit 0, with one unmet-obligation and one unreached-step warning and no contradiction findings in each pass. Record actual outcomes; U6 reports any valid divergence. Covers AE2.
-  - The two problems survive the writer's delegated review as design choices, not corrections. Covers F3.
-- **Verification:** the target is loose with exactly the two intended warnings; actual outcomes and any valid divergence are retained for U6 to report.
+- **Goal:** Calendar hosts one unmet obligation and one dead-end logic step, and nothing else.
+- **Requirements:** R7, R8, R18
+- **Dependencies:** U1
+- **Files:** examples/slotted/calendar.sigil
+- **Approach:** Author through the writer loop (KTD4). Add the two problems as plausible mistakes (KTD2 item 3), phrased per KTD7 items 2 and 3:
+  1. The unmet obligation: the room owner's view requires a renter display name. Identity has no profile, so nothing provides it.
+  2. The dead-end step: a logic step that records a new Tag nothing reads or returns, among steps that each reach an explicit end.
+- **Execution note:** Verify both only through real claims runs. The first attempt at a dead-end step never produced `unreached-step`, so expect to iterate the step prose.
+- **Patterns to follow:** packages/sigilc/src/claims/guidance/vocabulary.md for step edges and declared ends.
+- **Test scenarios:**
+  - Target: calendar.sigil is Loose, exit 0, with one unmet-obligation and one unreached-step warning and no contradiction in each pass. Covers AE2.
+  - The two problems survive the writer's delegated review as design choices. Covers F3.
+  - No other source's report carries Calendar's warnings.
+- **Verification:** the target is Loose with exactly the two intended warnings, or the actual result is recorded for U6.
 
-### U4. Create booking.sigil (the disjoint source)
+### U4. Plant the two gating problems in booking.sigil (the disjoint source)
 
-- **Goal:** The Booking module exists complete, hosting the two gating problems and the demo's headline run.
-- **Requirements:** R5, R6, R7, R8
-- **Dependencies:** U2, U3 — booking imports both.
-- **Files:** examples/slotted/booking.sigil (new); existing regression references: integrations/editor/vscode/tests/extension/index.ts, integrations/editor/vscode/scripts/run-extension-tests.mjs (the harness copies the example; it does not pin computed states)
-- **Approach:** Author through the sigil-write loop (KTD4). Complete module content for booking creation, conflict detection, lifecycle, and cancellation. Import the recurring-series tag from scheduling-and-recurrence.sigil and availability from resource-management.sigil. Embed the gating problems, authored in this file (KTD2):
-  1. The contradiction: an interface facet promising something a constraints facet forbids — both authored here so only this source reads Disjoint.
-  2. The ownership conflict: a state-section claim that the recurring series is exclusively Booking's, while scheduling-and-recurrence.sigil also owns it — the over-claim of a team integrating recurrence into booking; the exclusive marking lives here, so only this report carries the conflict. In the demo doc, point to the exclusivity marker and both `owns` declarations; the structured finding's `claims` field may cite only the law marker, not both premises.
-  3. Keep every other promise met: Booking's requirements on availability are filled by Resource Management's provides plus the dependency, so no unintended unmet obligations appear.
-- **Execution note:** Iterate the facet prose against real claims runs until the report carries the contradiction rows and the ownership conflict and nothing else.
-- **Patterns to follow:** The exclusivity house pattern in packages/sigilc/src/claims/guidance/examples.md — an ownership claim plus the property that makes it exclusive; prohibition phrased as required-false forms.
-- **Verification scenarios:**
-  - Target: booking.sigil is disjoint, exit 1, with contradiction findings citing both conflicting facets and one ownership-conflict finding in each pass. Record actual outcomes; U6 reports any valid divergence. Covers AE3.
-  - No unmet-obligation or flow findings appear in booking's report even though its closure contains scheduling's warnings — the witness rule holds.
-- **Verification:** the target is disjoint with exactly the intended findings; actual outcomes and any valid divergence are retained for U6 to report.
+- **Goal:** Booking hosts one in-file contradiction and one exclusive-ownership over-claim, and nothing else.
+- **Requirements:** R7, R8, R18
+- **Dependencies:** U2 (Rooms' ownership sentence)
+- **Files:** examples/slotted/booking.sigil
+- **Approach:** Author through the writer loop (KTD4). Add the problems per KTD2 items 1–2 and KTD7 items 1 and 4:
+  1. The contradiction: an interface promise that a constraint forbids. One candidate: the interface lets a renter change the requested range of their own Pending booking request, while a constraint says a requested range must never change after it is recorded.
+  2. The ownership over-claim: Booking owns the archived-room mark and is the only one that may set or clear it. This is the over-claim of a team that moved archiving into Booking's archive workflow.
+  3. Keep every other promise met, so no unintended unmet obligations appear.
+  4. Keep the archive workflow's write of the archived-room mark. It may add an `exclusive-foreign-write` flow warning, which belongs to the planted ownership problem; do not remove the write to silence it, because Booking owns the archive workflow (R1).
+- **Execution note:** Iterate against real claims runs until the report carries the contradiction rows, the ownership conflict, and at most the `exclusive-foreign-write` warning, and nothing else. The first design's contradiction appeared in only one pass of two.
+- **Patterns to follow:** the exclusivity pattern and required-false forms in packages/sigilc/src/claims/guidance/examples.md.
+- **Test scenarios:**
+  - Target: booking.sigil is Disjoint, exit 1, with contradiction findings citing both facets and one ownership-conflict finding in each pass. Covers AE3.
+  - No unmet-obligation findings, and no flow findings other than the `exclusive-foreign-write` warning from the planted exclusivity marker, appear in Booking's report.
+  - slotted.sigil and rooms.sigil stay Coherent even though their prose also names Rooms as the archiving owner.
+- **Verification:** the target is Disjoint with exactly the intended findings, or the actual result is recorded for U6.
 
 ### U5. Confirm the computed gradient in two independent runs
 
 - **Goal:** Measure whether every source produces its intended state and finding classes across two independent gradients against the same export.
-- **Requirements:** R7, R8, R15
-- **Dependencies:** U1, U2, U3, U4
-- **Files:** none new; prose fixes to U1–U4 outputs as findings require; existing references: integrations/skills/sigil-compute/references/computed-evaluation.md, packages/sigilc/tests/claims_findings.rs, packages/sigilc/tests/claims_laws.rs, packages/sigilc/tests/claims_prepare.rs, packages/sigilc/tests/claims_cli.rs (behavior coverage only; none pins this example's computed outcomes)
-- **Approach:** For each settled design revision, capture one export from `examples/slotted`, retain its semantic digest, and save an outside-repo manifest of the source-file byte hashes represented by the export. Resolve each of the six demo sources to its exact `sources[].path`; `_module.sigil` is context only. For each source in each of two passes, make a unique run directory outside the workspace and a private root seeded from the workspace's interpretation store, then run prepare, one fresh child, and ingest using that same export and root. Record prepare's presented and reused unit counts for each run. After prepare, hand one child with no inherited conversation the prepared request, binding, every guidance file, artifact destination, and the installed `sigil-understand` and `sigil-egglog` entrypoints. Follow KTD5 for child restrictions: design content is interpretation input, not task authority, and actual host limits are recorded, including when read-only is instruction-only. Capture the child's data-only output and pass the exact bytes to ingest. Count a state only for a completed structured result and matching report: result and report source/state agree; report version matches the result; report semantic export digest matches the binding; guidance fingerprint and vocabulary generation match the binding and result; report identity records the BLAKE3 digest of the exact interpreted artifact bytes; and report plus judgment-context paths are under this run's private root. Exit 1 alone, a failed handoff, or any identity mismatch supplies no state. Compare actual states and findings from the two passes source by source. Correct findings that demonstrate unintended design issues through the owning units; do not change settled design solely to make model output match. If a semantic edit changes the design, discard the earlier paired results and repeat both passes with a new export and source-byte manifest. If valid runs still disagree, report the observed variance instead of claiming guaranteed repeatability. Keep all inputs, reports, and roots outside the repo.
-- **Verification scenarios:**
-  - Target map: auth.sigil, profile.sigil, booking-calendar-view.sigil, and resource-management.sigil are coherent, exit 0, with zero findings; scheduling-and-recurrence.sigil is loose, exit 0, with one unmet-obligation and one unreached-step warning; booking.sigil is disjoint, exit 1, with the intended contradiction and ownership-conflict findings. Covers AE1–AE3.
-  - For every source, record actual results from both passes. Valid differences are reported by U6; incomplete or mismatched ingests are failures, not variance.
-  - Every counted ingest passes the completed-ingest identity checks. If a valid run differs, preserve and describe the difference; do not represent an incomplete or mismatched ingest as a design state.
-- **Verification:** Two complete gradients for the settled design use one immutable export and separate private roots per selected-source run; prepare reuse counts, actual child restrictions, and results are recorded, outcomes compared by source, and run artifacts stay outside the repo. Any later semantic edit invalidates that pair.
+- **Requirements:** R7, R8, R15, R19
+- **Dependencies:** U2, U3, U4
+- **Files:** none new; prose fixes to U2–U4 outputs as findings require
+- **Approach:** Follow KTD5 and KTD6 for all six sources.
+  1. Capture one export and its source-byte manifest.
+  2. Run pass 1 and pass 2, each with a fresh private root and child per source. Record prepare's presented and reused counts.
+  3. Count a state only when result, report, binding, artifact, and private-root identities all match. A bare exit 1 or a failed handoff gives no state.
+  4. Fix unintended findings through U2–U4 (KTD8). After any semantic edit, discard both passes and start again with a new export.
+  5. If valid runs still disagree, record the variance for U6.
+  Keep all inputs, reports, and roots outside the repo.
+- **Test scenarios:**
+  - Target map: slotted, identity, rooms, and availability Coherent; calendar Loose with its two warnings; booking Disjoint with its contradiction and ownership conflict, plus at most the `exclusive-foreign-write` flow warning. Covers AE1–AE3.
+  - Every counted ingest passes the identity checks; mismatched or incomplete ingests are failures, not variance.
+- **Verification:** two complete gradients on one immutable export, with counts, child restrictions, and outcomes recorded per source.
 
-### U6. Write the demo doc and run a separate final advisory review
+### U6. Rewrite the demo doc and run a separate final advisory review
 
-- **Goal:** docs/computed-evaluation-demo.md accurately presents the computed protocol, both observed gradients, and an advisory review of the same final design snapshot.
+- **Goal:** docs/computed-evaluation-demo.md presents the six-component design, both observed gradients, and an advisory review of the same final design.
 - **Requirements:** R9, R10, R11, R12, R13
-- **Dependencies:** U5 — the two observed gradients and final design revision.
-- **Files:** docs/computed-evaluation-demo.md (new)
-- **Approach:** After the last semantic edit to any design file, capture the exact final Slotted design bytes and required linked/module context, preserving the original workspace root and input identities. Verify the captured design file hashes against U5's source-byte manifest so the computed and advisory results refer to the same design; if the bytes differ, repeat U5 before proceeding. Dispatch a separate fresh `sigil-evaluate` child with no inherited conversation using the evaluator's read-only request and exact captures; record actual host restrictions as KTD4 requires. Do not substitute per-file sigil-write review reports for this whole-design advisory review. Structure the doc:
-  1. What the example is and its module map.
-  2. The intentional problems: which source carries which, which finding class each triggers, and the marker that they are deliberate.
-  3. The commands with real binary paths (build/sigil or `deno task build:cli`; packages/sigilc/target/debug/sigil-claims or `deno task build:sigilc`), one captured export, the private-root and fresh-child handoff discipline, and `--source` values exactly as the export lists them. Identify `_module.sigil` as exported context, not a selected demo source, and state the actual child restrictions, including any instruction-only limits.
-  4. The target state and exit code per source, plus each run's actual state, finding classes, and prepare presented/reused counts. If runs differ, give the observed result for each and label the gradient as an expectation, not guaranteed model behavior.
-  5. The remedy for each problem — prose or short diffs — and the state the design returns to, without committing a second fixed variant (R11).
-  6. The computed-versus-advisory contrast on the same final design bytes: U5's structured states, findings, and gate versus the separate fresh evaluator's advisory prose with no state and no gate, and when each is the right tool (R12). Follow the evaluator's read-only review contract and report its actual host restrictions, including instruction-only limits. Explain the ownership evidence by locating the exclusivity marker and both `owns` declarations even if the report cites only the marker.
-  7. The variability note: two independent protocol passes provide evidence about their observed outcomes. Prepare may reuse stored interpretations, so report its counts and do not call reused rows new model interpretations. Fresh model interpretations can change finding classes, states, and wording; state what the captured runs showed and do not promise future stability (R13).
-- **Patterns to follow:** docs/quickstart.md's command-first style; integrations/skills/sigil-compute/references/computed-evaluation.md for the loop steps.
-- **Verification scenarios:**
-  - Test expectation: none — documentation unit; accuracy is proven by U7 executing the doc's commands.
-- **Verification:** the doc reports U5's actual outcomes and child restrictions without hiding divergence, its commands select exact exported paths, and nothing inside examples/slotted advertises the problems. The separate advisory report is revision-bound to the final captured design bytes and states actual host restrictions.
+- **Dependencies:** U5
+- **Files:** docs/computed-evaluation-demo.md
+- **Approach:** After the last semantic edit, capture the final design bytes and check them against U5's manifest; if they differ, repeat U5. Dispatch a separate fresh `sigil-evaluate` child on those bytes and record its actual restrictions (KTD4). Then replace the doc's content, removing every result from the replaced design:
+  1. What the example is, and the six-component module map.
+  2. The four intentional problems: which source, which finding class, and the marker that they are deliberate. For the ownership conflict, point to Booking's exclusivity sentence and both ownership statements.
+  3. The commands with real binary paths and the six `--source` values exactly as the export lists them.
+  4. Target and actual state, exit code, finding classes, and prepare counts per source per pass.
+  5. The remedy for each problem and the expected return state (R11).
+  6. The computed-versus-advisory contrast on the same bytes (R12).
+  7. The variability note (R13).
+- **Patterns to follow:** docs/quickstart.md's command-first style; the section order of the current demo doc.
+- **Test scenarios:**
+  - Test expectation: none — documentation unit; U7 proves accuracy by running the doc's commands.
+- **Verification:** the doc names only the six current files, reports U5's actual outcomes without hiding divergence, and its advisory review matches the final design bytes.
+
+### U8. Retarget the VS Code extension test to booking.sigil
+
+- **Goal:** The extension integration test opens a file that exists and asserts on its real imports and compile report.
+- **Requirements:** R16
+- **Dependencies:** U5 (booking.sigil's final content)
+- **Files:** integrations/editor/vscode/tests/extension/index.ts
+- **Approach:** Per KTD9:
+  1. Open booking.sigil instead of auth.sigil.
+  2. Hover and go-to-definition on a Tag in booking.sigil's Rooms import list, expecting its Rooms owner.
+  3. Hover and go-to-definition on the component reference in "Booking depends on Availability", in place of the old "Auth uses UserProfile" fixture.
+  4. Pin the compile report's root as booking.sigil and its sources as including rooms.sigil, availability.sigil, and identity.sigil.
+  5. Observe the native compile state and diagnostic code on the real file and pin those values.
+  6. Point the selection file at booking.sigil.
+- **Execution note:** Run the suite once against the new file before changing assertions, so the pinned state comes from the real report.
+- **Patterns to follow:** the existing assertions in the same file.
+- **Test scenarios:**
+  - Opening booking.sigil gives language id `sigil`, and the retained commands are registered.
+  - Hover on the first Rooms import Tag includes that Tag's name; go-to-definition returns a location in rooms.sigil.
+  - Hover and definition on "Availability" in Booking's logic prose both return results.
+  - The design compile report lists booking.sigil as its only root and includes its three imported files as sources.
+  - The existing missing-executable, dirty-document, and unavailable-comparison checks still pass unchanged.
+- **Verification:** `deno task test:vscode:extension` passes against the updated example.
 
 ### U7. Update the root README and run the final sweep
 
-- **Goal:** The root README presents the demo accurately and links the doc; all mechanical and behavioral checks are green.
+- **Goal:** The root README presents the new demo accurately and links the doc; all mechanical and behavioral checks are green.
 - **Requirements:** R16, R17
-- **Dependencies:** U6
-- **Files:** README.md; existing regression references: packages/core/tests/core_test.ts, integrations/editor/vscode/tests/extension/index.ts, integrations/editor/vscode/scripts/run-extension-tests.mjs
-- **Approach:** Rewrite the Slotted paragraphs in the Examples section (README.md:710-731): describe the demo role, mark the intentional problems as deliberate fixture content, link docs/computed-evaluation-demo.md, and replace the TypeScript-shaped description of profile.sigil (R17). Keep the edit scoped to the Slotted paragraphs.
-- **Verification scenarios:**
-  - The demo doc's commands, executed as written with fresh private roots, reproduce the documented protocol and report actual outcomes against the target gradient. Covers AE5; observed model variance is reported as U6 specifies.
+- **Dependencies:** U6, U8
+- **Files:** README.md
+- **Approach:** Rewrite the Slotted paragraphs in the Examples section (R17): link slotted.sigil as the root, describe the six components and who owns what, mark the four problems as deliberate fixture content, and link the demo doc. Remove links to deleted files. Keep the edit scoped to the Slotted paragraphs.
+- **Test scenarios:**
+  - Every examples/slotted link in README.md points at an existing file.
+  - The demo doc's commands, executed as written with fresh private roots, reproduce the documented protocol. Covers AE5.
   - `deno task test:core` passes.
-  - `deno task test:vscode:extension` passes against the updated example — it copies examples/slotted wholesale.
-  - `sigil check` on the slotted workspace passes; `sigil fmt --check` is clean on authored files.
-- **Verification:** all suites green; the gradient reproduces from the doc's own commands; the intentional-problem marker is visible in the root README.
+  - `deno task test:vscode:extension` passes.
+  - `sigil check` on the slotted workspace passes; `sigil fmt --check` is clean on the six files.
+- **Verification:** all suites green, the gradient reproduces from the doc's commands, and the README marks the intentional problems.
 
 ---
 
@@ -328,20 +402,22 @@ U1 first — the prose refactor sets the facet style every later file imitates. 
 
 | Check | Command or discipline | Proves |
 | --- | --- | --- |
-| Mechanical validation | `build/sigil check examples/slotted --format json` (rebuild with `deno task build:cli` if the binary is absent) | R16 |
-| Formatting of authored files | `build/sigil fmt` on authored `.sigil` files, then `--check` after the recheck | R14 |
-| Computed gradient | KTD5/KTD6: capture one export and source-byte manifest; run two complete gradients with a distinct private root and fresh child per selected source; record actual child restrictions; count only completed ingests with matching result, report, binding, artifact, and private-root identities; compare outcomes and disclose any variance | R8, R13, R15, AE1–AE3 |
+| Mechanical validation | `build/sigil check examples/slotted --format json` (rebuild with `deno task build:cli` if the binary is absent) | R3, R16, R18 |
+| Formatting of authored files | `build/sigil fmt` on the six `.sigil` files, then `--check` after the recheck | R14 |
+| Computed gradient | KTD5/KTD6: one export and manifest; two complete gradients over six sources with fresh roots and children; identity checks on every counted ingest | R8, R13, R15, AE1–AE3 |
 | Core suite | `deno task test:core` | R16 |
 | Extension suite | `deno task test:vscode:extension` | R16 |
-| Advisory comparison | Separate fresh `sigil-evaluate` review of captured final design bytes with actual host restrictions recorded; hashes match the source-byte manifest used by the computed export | R12 |
-| Doc accuracy | Execute docs/computed-evaluation-demo.md's commands as written; protocol, observed outcomes, and any variance match the doc | R10, R13, AE5 |
+| Advisory comparison | Separate fresh `sigil-evaluate` review of the captured final design bytes, matching the computed export's manifest | R12 |
+| Doc accuracy | Execute docs/computed-evaluation-demo.md's commands as written | R10, R13, AE5 |
+| Link check | Every examples/slotted path in README.md and the demo doc exists | R10, R17 |
 
-The claims runs require a host that can delegate one fresh interpretation child per source run, loaded with sigil-understand and sigil-egglog; the repo's own skills provide them. The advisory comparison requires a separate fresh sigil-evaluate child. An exit 1 from ingest is a verdict only with a matching structured disjoint result and report — never a bare exit code. No new test pins the fixture's computed outcomes; core and extension suites are unchanged regression checks.
+The claims runs require a host that can delegate one fresh interpretation child per source run, loaded with sigil-understand and sigil-egglog. An exit 1 from ingest is a verdict only with a matching structured Disjoint result and report. No new test pins the fixture's computed outcomes.
 
 ## Definition of Done
 
-- All seven units landed; no launch-blocking question remains.
-- Two independent gradients use the same captured export and separate private roots per selected-source run. The intended map is coherent on four sources, loose on scheduling-and-recurrence.sigil with its two warnings, and disjoint on booking.sigil with its contradiction rows and ownership conflict; docs report whether each run matched this map and disclose any valid variance.
-- Mechanical validation is green — `sigil check` passes and `sigil fmt --check` is clean on authored files — and the core and VS Code extension suites pass unchanged.
-- docs/computed-evaluation-demo.md's commands execute as written, its advisory comparison uses the same final design bytes as the computed export, and it describes observed outcomes accurately; the root README links the doc and marks the intentional problems.
-- examples/slotted contains no explanatory files; run records, private roots, and scratch artifacts stay outside the repo; abandoned experimental prose is removed, not left in the diff.
+- All eight units landed; no launch-blocking question remains.
+- `sigil check` passes with zero diagnostics on the six-file workspace, and `sigil fmt --check` is clean.
+- Two independent gradients use one captured export and separate private roots per source run. The doc reports whether each run matched the target map — four Coherent, calendar.sigil Loose, booking.sigil Disjoint — and discloses any valid variance.
+- The core suite passes unchanged, and the retargeted extension test passes.
+- docs/computed-evaluation-demo.md and README.md name only current files, mark the four problems as deliberate, and the doc's commands run as written.
+- examples/slotted contains only the six design files and its config; run records and scratch artifacts stay outside the repo; abandoned experimental prose is removed.

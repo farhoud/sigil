@@ -1,0 +1,70 @@
+@design/identity.sigil from Identity import { user, actor }
+@design/slotted.sigil from Slotted import { app layer }
+
+component Rooms {
+  goal {
+    Let a user list a *room* that other users can request time on.
+  }
+
+  interface {
+    An actor can create a room with *room metadata*, meaning a name,
+    description, capacity and location text, and with a required *room timezone*
+    that is not part of room metadata.
+
+    Editing room metadata never changes the room timezone.
+
+    The actor who creates a room becomes its *room owner*. Only the room owner
+    can edit its room metadata.
+
+    Any actor can list every room that is not an *archived room* and open any
+    room by its identifier.
+
+    Rooms provides the *room lock*, a transaction that serializes every change
+    affecting one room and gives the caller that transaction.
+  }
+
+  state {
+    A room is active or an archived room.
+
+    The room timezone is an IANA zone name.
+
+    Capacity in the room metadata is informational; no request carries a party
+    size.
+  }
+
+  logic {
+    The room lock begins a transaction, locks the room row, runs the caller's
+    work with that transaction, and commits or rolls back.
+
+    Creating a room validates the room timezone against the IANA zone list and
+    records the actor as room owner.
+  }
+
+  constraints {
+    Only the room owner may archive, unarchive or change the room timezone.
+
+    Rooms must not let the app layer invoke archive, unarchive or room timezone
+    change directly; only Booking may invoke them, inside the room lock.
+
+    Every change to a room's requests, bookings, availability, archive state or
+    room timezone must run inside that room's room lock.
+  }
+
+  decisions {
+    The room lock was chosen so automatic declines and approval re-checks see a
+    stable room; the database no-overlap rule stays the backstop.
+
+    Archive and room timezone change are reachable only through Booking because
+    each needs a check or sweep over the room's bookings; unarchive is part of
+    Booking's archive workflow.
+  }
+
+  cases {
+    Two changes to the same room arrive together; the room lock runs one after
+    the other.
+
+    Changes to two different rooms do not wait for each other's room lock.
+
+    A room owner unarchives an archived room; it returns to the room list.
+  }
+}

@@ -1,0 +1,168 @@
+@design/identity.sigil from Identity import { session gate, actor }
+@design/rooms.sigil from Rooms import { room, room lock }
+@design/availability.sigil from Availability import { open time, clock, slot grid }
+@design/booking.sigil from Booking import {
+  booking request,
+  Confirmed,
+  no-overlap rule,
+  availability workflow,
+  archive workflow,
+  timezone workflow,
+}
+@design/calendar.sigil from Calendar import { room calendar }
+
+component Slotted {
+  goal {
+    Slotted is a reference *room-booking app* in which any signed-in user can
+    list a room and request time on other users' rooms, with owner approval and
+    a room calendar.
+
+    The room-booking app exists to exercise Sigil design and a full build
+    pipeline on a domain with two roles, a booking request lifecycle, time-zone
+    arithmetic and a concurrency invariant.
+  }
+
+  interface {
+    Identity owns sign-up, sign-in and the session gate that resolves each
+    request to an actor.
+
+    Rooms owns each room, its owner, its timezone, archiving, and the
+    room lock that serializes changes to one room.
+
+    Availability owns weekly windows, blackouts and open time, and defines
+    the meaning of the slot grid and the clock.
+
+    Booking owns every booking request, its lifecycle, the no-overlap rule,
+    and the availability workflow, archive workflow and timezone workflow.
+
+    Calendar owns the room calendar, a read-only projection of open time and
+    booking request state for one viewer.
+
+    The *app layer* is the set of pages and Server Actions; it offers every
+    screen of the room-booking app and calls modules only through their
+    *public entry*.
+  }
+
+  state {
+    Each module is one *module boundary* with a public entry, private
+    internals, and, for Rooms and Availability, a *transaction entry* that
+    exposes the mutations only a Booking workflow may invoke: archive, unarchive
+    and room timezone change for Rooms, and weekly window and blackout changes
+    for Availability.
+
+    The *shared kernel* holds the clock, slot grid arithmetic, time-zone and
+    daylight saving conversion, database access and domain errors, and is used
+    by every module boundary.
+  }
+
+  logic {
+    A request reaches the app layer, which passes the session gate to obtain
+    the actor.
+
+    A Server Action in the app layer then calls one command or workflow on a
+    public entry, and a page calls the queries it renders, each passing the
+    actor and the clock.
+
+    A command that changes one room runs inside that room's room lock, and a
+    change that crosses modules runs as one Booking workflow in that lock.
+
+    The app layer then refreshes the page so the room calendar and lists show
+    the new booking request state.
+  }
+
+  constraints {
+    architecture {
+      The room-booking app must be a modular monolith shipped as one Next.js
+      application.
+
+      The app layer must import each module boundary only through its
+      public entry and must never import a transaction entry.
+
+      Only Booking may import a transaction entry, so the availability workflow,
+      archive workflow and timezone workflow are the only paths to those
+      mutations.
+
+      Each module boundary may depend only on these others, with no cycle:
+      Booking on Availability and Rooms, Availability on Rooms, Rooms on
+      Identity, and Calendar on Booking, Availability and Rooms.
+
+      Lint rules must enforce the module boundary rules, and a dependency graph
+      check must reject cycles and cross-module internal imports in CI.
+
+      Mutations must be Server Actions and reads must be Server Components; the
+      only Route Handler is the authentication handler that backs the
+      session gate.
+
+      Every Server Action except sign-up and sign-in must pass the session gate
+      and check ownership itself, because a Server Action is a public endpoint.
+
+      Booking request reads and the room calendar must never be cached.
+    }
+
+    technology {
+      The app layer runs on Next.js 16.3.7 or later, required before the first
+      merge, with the App Router, React 19,
+      TypeScript 6.0 and Node 22, with cache components turned off.
+
+      The sign-in technology behind the session gate is decided by Identity.
+
+      Persistence for every module boundary uses PostgreSQL 18 and Drizzle ORM
+      0.45 with generated and migrated schemas and never schema push, over one
+      pg driver shared with the session gate.
+
+      The no-overlap rule on Confirmed booking request records is enforced by a
+      PostgreSQL exclusion constraint written as a hand-written SQL migration.
+
+      Time arithmetic in the shared kernel uses the Temporal API through the
+      temporal-polyfill package, and the clock is the only source of now.
+
+      The module boundary rules are enforced with eslint-plugin-boundaries and
+      dependency-cruiser.
+
+      Tests for the room-booking app use Vitest 5 for unit tests and for
+      integration tests against a real PostgreSQL 18 database, because mocks
+      cannot show the no-overlap rule or the room lock, and Playwright 1.63 for
+      end-to-end tests against a production build.
+    }
+  }
+
+  decisions {
+    architecture {
+      A modular monolith keeps the room-booking app in one deployable while the
+      module boundary rules keep ownership as clear as separate services would.
+
+      Booking owns every cross-module workflow because each room change needs a
+      sweep or check over booking request records inside one room lock.
+
+      Passing the actor and the clock explicitly keeps the session gate and time
+      testable outside a request.
+
+      The database backs the no-overlap rule, not only application checks, so
+      concurrent approvals can never both confirm a booking request.
+    }
+
+    technology {
+      Drizzle was chosen over Prisma for the persistence of every
+      module boundary because the Prisma release tagged latest is an 8.0
+      release candidate that the sign-in technology chosen by Identity does not
+      support, and range columns need hand-written SQL either way.
+
+      The app layer stays on TypeScript 6.0 because typescript-eslint does not
+      yet support 7, and the shared kernel keeps the Temporal polyfill until the
+      runtime moves to Node 26.
+    }
+  }
+
+  cases {
+    A page imports a Rooms transaction entry directly; lint fails and CI
+    rejects the change because only Booking may import it.
+
+    The room owner approves two overlapping booking request records from two
+    tabs at once; the room lock serializes them, exactly one becomes Confirmed
+    and the other is no longer Pending, with the exclusion constraint as the
+    backstop.
+
+    A booking request is approved; the Server Action refreshes the page and
+    the room calendar shows the Confirmed block.
+  }
+}

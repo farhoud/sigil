@@ -1,0 +1,97 @@
+@design/identity.sigil from Identity import { actor }
+@design/slotted.sigil from Slotted import { app layer }
+@design/rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
+
+component Availability {
+  goal {
+    Let a room owner say when a room is open, and tell other components the
+    *open time* of a room over any range of dates.
+  }
+
+  interface {
+    A room owner can add and remove a *weekly window*, a weekday with a start
+    and end in room-local time on the *slot grid*.
+
+    A room owner can add and remove a *blackout*, one whole room-local date on
+    which the room is closed.
+
+    Availability provides the open time of a room for a range of room-local
+    dates, as spans of absolute instants.
+
+    Availability provides each blackout of a room within a range of room-local
+    dates.
+
+    The *clock* is the single caller-supplied source of the current instant.
+  }
+
+  state {
+    The slot grid divides room-local time into 30-minute slots.
+
+    A weekly window starts and ends on the slot grid, may end at 24:00, and
+    covers the half-open span from its start to its end.
+
+    A weekly window must not overlap another weekly window on the same weekday.
+
+    A *nonexistent local time* is a room-local time skipped by a daylight
+    saving jump in the room timezone.
+  }
+
+  logic {
+    Availability depends on Rooms for the room timezone and the room lock.
+
+    Computing open time for a room takes a range of room-local dates from the
+    caller and uses the room's weekly window list, its blackout list, and its
+    room timezone from Rooms.
+
+    For each room-local date in the range, it selects the weekly window list
+    for that weekday.
+
+    It then drops every date covered by a blackout.
+
+    It then merges adjacent spans, including a weekly window ending at 24:00
+    with one starting at 00:00 on the next date.
+
+    It finally converts each span to instants in the room timezone, drops any
+    slot at a nonexistent local time, and returns the open time.
+  }
+
+  constraints {
+    Only the room owner may change a weekly window or a blackout.
+
+    Availability must compute open time for each concrete room-local date and
+    never precompute it as weekly spans in absolute time.
+
+    A room-local time that occurs twice in the room timezone resolves to its
+    earlier occurrence.
+
+    Every change to a weekly window or a blackout must run inside the room lock
+    and must be invoked only by Booking, never directly by the app layer.
+
+    Availability must not decline, cancel or flag any booking itself; it only
+    reports open time.
+  }
+
+  decisions {
+    Availability derives open time per date because daylight saving shifts move
+    each weekly window relative to absolute time.
+
+    Every change to a weekly window or a blackout goes through Booking because
+    each change requires a sweep of pending requests on the room.
+  }
+
+  cases {
+    A room is open Friday 18:00 to 24:00 and Saturday 00:00 to 02:00; open time
+    is one continuous span from Friday 18:00 to Saturday 02:00.
+
+    A weekly window from 01:00 to 04:00 on the spring-forward date in
+    America/New_York gives two real hours of open time.
+
+    A blackout on 24 December leaves no open time that date and does not change
+    25 December.
+
+    A weekly window at 09:00 to 12:00 in Asia/Kolkata aligns to the room-local
+    slot grid although local 09:00 falls at half past the hour in UTC.
+
+    An actor who is not the room owner tries to add a blackout; it is refused.
+  }
+}

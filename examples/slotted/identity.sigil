@@ -1,0 +1,59 @@
+component Identity {
+  goal {
+    Let a person hold one *user* account and act in Slotted only through an
+    authenticated *session*.
+  }
+
+  interface {
+    A visitor can sign up with email and password to create a user, then sign
+    in to start a session and sign out to end it.
+
+    Identity provides the *actor*, the user resolved from a valid session for
+    the current request.
+
+    Identity provides the *session gate*, which returns the actor for a request
+    or refuses it as unauthenticated when no valid session exists.
+  }
+
+  state {
+    Each user has one account type; being an owner or a renter comes from the
+    user's relationship to a room or request, not from the user record.
+  }
+
+  logic {
+    The session gate reads the session from the request, resolves it to a user,
+    and returns that user as the actor or stops with an unauthenticated refusal.
+  }
+
+  constraints {
+    Every page and every mutation except sign-up, sign-in and the
+    authentication handler must pass the session gate before it reads or
+    changes data.
+
+    A redirect based only on the presence of a session cookie must not be
+    treated as the session gate.
+
+    Commands and queries in other components must receive the actor explicitly
+    and must not read the session themselves.
+
+    Identity builds the session on Better Auth 1.7 with email and password
+    sign-in, backed by the Drizzle adapter.
+  }
+
+  decisions {
+    Passing the actor explicitly keeps the session gate the single place where
+    a session becomes a user, and keeps commands testable outside a request.
+
+    Better Auth was chosen for the session because Auth.js receives security
+    fixes only and Lucia is deprecated; magic-link sign-in was deferred because
+    it needs email delivery.
+  }
+
+  cases {
+    A request with no session reaches the session gate; it is refused and
+    nothing changes.
+
+    A request whose session cookie was forged passes the cookie redirect but is
+    refused by the session gate.
+  }
+}
