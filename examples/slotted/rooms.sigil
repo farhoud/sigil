@@ -1,5 +1,6 @@
 @identity.sigil from Identity import { user, actor }
 @slotted.sigil from Slotted import { app layer }
+@booking.sigil from Booking import { no-overlap rule, archive workflow }
 
 component Rooms {
   goal {
@@ -24,7 +25,8 @@ component Rooms {
   }
 
   state {
-    A room is active or an archived room.
+    A room is active or an archived room, and Rooms owns the archived room
+    mark.
 
     The room timezone is an IANA zone name.
 

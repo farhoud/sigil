@@ -1,8 +1,9 @@
 @identity.sigil from Identity import { session gate, actor }
-@rooms.sigil from Rooms import { room, room lock }
+@rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
 @availability.sigil from Availability import { open time, clock, slot grid }
 @booking.sigil from Booking import {
   booking request,
+  Pending,
   Confirmed,
   no-overlap rule,
   availability workflow,

@@ -1,3 +1,5 @@
+@rooms.sigil from Rooms import { room }
+
 component Identity {
   goal {
     Let a person hold one *user* account and act in Slotted only through an

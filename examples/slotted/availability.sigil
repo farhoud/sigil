@@ -34,6 +34,9 @@ component Availability {
 
     A *nonexistent local time* is a room-local time skipped by a daylight
     saving jump in the room timezone.
+
+    A *repeated local time* is a room-local time that occurs twice because a
+    daylight saving fall-back in the room timezone repeats it.
   }
 
   logic {
@@ -61,8 +64,7 @@ component Availability {
     Availability must compute open time for each concrete room-local date and
     never precompute it as weekly spans in absolute time.
 
-    A room-local time that occurs twice in the room timezone resolves to its
-    earlier occurrence.
+    A repeated local time resolves to its earlier occurrence.
 
     Every change to a weekly window or a blackout must run inside the room lock
     and must be invoked only by Booking, never directly by the app layer.

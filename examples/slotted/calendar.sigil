@@ -10,9 +10,11 @@
   open time,
   blackout,
   slot grid,
+  repeated local time,
 }
 @booking.sigil from Booking import {
   booking request,
+  requested range,
   renter,
   Pending,
   Confirmed,
@@ -34,6 +36,9 @@ component Calendar {
     Confirmed booking request with its renter, each Pending booking request, and
     each Confirmed one that is outside availability.
 
+    Calendar requires the *renter display name* of each renter it shows to the
+    room owner.
+
     For any other actor, the room calendar shows open time, other renters'
     Confirmed booking request items as an anonymous *booked block*, and that
     actor's own Pending and Confirmed booking request items marked as theirs.
@@ -52,6 +57,9 @@ component Calendar {
 
     It then projects each booking request for the actor, masking the renter on
     any booked block, and returns the room calendar.
+
+    Each build of the room calendar also totals the Confirmed hours in the
+    calendar range into a *booked hours total*.
   }
 
   constraints {
@@ -62,6 +70,10 @@ component Calendar {
     room owner, and the room is not an archived room;
     range-level rules are checked by Booking on submission.
 
+    A slot whose end is the second occurrence of a repeated local time must not
+    be selectable as an end slot, because Booking resolves that end to the
+    earlier occurrence.
+
     The room calendar must pass the clock it receives to every Booking query and
     use only that clock wherever it compares a slot with now.
 
@@ -70,7 +82,7 @@ component Calendar {
     A room calendar for an actor who is not the room owner must never reveal
     another renter or another renter's Pending booking request.
 
-    On a fall-back date the room calendar shows the repeated hour twice.
+    On a fall-back date the room calendar shows each repeated local time twice.
 
     Booking request items that extend past the calendar range are clipped for
     display but keep their true start and end.

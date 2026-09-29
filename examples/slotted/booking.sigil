@@ -13,6 +13,7 @@
   slot grid,
   clock,
   nonexistent local time,
+  repeated local time,
 }
 
 component Booking {
@@ -34,6 +35,9 @@ component Booking {
 
       The room owner or the renter cancels a Confirmed booking request before
       its requested range starts.
+
+      Booking provides a *range change*, which moves a renter's own Pending
+      booking request to a new requested range.
     }
 
     Booking provides the *availability workflow*, which applies a weekly window
@@ -61,6 +65,9 @@ component Booking {
 
     Declined, Withdrawn and Cancelled are the terminal booking request
     statuses.
+
+    Booking exclusively owns the archived room mark, since only the archive
+    workflow may set or clear it.
 
     A Declined booking request carries one decline cause: declined by owner,
     overlapping approval, availability change, or archive.
@@ -179,6 +186,9 @@ component Booking {
     booking request whose start is after the clock.
 
     A terminal booking request must never change status.
+
+    Booking must not provide a range change; a renter who wants different time
+    withdraws the booking request and submits a new one.
 
     An expired booking request can still be declined by the room owner or
     withdrawn by its renter, but must not be approved.
