@@ -44,6 +44,18 @@ nothing says the panel depends on the service. That would be a deduction.
 An ownership claim plus the property that makes it exclusive. The exclusivity is
 a property of the state, so it travels on a `property` row.
 
+## A Tag the component already has
+
+> The panel keeps each cached result on screen until the query changes.
+
+```
+(claim "f9" "SearchPanel" "uses" "cached result" "required" "true")
+```
+
+`cached result` is written bare because the interface Facet above already
+introduced it. A Tag that exists is named exactly, with no asterisks, and the
+claim is grounded. Asterisks would define it a second time.
+
 ## `logic`
 
 > Publishing results requires a *completed search*. A *superseded publication*

@@ -58,15 +58,27 @@ the tool computes.
 
 ## Naming what a claim is about
 
-A claim's subject and object must each be one of three things: the Facet's own
-component, a component its source imports from, or a Tag marked with asterisks
-in this exact Facet's own prose — `*a name like this*`. Nothing else. If the
-entity you want to name is not one of these, the claim is rejected as
-ungrounded, even though the row is otherwise well-formed.
+A claim's subject and object must each be one of three things:
 
-This is why every worked example below asterisk-marks the noun it later claims
-something about. If a Facet's prose does not introduce or reference a Tag by
-name, do not invent a claim about it — return a `reading` row instead.
+1. the Facet's own component;
+2. a component its source imports from;
+3. a Tag that appears in this exact Facet's own prose, spelled exactly as the
+   Tag is named.
+
+The third case covers two ways a Tag reaches the prose. A Tag the Facet
+introduces is marked with asterisks: `*a name like this*`. A Tag that already
+exists, whether the component defines it elsewhere or imports it, is written
+bare, with no asterisks: `a name like this`. Both are grounded.
+
+An asterisk defines a new Tag. Never put asterisks around a Tag that already
+exists. Doing so declares a second definition and the design fails its check.
+
+A claim about anything else is rejected as ungrounded, even though the row is
+otherwise well-formed. That includes a Tag that appears only in a different
+Facet's prose, a plural or differently cased form that does not match the
+Tag's name, and a Tag owned by a source this one does not import. If a Facet's
+prose does not name a Tag, do not invent a claim about it. Return a `reading`
+row instead.
 
 ## What the role does to a claim
 

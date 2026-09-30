@@ -395,11 +395,12 @@ fn worked_examples(markdown: &str) -> Vec<(String, String)> {
 }
 
 #[test]
-fn every_worked_claim_names_only_its_component_or_an_asterisk_marked_tag() {
-    // The exact invariant identity::Grounding enforces at runtime: a claim's
-    // subject and object are either the Facet's own component (or an import
-    // provider, not exercised by these single-component examples) or a Tag
-    // the Facet's own prose marks with asterisks. A worked example that names
+fn every_worked_claim_names_only_its_component_or_a_tag_named_in_its_prose() {
+    // The invariant identity::Grounding enforces at runtime: a claim's subject
+    // and object are either the Facet's own component (or an import provider,
+    // not exercised by these single-component examples) or a Tag the resolver
+    // attached to the Facet -- one the prose introduces with asterisks or one
+    // that already exists and is named bare. A worked example that names
     // anything else would teach the interpreter a pattern the validator
     // refuses -- this is the regression this test exists to catch.
     let components: BTreeSet<&str> = ["SearchService", "SearchPanel"].into_iter().collect();
@@ -414,6 +415,8 @@ fn every_worked_claim_names_only_its_component_or_an_asterisk_marked_tag() {
     let mut checked = 0;
     for (quote, code) in pairs {
         let ground = asterisked(&quote);
+        // A bare Tag is grounded when its exact name appears in the prose.
+        let names_in_prose = |name: &str| quote.contains(name);
         let rows = dialect::parse(&code, dialect::Limits::default()).unwrap_or_else(|e| {
             panic!(
                 "worked example is not valid data: {e}
@@ -442,8 +445,10 @@ code:
                     continue;
                 }
                 assert!(
-                    components.contains(name) || ground.contains(name),
-                    "{quote:?} claims {name:?}, which is neither a component nor                      asterisk-marked in that same prose"
+                    components.contains(name)
+                        || ground.contains(name)
+                        || names_in_prose(name),
+                    "{quote:?} claims {name:?}, which is neither a component nor                      named in that same prose"
                 );
                 checked += 1;
             }
