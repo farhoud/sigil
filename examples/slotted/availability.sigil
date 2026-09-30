@@ -1,106 +1,110 @@
-@identity.sigil from Identity import { actor }
-@slotted.sigil from Slotted import { app layer }
-@rooms.sigil from Rooms import { room, room owner, room timezone, room lock }
-@booking.sigil from Booking import { booking request, Pending }
+@identity.sigil from Identity import { signed-in user }
+@rooms.sigil from Rooms import {
+  room,
+  room owner,
+  room timezone,
+  room lock,
+  transactional entry,
+}
+@shared.sigil from SharedKernel import {
+  30-minute grid,
+  local span,
+  UTC instant,
+}
 
 component Availability {
   goal {
-    Let a room owner say when a room is open, and tell other components the
-    *open time* of a room over any range of dates.
+    Let a room owner say when a room is open, and let other modules ask for that
+    open time over a date range.
   }
 
   state {
-    The slot grid divides room-local time into 30-minute slots.
+    Availability owns each *weekly window* of a room, which is a weekday with a
+    local start and end on the 30-minute grid in the room timezone. The end may be
+    24:00, and a weekday may have any number of them.
 
-    A weekly window starts and ends on the slot grid, may end at 24:00, and
-    covers the half-open span from its start to its end.
+    Availability owns each *blackout*, which covers one whole room-local date of a
+    room.
 
-    Each weekly window must stay clear of every other weekly window on the same
-    weekday.
-
-    A *nonexistent local time* is a room-local time skipped by a daylight
-    saving jump in the room timezone.
-
-    A *repeated local time* is a room-local time that occurs twice because a
-    daylight saving fall-back in the room timezone repeats it.
+    The *open time* of a room is its weekly window values minus its blackout dates,
+    expressed as UTC instant ranges.
   }
 
   logic {
-    Availability depends on Rooms for the room timezone and the room lock.
-
-    Computing open time for a room takes a range of room-local dates from the
-    caller and uses the room's weekly window list, its blackout list, and its
-    room timezone from Rooms.
-
-    For each room-local date in the range, it selects the weekly window list
-    for that weekday.
-
-    It then drops every date covered by a blackout.
-
-    It then merges adjacent spans, including a weekly window ending at 24:00
-    with one starting at 00:00 on the next date.
-
-    It finally converts each span to instants in the room timezone, drops any
-    slot at a nonexistent local time, and returns the open time.
+    Computing open time for a room over a local date range takes five steps. Step
+    one reads the room timezone and the weekly window values of the room. Step two
+    collects, for each concrete local date in the range, the weekly window values
+    of its weekday as local span values. Step three drops every date that has a
+    blackout. Step four hands the local span values to SharedKernel, which converts
+    them to UTC instant ranges, drops slots inside a daylight-saving gap, and
+    merges adjacent ranges, including 24:00 joining 00:00 of the next day. Step
+    five returns the merged UTC instant ranges as the open time to the caller.
   }
 
   constraints {
-    Only the room owner may change a weekly window or a blackout.
+    The weekly window values of one weekday must not overlap. Adjacent windows are
+    allowed and merge.
 
-    Availability must compute open time for each concrete room-local date and
-    never precompute it as weekly spans in absolute time.
+    A weekly window must start and end on the 30-minute grid, and an off-grid time
+    is rejected.
 
-    A repeated local time resolves to its earlier occurrence.
+    The open time must be computed per concrete local date and then converted to
+    instants, never precomputed in UTC.
 
-    Every change to a weekly window or a blackout must run inside the room lock
-    and must be invoked only by Booking, never directly by the app layer.
+    Only the room owner may add or remove a weekly window or blackout, and each
+    edit must run inside the transaction that Booking opens under the room lock and
+    passes to the transactional entry of Availability, which only Booking may
+    import and which never opens the lock itself.
 
-    Availability must not decline, cancel or flag any booking request itself; it
-    only
-    reports open time.
+    An edit to a weekly window or blackout must not sweep, decline, or cancel any
+    booking. The sweep that follows an edit belongs to Booking, in the same
+    transaction.
+
+    Availability depends on Rooms for the room timezone and room owner,
+    and on SharedKernel for the conversion of a local span.
   }
 
   cases {
-    A room is open Friday 18:00 to 24:00 and Saturday 00:00 to 02:00; open time
-    is one continuous span from Friday 18:00 to Saturday 02:00.
+    Weekly window values on Monday from 09:00 to 12:00 and from 11:00 to 15:00 are
+    rejected as overlapping, while 09:00 to 12:00 and 12:00 to 15:00 are accepted
+    and merge in the open time.
 
-    A weekly window from 01:00 to 04:00 on the spring-forward date in
-    America/New_York gives two real hours of open time.
+    A weekly window starting at 09:15 is rejected as off the 30-minute grid.
 
-    A blackout on 24 December leaves no open time that date and does not change
-    25 December.
+    Adding a blackout for a date removes that date's open time and leaves the next
+    date unaffected, and removing the blackout restores the open time.
 
-    A weekly window at 09:00 to 12:00 in Asia/Kolkata aligns to the room-local
-    slot grid although local 09:00 falls at half past the hour in UTC.
+    Given weekly window values on Friday from 18:00 to 24:00 and on Saturday from
+    00:00 to 02:00, the open time is one continuous span from Friday 18:00 to
+    Saturday 02:00.
 
-    An actor who is not the room owner tries to add a blackout; it is refused.
+    A signed-in user who is not the room owner cannot add or remove a weekly window
+    or blackout.
+
+    A blackout on a past date is accepted and changes no open time that can still
+    matter.
   }
 
   interface {
-    A room owner can add and remove a *weekly window*, a weekday with a start
-    and end in room-local time on the *slot grid*.
+    Availability provides the edit of a weekly window and a blackout through its
+    own transactional entry, for Booking's editing workflow to use.
 
-    A room owner can add and remove a *blackout*, one whole room-local date on
-    which the room is closed.
+    Availability provides the open time of a room over a local date range as
+    UTC instant ranges, to Booking and Calendar.
 
-    Availability provides the open time of a room for a range of room-local
-    dates, as spans of absolute instants.
+    Availability provides the blackout dates of a room, for Calendar to show to the
+    room owner.
 
-    Availability provides each blackout of a room within a range of room-local
-    dates.
-
-    Availability provides the *clock*, the single caller-supplied source of the
-    current instant.
-
-    Availability identifies a nonexistent local time and a repeated local time
-    when resolving room-local ranges.
+    Availability provides the current weekly window and blackout entries of a room
+    to its room owner, so the manage page can show them.
   }
 
   decisions {
-    Availability derives open time per date because daylight saving shifts move
-    each weekly window relative to absolute time.
+    Weekly windows plus whole-day blackouts were chosen over weekly-only hours and
+    over date overrides that can also open time, because they give enough
+    expressiveness with one precedence rule.
 
-    Every change to a weekly window or a blackout goes through Booking because
-    each change requires a sweep of Pending booking request records on the room.
+    Adjacent weekly windows merge instead of being rejected, since only a true
+    overlap is ambiguous.
   }
 }
