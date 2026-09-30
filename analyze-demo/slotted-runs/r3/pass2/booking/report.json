@@ -1,0 +1,112 @@
+{
+  "version": 2,
+  "source": "booking.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "3adf0471e7cc0d6afb606d151f1c4fa92335f904f4e9e1923be3ae25ea5c7250"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "disjoint",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "contradiction",
+      "law": "contradictory-claims",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "6ff574ef57cf4db27dc03a56256ebf1ce023d4a9abab1bbeb7d9e39bb56e1d07"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "contradiction",
+      "law": "contradictory-claims",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "778f649253b95d3db65701dc1071a4d0be389f6a580502bf0cd5263744febff7"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "interface",
+      "detail": ""
+    },
+    {
+      "class": "contradiction",
+      "law": "negated-claim-holds",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "6ff574ef57cf4db27dc03a56256ebf1ce023d4a9abab1bbeb7d9e39bb56e1d07"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "ownership-conflict",
+      "law": "exclusive-ownership",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:rooms.sigil:Rooms",
+      "claims": [
+        "532e124935f6678dce4389aa4a3d0f67deb4e56d45def5538c9e73800d510f6f"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "ownership-conflict",
+      "law": "exclusive-ownership",
+      "subject": "urn:sigil:component:rooms.sigil:Rooms",
+      "object": "urn:sigil:component:booking.sigil:Booking",
+      "claims": [
+        "532e124935f6678dce4389aa4a3d0f67deb4e56d45def5538c9e73800d510f6f"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "fef83528a6bab25d2130c9e1a85de853ade71c9f16b36b9d96d6ef699b0401a8",
+      "object": "urn:sigil:component:availability.sigil:Availability:tag:open%20time",
+      "claims": [
+        "844f1d6571a8d7de089fe444e941a6290d7ce55296e7a1bbeb5a729354fbcc6c"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "fef83528a6bab25d2130c9e1a85de853ade71c9f16b36b9d96d6ef699b0401a8",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+      "claims": [
+        "6eef48db0951711fdd336c1179c6f41337a4c59bb5f7bb9dc5c8411f08646320"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "fef83528a6bab25d2130c9e1a85de853ade71c9f16b36b9d96d6ef699b0401a8",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error",
+      "claims": [
+        "e989e07587c9360cb4b8ea2c41f9b78262bc6223a5c9064173d50e5f103e24ad"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    }
+  ]
+}

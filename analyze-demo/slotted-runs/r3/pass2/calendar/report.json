@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "source": "calendar.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "c857c08feb048bdb5fe7fb8f43aa93b696e065d2b4c6b2744678c7cb67547742"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:calendar.sigil:Calendar",
+      "object": "urn:sigil:component:calendar.sigil:Calendar:tag:renter%20display%20name",
+      "claims": [
+        "e484673b8dc8f27abbc4e3b926850f0ea7d616a4c3e03c551ffa5be0d28728f4"
+      ],
+      "component": "urn:sigil:component:calendar.sigil:Calendar",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:calendar.sigil:Calendar:tag:renter%20display%20name"
+    }
+  ]
+}

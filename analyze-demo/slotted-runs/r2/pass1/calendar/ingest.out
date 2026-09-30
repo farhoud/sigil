@@ -1,0 +1,10 @@
+{
+  "findings": 3,
+  "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+  "judgmentContext": "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr2/p1-calendar/root/.sigil/claims/calendar.sigil.context.json",
+  "report": "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr2/p1-calendar/root/.sigil/claims/calendar.sigil.json",
+  "source": "calendar.sigil",
+  "state": "loose",
+  "version": 2,
+  "vocabularyGeneration": 2
+}

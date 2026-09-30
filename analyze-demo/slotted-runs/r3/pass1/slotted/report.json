@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "source": "slotted.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "2c010e9540ae2f7134b6f398a580be3f7fe37df747f594a555568c8412cc7448"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "claims": [
+        "37fc576d3eb8cfa823332eb93fdd89060a8e78437865d9f346da104a9add5376"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "interface",
+      "detail": "nothing satisfies provides urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user"
+    },
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "claims": [
+        "5fd3bd8a22f63c32c9c119022c0a9ec083f8ae83adf6431e0693aeeae701ac9c"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user"
+    },
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error",
+      "claims": [
+        "fa9bab9115a31ff81954ea27a2abe8792ba6bb381ccae21ee130ce8c37cdef04"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error"
+    }
+  ]
+}

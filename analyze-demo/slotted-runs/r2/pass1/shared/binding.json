@@ -1,0 +1,30 @@
+{
+  "format": 3,
+  "source": "shared.sigil",
+  "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+  "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+  "vocabularyGeneration": 2,
+  "closure": [
+    "shared.sigil"
+  ],
+  "facets": [
+    "facet:shared.sigil:1121",
+    "facet:shared.sigil:1282",
+    "facet:shared.sigil:1405",
+    "facet:shared.sigil:1525",
+    "facet:shared.sigil:1610",
+    "facet:shared.sigil:1753",
+    "facet:shared.sigil:1950",
+    "facet:shared.sigil:2084",
+    "facet:shared.sigil:2307",
+    "facet:shared.sigil:2442",
+    "facet:shared.sigil:245",
+    "facet:shared.sigil:2595",
+    "facet:shared.sigil:2706",
+    "facet:shared.sigil:2911",
+    "facet:shared.sigil:3095",
+    "facet:shared.sigil:34",
+    "facet:shared.sigil:558",
+    "facet:shared.sigil:941"
+  ]
+}

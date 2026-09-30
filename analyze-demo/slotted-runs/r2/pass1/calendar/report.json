@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "source": "calendar.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "93a2e550eb9ddbba43c162980b878cb31f92ee77fe4339f3cf84465f317fb335"
+    ],
+    "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:calendar.sigil:Calendar",
+      "object": "urn:sigil:component:calendar.sigil:Calendar:tag:renter%20display%20name",
+      "claims": [
+        "e484673b8dc8f27abbc4e3b926850f0ea7d616a4c3e03c551ffa5be0d28728f4"
+      ],
+      "component": "urn:sigil:component:calendar.sigil:Calendar",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:calendar.sigil:Calendar:tag:renter%20display%20name"
+    },
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:calendar.sigil:Calendar:tag:requestable%20slot",
+      "object": "urn:sigil:component:availability.sigil:Availability:tag:open%20time",
+      "claims": [
+        "c25ef7f5414e8a6a2c701a7a9dbfa4e57dbdd10eb013e97479a0c6d5cbb7fb9f"
+      ],
+      "component": "urn:sigil:component:calendar.sigil:Calendar",
+      "section": "logic",
+      "detail": "nothing satisfies provides urn:sigil:component:availability.sigil:Availability:tag:open%20time"
+    },
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:calendar.sigil:Calendar:tag:requestable%20slot",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:clock",
+      "claims": [
+        "09ad4bd58f40f8c77233bc224c76ca275928c9b4b00ebd540d12acac807e76a3"
+      ],
+      "component": "urn:sigil:component:calendar.sigil:Calendar",
+      "section": "logic",
+      "detail": "nothing satisfies provides urn:sigil:component:shared.sigil:SharedKernel:tag:clock"
+    }
+  ]
+}

@@ -1,0 +1,1674 @@
+{
+  "binding": {
+    "format": 3,
+    "source": "booking.sigil",
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+    "vocabularyGeneration": 2,
+    "closure": [
+      "availability.sigil",
+      "booking.sigil",
+      "identity.sigil",
+      "rooms.sigil",
+      "shared.sigil"
+    ],
+    "facets": [
+      "facet:availability.sigil:1537",
+      "facet:availability.sigil:1644",
+      "facet:availability.sigil:1745",
+      "facet:availability.sigil:1867",
+      "facet:availability.sigil:2160",
+      "facet:availability.sigil:2336",
+      "facet:availability.sigil:2483",
+      "facet:availability.sigil:2681",
+      "facet:availability.sigil:2759",
+      "facet:availability.sigil:291",
+      "facet:availability.sigil:2914",
+      "facet:availability.sigil:3095",
+      "facet:availability.sigil:3197",
+      "facet:availability.sigil:3310",
+      "facet:availability.sigil:3460",
+      "facet:availability.sigil:3587",
+      "facet:availability.sigil:3688",
+      "facet:availability.sigil:3847",
+      "facet:availability.sigil:4050",
+      "facet:availability.sigil:420",
+      "facet:availability.sigil:638",
+      "facet:availability.sigil:732",
+      "facet:availability.sigil:868",
+      "facet:booking.sigil:10139",
+      "facet:booking.sigil:10286",
+      "facet:booking.sigil:10417",
+      "facet:booking.sigil:10520",
+      "facet:booking.sigil:10676",
+      "facet:booking.sigil:10816",
+      "facet:booking.sigil:1086",
+      "facet:booking.sigil:10960",
+      "facet:booking.sigil:11093",
+      "facet:booking.sigil:11234",
+      "facet:booking.sigil:11375",
+      "facet:booking.sigil:11554",
+      "facet:booking.sigil:1156",
+      "facet:booking.sigil:11733",
+      "facet:booking.sigil:11865",
+      "facet:booking.sigil:12043",
+      "facet:booking.sigil:12367",
+      "facet:booking.sigil:12598",
+      "facet:booking.sigil:12769",
+      "facet:booking.sigil:1283",
+      "facet:booking.sigil:12909",
+      "facet:booking.sigil:13083",
+      "facet:booking.sigil:13236",
+      "facet:booking.sigil:13367",
+      "facet:booking.sigil:13504",
+      "facet:booking.sigil:13631",
+      "facet:booking.sigil:1489",
+      "facet:booking.sigil:2092",
+      "facet:booking.sigil:2591",
+      "facet:booking.sigil:3444",
+      "facet:booking.sigil:3708",
+      "facet:booking.sigil:4136",
+      "facet:booking.sigil:435",
+      "facet:booking.sigil:4668",
+      "facet:booking.sigil:5002",
+      "facet:booking.sigil:5422",
+      "facet:booking.sigil:5588",
+      "facet:booking.sigil:5892",
+      "facet:booking.sigil:5952",
+      "facet:booking.sigil:6029",
+      "facet:booking.sigil:614",
+      "facet:booking.sigil:6201",
+      "facet:booking.sigil:6281",
+      "facet:booking.sigil:6379",
+      "facet:booking.sigil:6528",
+      "facet:booking.sigil:6796",
+      "facet:booking.sigil:7011",
+      "facet:booking.sigil:7190",
+      "facet:booking.sigil:7342",
+      "facet:booking.sigil:7558",
+      "facet:booking.sigil:7687",
+      "facet:booking.sigil:8110",
+      "facet:booking.sigil:8303",
+      "facet:booking.sigil:847",
+      "facet:booking.sigil:8511",
+      "facet:booking.sigil:8704",
+      "facet:booking.sigil:8924",
+      "facet:booking.sigil:9044",
+      "facet:booking.sigil:9205",
+      "facet:booking.sigil:9304",
+      "facet:booking.sigil:9497",
+      "facet:booking.sigil:9686",
+      "facet:booking.sigil:982",
+      "facet:booking.sigil:9894",
+      "facet:identity.sigil:1029",
+      "facet:identity.sigil:1155",
+      "facet:identity.sigil:1290",
+      "facet:identity.sigil:1428",
+      "facet:identity.sigil:1566",
+      "facet:identity.sigil:1648",
+      "facet:identity.sigil:1746",
+      "facet:identity.sigil:1852",
+      "facet:identity.sigil:195",
+      "facet:identity.sigil:2043",
+      "facet:identity.sigil:2211",
+      "facet:identity.sigil:2311",
+      "facet:identity.sigil:30",
+      "facet:identity.sigil:307",
+      "facet:identity.sigil:397",
+      "facet:identity.sigil:864",
+      "facet:rooms.sigil:1248",
+      "facet:rooms.sigil:1349",
+      "facet:rooms.sigil:1554",
+      "facet:rooms.sigil:1864",
+      "facet:rooms.sigil:1969",
+      "facet:rooms.sigil:2033",
+      "facet:rooms.sigil:2111",
+      "facet:rooms.sigil:2205",
+      "facet:rooms.sigil:2268",
+      "facet:rooms.sigil:2433",
+      "facet:rooms.sigil:250",
+      "facet:rooms.sigil:2566",
+      "facet:rooms.sigil:2672",
+      "facet:rooms.sigil:2816",
+      "facet:rooms.sigil:2977",
+      "facet:rooms.sigil:3086",
+      "facet:rooms.sigil:3179",
+      "facet:rooms.sigil:3371",
+      "facet:rooms.sigil:3550",
+      "facet:rooms.sigil:471",
+      "facet:rooms.sigil:552",
+      "facet:rooms.sigil:705",
+      "facet:rooms.sigil:84",
+      "facet:rooms.sigil:968",
+      "facet:shared.sigil:1121",
+      "facet:shared.sigil:1282",
+      "facet:shared.sigil:1405",
+      "facet:shared.sigil:1525",
+      "facet:shared.sigil:1610",
+      "facet:shared.sigil:1753",
+      "facet:shared.sigil:1950",
+      "facet:shared.sigil:2084",
+      "facet:shared.sigil:2307",
+      "facet:shared.sigil:2442",
+      "facet:shared.sigil:245",
+      "facet:shared.sigil:2595",
+      "facet:shared.sigil:2706",
+      "facet:shared.sigil:2911",
+      "facet:shared.sigil:3095",
+      "facet:shared.sigil:34",
+      "facet:shared.sigil:558",
+      "facet:shared.sigil:941"
+    ]
+  },
+  "rows": [
+    {
+      "facet": "facet:availability.sigil:1537",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    The weekly window values of one weekday must not overlap. Adjacent windows are\n    allowed and merge.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:1644",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    A weekly window must start and end on the 30-minute grid, and an off-grid time\n    is rejected.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:1745",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    The open time must be computed per concrete local date and then converted to\n    instants, never precomputed in UTC.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:1867",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    Only the room owner may add or remove a weekly window or blackout, and each\n    edit must run inside the transaction that Booking opens under the room lock and\n    passes to the transactional entry of Availability, which only Booking may\n    import and which never opens the lock itself.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2160",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    An edit to a weekly window or blackout must not sweep, decline, or cancel any\n    booking. The sweep that follows an edit belongs to Booking, in the same\n    transaction.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2336",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "constraints",
+      "source": "availability.sigil",
+      "prose": "    Availability depends on Rooms for the room timezone and room owner,\n    and on SharedKernel for the conversion of a local span.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2483",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    Weekly window values on Monday from 09:00 to 12:00 and from 11:00 to 15:00 are\n    rejected as overlapping, while 09:00 to 12:00 and 12:00 to 15:00 are accepted\n    and merge in the open time.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2681",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    A weekly window starting at 09:15 is rejected as off the 30-minute grid.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2759",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    Adding a blackout for a date removes that date's open time and leaves the next\n    date unaffected, and removing the blackout restores the open time.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:291",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "goal",
+      "source": "availability.sigil",
+      "prose": "    Let a room owner say when a room is open, and let other modules ask for that\n    open time over a date range.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:2914",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    Given weekly window values on Friday from 18:00 to 24:00 and on Saturday from\n    00:00 to 02:00, the open time is one continuous span from Friday 18:00 to\n    Saturday 02:00.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3095",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    A signed-in user who is not the room owner cannot add or remove a weekly window\n    or blackout.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3197",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "cases",
+      "source": "availability.sigil",
+      "prose": "    A blackout on a past date is accepted and changes no open time that can still\n    matter.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3310",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "interface",
+      "source": "availability.sigil",
+      "prose": "    Availability provides the edit of a weekly window and a blackout through its\n    own transactional entry, for Booking's editing workflow to use.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3460",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "interface",
+      "source": "availability.sigil",
+      "prose": "    Availability provides the open time of a room over a local date range as\n    UTC instant ranges, to Booking and Calendar.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3587",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "interface",
+      "source": "availability.sigil",
+      "prose": "    Availability provides the blackout dates of a room, for Calendar to show to the\n    room owner.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3688",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "interface",
+      "source": "availability.sigil",
+      "prose": "    Availability provides the current weekly window and blackout entries of a room\n    to its room owner, so the manage page can show them.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:3847",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "decisions",
+      "source": "availability.sigil",
+      "prose": "    Weekly windows plus whole-day blackouts were chosen over weekly-only hours and\n    over date overrides that can also open time, because they give enough\n    expressiveness with one precedence rule.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:4050",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "decisions",
+      "source": "availability.sigil",
+      "prose": "    Adjacent weekly windows merge instead of being rejected, since only a true\n    overlap is ambiguous.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:420",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "state",
+      "source": "availability.sigil",
+      "prose": "    Availability owns each *weekly window* of a room, which is a weekday with a\n    local start and end on the 30-minute grid in the room timezone. The end may be\n    24:00, and a weekday may have any number of them.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:638",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "state",
+      "source": "availability.sigil",
+      "prose": "    Availability owns each *blackout*, which covers one whole room-local date of a\n    room.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:732",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "state",
+      "source": "availability.sigil",
+      "prose": "    The *open time* of a room is its weekly window values minus its blackout dates,\n    expressed as UTC instant ranges.\n"
+    },
+    {
+      "facet": "facet:availability.sigil:868",
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "section": "logic",
+      "source": "availability.sigil",
+      "prose": "    Computing open time for a room over a local date range takes five steps. Step\n    one reads the room timezone and the weekly window values of the room. Step two\n    collects, for each concrete local date in the range, the weekly window values\n    of its weekday as local span values. Step three drops every date that has a\n    blackout. Step four hands the local span values to SharedKernel, which converts\n    them to UTC instant ranges, drops slots inside a daylight-saving gap, and\n    merges adjacent ranges, including 24:00 joining 00:00 of the next day. Step\n    five returns the merged UTC instant ranges as the open time to the caller.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10139",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Removing a blackout leaves a request that was declined for availability change\n    Declined, and the renter may submit a new booking request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10286",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Approving a pending request whose start passed at 09:00 is refused at 09:15,\n    and the request shows as an expired request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10417",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Two parallel approvals of overlapping pending requests produce exactly one\n    confirmed booking.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10520",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    An approval and a withdrawal of one pending request at the same moment produce\n    exactly one success, and the loser is told it is no longer Pending.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10676",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Changing a room timezone is refused while the room has a confirmed booking next\n    week, and succeeds when it has only past bookings.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10816",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    The room owner and the renter cancel the same confirmed booking in parallel,\n    and both succeed with the booking Cancelled exactly once.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:1086",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    Declined, Withdrawn, and Cancelled are each a *terminal status*.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:10960",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Archiving a room declines every pending request with the decline cause archive\n    and leaves each confirmed booking Confirmed.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11093",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    A room owner of one room approving or declining a booking request from another\n    room is refused, and nothing changes on either room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11234",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Inserting an overlapping confirmed booking row directly, bypassing commands,\n    fails with the exclusion constraint.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11375",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking lets a renter submit a booking request for a room over a range, and\n    returns either a pending request or a rejection reason naming the first failed\n    condition.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11554",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking lets the room owner approve or decline any pending request on the room.\n    An approval is refused when its checks no longer hold, and the request stays\n    Pending.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:1156",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    An *expired request* is a pending request whose start has passed. It stays\n    Pending until it is declined or withdrawn.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11733",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking provides a renter a *range change* of their own pending request, and\n    the request stays Pending with its new range.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:11865",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking lets the renter withdraw their own pending request, and lets the\n    room owner or the renter cancel a confirmed booking before its start with no\n    reason or fee.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:12043",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking provides four *booking workflow* operations for the room owner: editing\n    a weekly window or blackout, archiving a room, unarchiving a room, and changing\n    a room timezone. Each combines the mutation with its sweeps and checks under\n    one room lock, and the app reaches these mutations only through them.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:12367",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking lets a renter read their own booking request and confirmed booking, and\n    lets a room owner read every booking request on their rooms, each with its\n    renter, current status, and, when Declined, its decline cause.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:12598",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "interface",
+      "source": "booking.sigil",
+      "prose": "    Booking lets a caller read the bookings of a room in a date range with each\n    expired request and outside-availability flag derived at read time.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:12769",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Owner approval was chosen over instant booking so the reference app exercises\n    the full request lifecycle with one path to specify.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:1283",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    An *outside-availability flag* marks a confirmed booking that has not started\n    and lies outside open time after an availability edit, and it clears itself\n    when the edit is undone.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:12909",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Approval auto-declines overlapping requests and only a confirmed booking\n    blocks, so no renter can squat a slot by asking and the room owner has no\n    cleanup work.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:13083",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Availability edits never cancel a confirmed booking so the room owner keeps\n    control of cancellations and nothing confirmed disappears silently.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:13236",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Withdrawal and two-sided cancellation without expiry let both parties leave\n    before the start without background behavior.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:13367",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Booking owns the workflows because it owns their outcome, which keeps Rooms and\n    Availability free of any dependency on Booking.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:13504",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    A custom exclusion constraint replaces PG 18 WITHOUT OVERLAPS because the\n    latter cannot be limited to Confirmed rows.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:13631",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "decisions",
+      "source": "booking.sigil",
+      "prose": "    Reporting only the first failing condition is enough, so the interface does not\n    list every failure at once.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:1489",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Submitting a booking request takes five steps, all inside the room lock of the\n    requested room. Step one loads the room, its room owner, its open time for the\n    range, and the confirmed booking rows that overlap the range. Step two runs the\n    ordered validation and stops at the first failed condition. Step three, when\n    nothing failed, stores a pending request with the signed-in user as its renter.\n    Step four returns that pending request to the caller. Step five, when a\n    condition failed, stores nothing and returns a *rejection reason* naming that\n    condition to the caller.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:2092",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    The ordered validation checks these conditions in this order: the\n    signed-in user is the room owner, the room is an archived room, a boundary is\n    off the 30-minute grid or is a nonexistent local time, the end is not after the\n    start, the start is not in the future by the clock, the booking request breaks\n    a limit, the range lies outside open time, the range overlaps a\n    confirmed booking, or the renter already holds a pending request with the\n    identical range on the room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:2591",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Approving a pending request takes six steps. Step one takes only the request id\n    and reads the room stored on that request. Step two locks that room with the\n    room lock and re-loads the request. Step three verifies that the signed-in user\n    is the room owner, that the status is Pending, and that the start is after the\n    clock. Step four re-checks that the range still lies inside open time and\n    overlaps no confirmed booking, and refuses the approval, leaving the request\n    Pending, if either fails. Step five sets the status to Confirmed only where it\n    is still Pending, and maps a violation of the exclusion constraint to a\n    domain error. Step six sets every other pending request on the room whose range\n    overlaps to Declined with the decline cause overlapping approval, commits, and\n    returns the confirmed booking.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:3444",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Declining, withdrawing, and cancelling each take only the request id, lock the\n    stored room with the room lock, re-load the booking request, authorize the\n    signed-in user, and change the status with a compare-and-set from the expected\n    prior status.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:3708",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Declining and withdrawing need a pending request, declining is for the\n    room owner, and withdrawing is for the renter. Cancelling needs a\n    confirmed booking whose start is still in the future and is for the room owner\n    or the renter. A lost race on a pending request returns a domain error saying\n    it is no longer Pending, and cancelling a booking request that is already\n    Cancelled succeeds without change.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:4136",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Editing availability takes four steps under the room lock. Step one applies the\n    weekly window or blackout edit through the transactional entry of Availability.\n    Step two sets each pending request that has not started and is now outside\n    open time to Declined with the decline cause availability change. Step three\n    leaves every confirmed booking Confirmed, and the outside-availability flag\n    shows those now outside open time. Step four commits, leaving started bookings\n    and each expired request untouched.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:435",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "goal",
+      "source": "booking.sigil",
+      "prose": "    Run the life of a request for a room from a renter's submission to the\n    room owner's decision, so a room never holds two overlapping confirmed\n    bookings.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:4668",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Archiving a room takes three steps under the room lock. Step one calls the\n    archive mutation through the transactional entry of Rooms. Step two sets every\n    pending request on the room to Declined with the decline cause archive. Step\n    three leaves each confirmed booking Confirmed until it is cancelled, and\n    commits.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:5002",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "logic",
+      "source": "booking.sigil",
+      "prose": "    Changing a room timezone under the room lock first refuses the change when the\n    room has any pending request or confirmed booking whose start is in the future\n    by the clock, and otherwise calls the timezone mutation through the\n    transactional entry of Rooms. Unarchiving calls the unarchive mutation through\n    the transactional entry of Rooms and revives no Declined booking request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:5422",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    For every pair of confirmed booking records on one room, the two\n    half-open range values never overlap, including when approvals happen at the\n    same time.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:5588",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking must enforce that rule with an *exclusion constraint* in Postgres on\n    the room and the UTC range, applied only to rows whose status is Confirmed, so\n    a booking request in any other status never blocks. It lives in a hand-written\n    migration, and drizzle-kit push must never be used.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:5892",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Only a confirmed booking blocks a new booking request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:5952",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A pending request may overlap another pending request on the same room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6029",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking owns the archived room mark, and Booking is the only one that may set\n    or clear it, because only its archive workflow and unarchive workflow change\n    it.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:614",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    Booking owns each *booking request*, which records its room, its *renter*, a\n    UTC range that is a half-open range, one status of Pending, Confirmed,\n    Declined, Withdrawn, or Cancelled, and a *decline cause* when Declined.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6201",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking must not accept a booking request from the room owner of its room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6281",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A renter must not hold two pending request records with the identical range on\n    one room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6379",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking must not provide a range change of a pending request, because the\n    requested range of a pending request stays as Booking records it.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6528",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A booking request must be in the room timezone, start and end on the\n    30-minute grid, start in the future by the clock, and lie wholly inside\n    open time, and it may span midnight or several days. A nonexistent local time\n    at either boundary is rejected.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:6796",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A booking request must last at most 7 days and start at most 180 days after the\n    clock, both measured in room-local calendar days, so a week that crosses a\n    daylight-saving change still counts as 7 days.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:7011",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    An availability edit applies to future items only. It must never cancel or\n    decline a confirmed booking, and started bookings and each expired request stay\n    untouched.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:7190",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A confirmed booking whose start has passed can no longer change. An\n    expired request cannot be approved and can still be declined or withdrawn.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:7342",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A booking request in a terminal status must never change again. Later\n    cancellations or availability edits reopen time only for a new booking request,\n    and unarchiving revives no Declined booking request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:7558",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    A room timezone must not change while the room has a pending request or\n    confirmed booking whose start is in the future.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:7687",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Every status change and every room-scoped mutation must run under the room lock\n    and use a compare-and-set from the expected prior status. Commands on an\n    existing booking request take only its id, never a client-supplied room, and\n    authorize the signed-in user against the room owner of its stored room or\n    against its renter. Any new write path to a booking request must go through\n    Booking commands.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:8110",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking must deliver each rejection reason and each refusal, such as no longer\n    Pending, expired, or not allowed, as a domain error, so the caller can map it\n    to a distinct message.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:8303",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking must never cache a read of a booking request, so a write is visible to\n    the next read. It must derive each expired request and\n    outside-availability flag at read time and never store them.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:847",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    A booking request whose status is Pending is a *pending request*, and one whose\n    status is Confirmed is a *confirmed booking*.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:8511",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking depends on Availability, which provides open time, and on Rooms, which\n    provides the room lock, the room owner, and its own transactional entry.\n    Neither may import Booking.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:8704",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "constraints",
+      "source": "booking.sigil",
+      "prose": "    Booking depends on SharedKernel, which provides the clock, the half-open range,\n    the 30-minute grid, the resolution of a nonexistent local time, and the\n    domain error used to report a lost race.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:8924",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Given a confirmed booking from 09:00 to 10:00, a request from 10:00 to 11:00 is\n    accepted as a pending request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9044",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Given a weekly window on Monday from 09:00 to 18:00, a request from 17:30 to\n    18:30 that Monday is rejected with the rejection reason outside open time.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9205",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    A request on a room by its own room owner is rejected with the rejection reason\n    own room.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9304",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    A request on an archived room that is also off the 30-minute grid reports the\n    rejection reason archived room, and a request whose end is not after its start\n    reports invalid range.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9497",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    A second booking request with the identical range by the same renter is\n    rejected as a duplicate, while a different renter with the same range is\n    accepted as a pending request.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9686",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Given pending requests from Ana for 13:00 to 15:00 and from Ben for 14:00 to\n    16:00, approving Ana's makes hers a confirmed booking and declines Ben's with\n    the decline cause overlapping approval.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:982",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "state",
+      "source": "booking.sigil",
+      "prose": "    The decline cause is declined by owner, overlapping approval, availability\n    change, or archive.\n"
+    },
+    {
+      "facet": "facet:booking.sigil:9894",
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "section": "cases",
+      "source": "booking.sigil",
+      "prose": "    Given a confirmed booking and a pending request on 24 December, adding a\n    blackout for that date leaves the booking Confirmed with an\n    outside-availability flag and declines the request with the decline cause\n    availability change.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1029",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    Module commands and queries must not read the session themselves. They take the\n    signed-in user as an explicit actor.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1155",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    A user account must not carry a role. Owning and renting come from a user's\n    relationship to rooms and requests.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1290",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Signing up and then signing in creates a session, and resolving the\n    signed-in user from that session's headers returns the user.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1428",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Resolving the signed-in user with no session or an invalid one returns no user,\n    and requireUser then refuses as unauthenticated.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1566",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Submitting a form after clearing the session changes nothing and is refused.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1648",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Signing out ends the session, and the next page load redirects to sign-in.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1746",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity lets a person sign up, sign in, and sign out with email and password\n    on a user account.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1852",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity provides requireUser, which returns the signed-in user for the current\n    session or refuses as unauthenticated. Every page and action except sign-up and\n    sign-in calls it.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:195",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "source": "identity.sigil",
+      "prose": "    Identity owns each *user account*, which has one email and one password\n    credential and no stored role.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2043",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity provides resolution of the session from request headers outside\n    Next.js, so the signed-in user can be tested without a running app.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2211",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "source": "identity.sigil",
+      "prose": "    Better Auth backs Identity because Auth.js is security-fixes-only and Lucia is\n    deprecated.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2311",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "source": "identity.sigil",
+      "prose": "    Roles come from the relationship, not the account, so one person can own and\n    rent without two accounts.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:30",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "goal",
+      "source": "identity.sigil",
+      "prose": "    Establish who is acting on every page and action, with one account type and\n    email and password sign-in, so the rest of Slotted never guesses.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:307",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "source": "identity.sigil",
+      "prose": "    Identity owns each *session* created at sign-in and ended at sign-out.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:397",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "logic",
+      "source": "identity.sigil",
+      "prose": "    Resolving the *signed-in user* takes four steps. Step one reads the session\n    from the request headers. Step two looks up the user account that the session\n    belongs to. Step three returns the signed-in user, or returns no user when the\n    session is missing or invalid. Step four turns a missing user into an\n    unauthenticated refusal at the requireUser gate, and otherwise hands the\n    signed-in user to the calling page or action.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:864",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    The optimistic redirect on the session cookie is not a security boundary. Only\n    requireUser may decide whether a signed-in user exists for a page or action.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:1248",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "source": "rooms.sigil",
+      "prose": "    Only the room owner may edit a room, archive it, unarchive it, or change its\n    room timezone.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:1349",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "source": "rooms.sigil",
+      "prose": "    Every room-scoped mutation, including availability edits and booking status\n    changes made by other modules, must run inside the room lock. Changes to\n    different rooms must not block each other.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:1554",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "source": "rooms.sigil",
+      "prose": "    Rooms exposes a *transactional entry*, a second entry beside the module public\n    entry that runs inside the room lock and that only Booking may import. Rooms\n    must expose the archive, unarchive, and room timezone mutations only through\n    its transactional entry, and Rooms must not import Booking.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:1864",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "source": "rooms.sigil",
+      "prose": "    Rooms depends on Identity and requires the signed-in user to record a\n    room owner.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:1969",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "source": "rooms.sigil",
+      "prose": "    Creating a room with an invalid room timezone is rejected.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2033",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "source": "rooms.sigil",
+      "prose": "    Editing a room by a signed-in user who is not its room owner is refused.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2111",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "source": "rooms.sigil",
+      "prose": "    The room list excludes every archived room and includes rooms from every\n    room owner.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2205",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "source": "rooms.sigil",
+      "prose": "    Unarchiving an archived room returns it to the room list.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2268",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "source": "rooms.sigil",
+      "prose": "    Two concurrent changes under the room lock on one room run one after the other,\n    while changes on different rooms do not block each other.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2433",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms lets a signed-in user create a room, and lets the room owner edit its\n    name, description, capacity, and location text.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:250",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "source": "rooms.sigil",
+      "prose": "    Rooms owns each *room*, which has a name, description, capacity, location text,\n    and a *room timezone* that is an IANA zone required at creation. Capacity is\n    informational and a request carries no party size.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2566",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides the *room list* of every room that is not an archived room to\n    any signed-in user.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2672",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides archive, unarchive, and room timezone change of a room through\n    its transactional entry, for Booking's workflows to use.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2816",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides the room lock, which opens a transaction on one room and hands\n    it to a change, for Booking's workflows and the commands of Rooms to use.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:2977",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides the room owner of a room so other modules can authorize a\n    signed-in user against it.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:3086",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides the room timezone of a room so other modules can read a range in\n    it.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:3179",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "source": "rooms.sigil",
+      "prose": "    Rooms provides each room owner the list of every room that owner created,\n    including each archived room, so the owner can reach an archived room to\n    unarchive it.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:3371",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "decisions",
+      "source": "rooms.sigil",
+      "prose": "    The room timezone is locked while upcoming items exist because no booking\n    should ever move in time. That check lives in Booking, which is why Rooms never\n    imports it.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:3550",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "decisions",
+      "source": "rooms.sigil",
+      "prose": "    A row lock in Postgres serializes room changes because the no-overlap rule and\n    exact automatic declines need one ordering per room.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:471",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "source": "rooms.sigil",
+      "prose": "    Every room has exactly one *room owner*, the signed-in user who created it.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:552",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "source": "rooms.sigil",
+      "prose": "    A room is either listed or an *archived room*. Rooms owns the archived room\n    mark: a room carries it from archive until unarchive.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:705",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "logic",
+      "source": "rooms.sigil",
+      "prose": "    Creating a room takes three steps. Step one requires a signed-in user. Step two\n    validates the room timezone against the IANA zone list and rejects an unknown\n    zone. Step three records the signed-in user as the room owner and returns the\n    new room.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:84",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "goal",
+      "source": "rooms.sigil",
+      "prose": "    Let any signed-in user list a room for others to rent, keep the set of rooms\n    browsable, and give every room-scoped change one serialized path.\n"
+    },
+    {
+      "facet": "facet:rooms.sigil:968",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "logic",
+      "source": "rooms.sigil",
+      "prose": "    Running a change under the *room lock* takes three steps. Step one opens a\n    transaction and locks the row of the room. Step two passes the transaction to\n    the change. Step three commits and returns the result, or rolls back if the\n    change fails.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1121",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "constraints",
+      "source": "shared.sigil",
+      "prose": "    Every check against the current time must read the *clock* and never the\n    database now(), so tests can create an item before its start and act after it.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1282",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "constraints",
+      "source": "shared.sigil",
+      "prose": "    A half-open range includes its start and excludes its end, so two ranges that\n    meet at one instant do not overlap.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1405",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "constraints",
+      "source": "shared.sigil",
+      "prose": "    A boundary must lie on the 30-minute grid, and 24:00 is allowed only as the end\n    of a local span.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1525",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "cases",
+      "source": "shared.sigil",
+      "prose": "    A local time of 09:00 or 09:30 is on the 30-minute grid, and 09:15 is rejected.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1610",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "cases",
+      "source": "shared.sigil",
+      "prose": "    The half-open range 09:00 to 10:00 and the half-open range 10:00 to 11:00 do\n    not overlap, while 09:00 to 10:30 and 10:00 to 11:00 do.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1753",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "cases",
+      "source": "shared.sigil",
+      "prose": "    In America/New_York, 02:00 on the spring-forward date is a\n    nonexistent local time, and 01:30 on the fall-back date is an\n    ambiguous local time that resolves to the earlier UTC instant.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:1950",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "cases",
+      "source": "shared.sigil",
+      "prose": "    A local span from 01:00 to 04:00 on the spring-forward date in America/New_York\n    yields two real hours of UTC instant ranges.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2084",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "cases",
+      "source": "shared.sigil",
+      "prose": "    In Asia/Kolkata a local span still aligns to the 30-minute grid in local time\n    even though local :00 is UTC :30, and Australia/Lord_Howe's 30-minute\n    daylight-saving shift yields correct spans.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2307",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "interface",
+      "source": "shared.sigil",
+      "prose": "    SharedKernel provides the clock to every command and query. Server actions pass\n    the system clock, and tests pass a fixed one.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2442",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "interface",
+      "source": "shared.sigil",
+      "prose": "    SharedKernel provides the checks on the 30-minute grid and the resolution of a\n    nonexistent local time or ambiguous local time to a UTC instant.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:245",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "logic",
+      "source": "shared.sigil",
+      "prose": "    Resolving a requested boundary in a zone takes three steps. Step one checks\n    that the local time is on the *30-minute grid*. Step two rejects a\n    *nonexistent local time*. Step three resolves an *ambiguous local time* to its\n    earlier occurrence and returns the resulting *UTC instant* to the caller.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2595",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "interface",
+      "source": "shared.sigil",
+      "prose": "    SharedKernel provides the conversion of a local span to merged half-open range\n    values of UTC instant.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2706",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "interface",
+      "source": "shared.sigil",
+      "prose": "    SharedKernel provides a *domain error* for each expected failure, such as a\n    lost race or a rejected boundary, so callers map it to a user message without\n    exposing internals.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:2911",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "decisions",
+      "source": "shared.sigil",
+      "prose": "    Time uses Temporal through temporal-polyfill because daylight-saving arithmetic\n    is central to the domain, and moving to native Temporal waits for a runtime\n    that ships it.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:3095",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "decisions",
+      "source": "shared.sigil",
+      "prose": "    The 30-minute grid and half-open ranges were chosen over any-minute ranges and\n    whole-day bookings to keep the calendar tidy and back-to-back bookings\n    conflict-free.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:34",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "goal",
+      "source": "shared.sigil",
+      "prose": "    Give every module one agreed way to measure and compare time, so that a booking\n    ending at 10:00 never conflicts with one starting at 10:00 and no module holds\n    a different idea of now.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:558",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "logic",
+      "source": "shared.sigil",
+      "prose": "    Converting a *local span* to instants takes two steps. Step one turns each\n    30-minute slot of the span into a UTC instant range and drops every slot inside\n    a daylight-saving gap. Step two merges adjacent ranges, so a span ending at\n    24:00 joins one starting at 00:00 the next day, and returns the merged\n    *half-open range* values to the caller.\n"
+    },
+    {
+      "facet": "facet:shared.sigil:941",
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "section": "constraints",
+      "source": "shared.sigil",
+      "prose": "    The time and domain-error rules of SharedKernel must not import database access\n    or framework code, so every rule on a local span or UTC instant stays a pure\n    function.\n"
+    }
+  ],
+  "flows": [
+    {
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "componentLabel": "Availability",
+      "source": "availability.sigil",
+      "facets": [
+        "facet:availability.sigil:868"
+      ]
+    },
+    {
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "componentLabel": "Booking",
+      "source": "booking.sigil",
+      "facets": [
+        "facet:booking.sigil:1489",
+        "facet:booking.sigil:2092",
+        "facet:booking.sigil:2591",
+        "facet:booking.sigil:3444",
+        "facet:booking.sigil:3708",
+        "facet:booking.sigil:4136",
+        "facet:booking.sigil:4668",
+        "facet:booking.sigil:5002"
+      ]
+    },
+    {
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "source": "identity.sigil",
+      "facets": [
+        "facet:identity.sigil:397"
+      ]
+    },
+    {
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "source": "rooms.sigil",
+      "facets": [
+        "facet:rooms.sigil:705",
+        "facet:rooms.sigil:968"
+      ]
+    },
+    {
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "componentLabel": "SharedKernel",
+      "source": "shared.sigil",
+      "facets": [
+        "facet:shared.sigil:245",
+        "facet:shared.sigil:558"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "id": "urn:sigil:component:availability.sigil:Availability",
+      "kind": "Component",
+      "label": "Availability",
+      "owner": null,
+      "source": "availability.sigil"
+    },
+    {
+      "id": "urn:sigil:component:availability.sigil:Availability:tag:blackout",
+      "kind": "Tag",
+      "label": "blackout",
+      "owner": "urn:sigil:component:availability.sigil:Availability",
+      "source": "availability.sigil"
+    },
+    {
+      "id": "urn:sigil:component:availability.sigil:Availability:tag:open%20time",
+      "kind": "Tag",
+      "label": "open time",
+      "owner": "urn:sigil:component:availability.sigil:Availability",
+      "source": "availability.sigil"
+    },
+    {
+      "id": "urn:sigil:component:availability.sigil:Availability:tag:weekly%20window",
+      "kind": "Tag",
+      "label": "weekly window",
+      "owner": "urn:sigil:component:availability.sigil:Availability",
+      "source": "availability.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking",
+      "kind": "Component",
+      "label": "Booking",
+      "owner": null,
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:booking%20request",
+      "kind": "Tag",
+      "label": "booking request",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:booking%20workflow",
+      "kind": "Tag",
+      "label": "booking workflow",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:confirmed%20booking",
+      "kind": "Tag",
+      "label": "confirmed booking",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:decline%20cause",
+      "kind": "Tag",
+      "label": "decline cause",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:exclusion%20constraint",
+      "kind": "Tag",
+      "label": "exclusion constraint",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:expired%20request",
+      "kind": "Tag",
+      "label": "expired request",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:outside-availability%20flag",
+      "kind": "Tag",
+      "label": "outside-availability flag",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:pending%20request",
+      "kind": "Tag",
+      "label": "pending request",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "kind": "Tag",
+      "label": "range change",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:rejection%20reason",
+      "kind": "Tag",
+      "label": "rejection reason",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:renter",
+      "kind": "Tag",
+      "label": "renter",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:booking.sigil:Booking:tag:terminal%20status",
+      "kind": "Tag",
+      "label": "terminal status",
+      "owner": "urn:sigil:component:booking.sigil:Booking",
+      "source": "booking.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity",
+      "kind": "Component",
+      "label": "Identity",
+      "owner": null,
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:session",
+      "kind": "Tag",
+      "label": "session",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "kind": "Tag",
+      "label": "signed-in user",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+      "kind": "Tag",
+      "label": "user account",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms",
+      "kind": "Component",
+      "label": "Rooms",
+      "owner": null,
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+      "kind": "Tag",
+      "label": "archived room",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+      "kind": "Tag",
+      "label": "room",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+      "kind": "Tag",
+      "label": "room list",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+      "kind": "Tag",
+      "label": "room lock",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+      "kind": "Tag",
+      "label": "room owner",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+      "kind": "Tag",
+      "label": "room timezone",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+      "kind": "Tag",
+      "label": "transactional entry",
+      "owner": "urn:sigil:component:rooms.sigil:Rooms",
+      "source": "rooms.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel",
+      "kind": "Component",
+      "label": "SharedKernel",
+      "owner": null,
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:30-minute%20grid",
+      "kind": "Tag",
+      "label": "30-minute grid",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:UTC%20instant",
+      "kind": "Tag",
+      "label": "UTC instant",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:ambiguous%20local%20time",
+      "kind": "Tag",
+      "label": "ambiguous local time",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:clock",
+      "kind": "Tag",
+      "label": "clock",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error",
+      "kind": "Tag",
+      "label": "domain error",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:half-open%20range",
+      "kind": "Tag",
+      "label": "half-open range",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:local%20span",
+      "kind": "Tag",
+      "label": "local span",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    },
+    {
+      "id": "urn:sigil:component:shared.sigil:SharedKernel:tag:nonexistent%20local%20time",
+      "kind": "Tag",
+      "label": "nonexistent local time",
+      "owner": "urn:sigil:component:shared.sigil:SharedKernel",
+      "source": "shared.sigil"
+    }
+  ],
+  "declared": [
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "cases"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "constraints"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "decisions"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "goal"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "interface"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "logic"
+    ],
+    [
+      "urn:sigil:component:booking.sigil:Booking",
+      "state"
+    ]
+  ]
+}

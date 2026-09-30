@@ -112,50 +112,59 @@ resolved references.
 - Semantic export digest: `11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb`
 - Raw export SHA-256: `b354dcca33f23796f3063cc364bcd4ea97dd008f8388aa651d83245c3cb4ff52`
 - Source-byte manifest SHA-256: `f857684ac3618b90426db81d9e56a99ae8f4cdacc93dcef21398f94d21b7588b`
-- Guidance fingerprint: `21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df`
+- Guidance fingerprint: `a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555`
 
 The seven source files matched the manifest before both passes. Every prepare
 reused zero units. The host limits were instruction-only. Each child was told
 to read only its prepared files and write only its own artifact. No operating
-system sandbox was enforced. All 14 results passed the identity checks above.
-I did not recompute the per-artifact BLAKE3 digests.
+system sandbox was enforced. All 14 counted results passed the identity checks
+above. I did not recompute the per-artifact BLAKE3 digests.
+
+One run was refused and is not counted. The first booking pass-1 child gave two
+Rooms steps the same ordinal, and the tool refused the artifact. A refused
+artifact gives no state. A second fresh child ran for that slot, and its result
+is the one below.
 
 | Source | Target | Pass 1 | Pass 2 | Facets presented |
 | --- | --- | --- | --- | ---: |
-| `slotted.sigil` | Coherent / 0 | Loose / 0, 2 unmet-obligation, 8 ungrounded-claim | Loose / 0, 3 unmet-obligation | 168 |
+| `slotted.sigil` | Coherent / 0 | Loose / 0, 3 unmet-obligation | Loose / 0, 1 unmet-obligation, 5 ungrounded-claim | 168 |
 | `identity.sigil` | Coherent / 0 | Coherent / 0, none | Coherent / 0, none | 16 |
-| `rooms.sigil` | Coherent / 0 | Loose / 0, 2 unguarded-flow, 1 unreached-step | Loose / 0, 2 unguarded-flow | 40 |
-| `shared.sigil` | Coherent / 0 | Loose / 0, 1 unguarded-flow, 2 unreached-step | Loose / 0, 2 unreached-step | 18 |
-| `availability.sigil` | Coherent / 0 | Loose / 0, 2 unguarded-flow | Loose / 0, 1 unguarded-flow | 81 |
-| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 3 unmet-obligation | Disjoint / 1, 3 contradiction, 1 unmet-obligation | 170 |
-| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 3 contradiction, 4 unmet-obligation, 2 step-excluded-action, 7 unguarded-flow | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 3 ungrounded-claim, 1 uninterpreted-section, 4 step flow findings, 1 suppressed-graph | 145 |
+| `rooms.sigil` | Coherent / 0 | Loose / 0, 4 unguarded-flow | Loose / 0, 3 unguarded-flow | 40 |
+| `shared.sigil` | Coherent / 0 | Loose / 0, 1 unguarded-flow | Loose / 0, 1 unguarded-flow | 18 |
+| `availability.sigil` | Coherent / 0 | Loose / 0, 5 unguarded-flow | Loose / 0, 1 unmet-obligation, 8 unguarded-flow | 81 |
+| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 1 unmet-obligation, 1 ungrounded-claim, 2 unguarded-flow | Loose / 0, 1 unmet-obligation | 170 |
+| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 1 unmet-obligation, 1 ungrounded-claim, 1 uninterpreted-section, 19 unguarded-flow | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 3 unguarded-flow | 145 |
 
 What the two runs show:
 
-1. **Booking was Disjoint in both passes.** Both passes found the contradiction
-   over the range change. Only pass 2 found the ownership conflict.
+1. **Booking was Disjoint in both passes, with both gating problems each
+   time.** Each pass found the contradiction over the range change (3 findings)
+   and the ownership conflict over the archived room mark (2 findings, one from
+   each side).
 2. **Calendar's unmet obligation appeared in both passes.** The display-name
    requirement was reported each time. The dead-end step never produced an
-   `unreached-step` in either pass.
-3. **Calendar was Disjoint in pass 2, which was not intended.** That child read
-   two of Calendar's own sentences as opposite claims about `requestable slot`.
-   One is a case saying the owner's view has no requestable slot. The other is
-   the interface promising requestable slots. This is a real tension in how the
-   prose reads, not the planted problem.
-4. **Only `identity.sigil` was Coherent in both passes.** Every other source
-   that should be Coherent was Loose, mostly from `unguarded-flow` and
-   `unreached-step` warnings. These warnings do not gate.
+   `unreached-step` in either pass, so that planted problem is not shown. Its
+   step is the last step of its paragraph, so a child always gives it an end.
+3. **Calendar was Loose in both passes.** No unintended Disjoint this time.
+4. **Only `identity.sigil` was Coherent in both passes.** The other sources that
+   should be Coherent were Loose. Most of it is `unguarded-flow`: a constraint
+   names something, such as the room lock or the clock, that no step checks.
+   These warnings do not gate. Slotted also has a real unmet obligation: it
+   requires the domain error, but its prose never says it depends on
+   SharedKernel. Slotted pass 2 has 5 ungrounded claims about Tags it does not
+   import.
 
 No future run is guaranteed to match any of this. Children still differ in how
 many claims they make and how they connect flow steps.
 
-### The earlier run, under the old guidance
+### Earlier runs
 
-A first pair of gradients ran on the same export before the interpretation
-guidance was corrected. It differed from the run above in two ways. The old
-guidance said a claim could only name a Tag marked with asterisks, but an
-asterisk defines a new Tag, so an existing Tag cannot be marked that way.
-Children read that rule differently, and some made very few claims.
+Two earlier pairs of gradients ran on the same export, under older guidance.
+Both are kept as short records. `analyze-demo/slotted-runs/DIAGNOSIS.md` holds
+the analysis of why they differed.
+
+**Old guidance** (said a claim may only name an asterisk-marked Tag, which
+cannot be done for an existing Tag). Fingerprint `29f869c7…`.
 
 | Source | Pass 1 | Pass 2 |
 | --- | --- | --- |
@@ -167,11 +176,26 @@ Children read that rule differently, and some made very few claims.
 | `calendar.sigil` | Loose | Loose |
 | `booking.sigil` | Disjoint | Coherent |
 
-Booking's planted problems appeared in one pass of two, and its pass 2 made no
-claim for either. That collapse is gone after the fix. The guidance fingerprint
-of that run was `29f869c70d6f855349bb8995ae9d493a6365c5bb044338d166a80f27f7a9a151`.
+**Corrected naming rule, before the four later fixes.** Fingerprint `21f7aa54…`.
 
-The run records stay outside the repository.
+| Source | Pass 1 | Pass 2 |
+| --- | --- | --- |
+| `slotted.sigil` | Loose | Loose |
+| `identity.sigil` | Coherent | Coherent |
+| `rooms.sigil` | Loose | Loose |
+| `shared.sigil` | Loose | Loose |
+| `availability.sigil` | Loose | Loose |
+| `calendar.sigil` | Loose | Disjoint |
+| `booking.sigil` | Disjoint | Disjoint |
+
+In the old-guidance run, booking's problems appeared in one pass of two. The
+corrected naming rule fixed that. Booking's ownership conflict still appeared
+in only one of the two passes until the exclusive-ownership fix, and calendar
+went Disjoint once because a scoped exception was read as a global ban. Both
+are fixed in the latest run.
+
+The run records stay outside the repository, except the copies in
+`analyze-demo/slotted-runs/`.
 
 ## Remedies and the expected return state
 

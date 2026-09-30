@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "source": "identity.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "0dadb9d031732ec8a32ec26e9d23d83c4b302398d65937d0f543f766aeb344ea"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "coherent",
+  "iterations": 8,
+  "findings": []
+}

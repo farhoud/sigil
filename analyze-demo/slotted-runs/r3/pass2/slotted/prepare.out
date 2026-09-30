@@ -1,0 +1,15 @@
+{
+  "binding": "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/binding.json",
+  "bindingDigest": "8b390b78678a1654231226ed7a808ce3b40b0b78605ebbe1574e9855e961cf58",
+  "facets": 168,
+  "inputs": [
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/binding.json",
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/request.json",
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/sections.md",
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/vocabulary.md",
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/examples.md",
+    "/private/tmp/claude-501/-Users-farhoud-Workspace-sigil/b433ae0a-4a5c-4fc8-a907-b1b7f2450530/scratchpad/revr3/p2-slotted/prep/rejected.md"
+  ],
+  "reusedUnits": 0,
+  "version": 2
+}

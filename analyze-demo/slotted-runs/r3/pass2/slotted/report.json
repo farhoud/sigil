@@ -1,0 +1,88 @@
+{
+  "version": 2,
+  "source": "slotted.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "914af725a883ac1c568a4ba79dadb7a4de9327b2fad99265a76c21a489782746"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error",
+      "claims": [
+        "fa9bab9115a31ff81954ea27a2abe8792ba6bb381ccae21ee130ce8c37cdef04"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:shared.sigil:SharedKernel:tag:domain%20error"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:availability.sigil:Availability",
+      "object": "urn:sigil:component:availability.sigil:Availability",
+      "claims": [
+        "0908c4234d222adf57112316887fc188df763f2e7446842c081a26dd32132e1d"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "constraints",
+      "detail": "urn:sigil:component:availability.sigil:Availability does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:availability.sigil:Availability",
+      "claims": [
+        "891b594aa097b514a80d5b46b721a06303d145a4706f46c0de26453b14c30a23"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "constraints",
+      "detail": "urn:sigil:component:availability.sigil:Availability does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:decline%20cause",
+      "claims": [
+        "ca583b476090c8aca265489f320de568fa4a02e75850bede81538c746845bfc1"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "interface",
+      "detail": "urn:sigil:component:booking.sigil:Booking:tag:decline%20cause does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+      "claims": [
+        "f83650d3d562339b7dbbd535969efa4e2711243c29a705cf85dca2c49d7dcade"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "interface",
+      "detail": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:slotted.sigil:Slotted",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+      "claims": [
+        "60a2cdd515c2b1e0386c5d50948f0b3d799347a5d317de4c38e533d4a25e5f5d"
+      ],
+      "component": "urn:sigil:component:slotted.sigil:Slotted",
+      "section": "interface",
+      "detail": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "version": 2,
+  "source": "availability.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "469571c2bab2c48502841dd2bca0ae2208fd7d4b6363ec5ed8d9fe9308fdbd1e"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "unmet-obligation",
+      "law": "unmet-obligation",
+      "subject": "urn:sigil:component:availability.sigil:Availability",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:local%20span",
+      "claims": [
+        "77781052d101720e907f4c5d353a8a446b930934520592c04b8ae01ca108d30f"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "nothing satisfies provides urn:sigil:component:shared.sigil:SharedKernel:tag:local%20span"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+      "claims": [
+        "528a61cbf09d9855844cf9d58fcc37fab7ef41e487db40e9b8392bb532e3a25d"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+      "claims": [
+        "26e5a753068bde55a6dea3f3e45a424f7b74909f4f83b1ad4a4f7f34f3ca1c33"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+      "claims": [
+        "4ec0e0ccbed202baa8e9e940c17f4414d4ffbd127eb43dca2d43958e5da2f3b7"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+      "claims": [
+        "a6f5e00f1410dd5f18b6022a9fb8db4f6e08252882f633d898132a720c96d51e"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "38319665b8d9406918e527e88903decd75db6cc34a7d3785b3f96b28dda3c298",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:30-minute%20grid",
+      "claims": [
+        "e1e7c3d9cd38f4236a8a6e438612385f76b7e467c2c8d82a3e882bc93fef502e"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "38319665b8d9406918e527e88903decd75db6cc34a7d3785b3f96b28dda3c298",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:local%20span",
+      "claims": [
+        "77781052d101720e907f4c5d353a8a446b930934520592c04b8ae01ca108d30f"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "3abc310e414b749a29951ad3b04240fe1571511a3027120a314c8e3215f29a26",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+      "claims": [
+        "a6f5e00f1410dd5f18b6022a9fb8db4f6e08252882f633d898132a720c96d51e"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "3abc310e414b749a29951ad3b04240fe1571511a3027120a314c8e3215f29a26",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:local%20span",
+      "claims": [
+        "77781052d101720e907f4c5d353a8a446b930934520592c04b8ae01ca108d30f"
+      ],
+      "component": "urn:sigil:component:availability.sigil:Availability",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    }
+  ]
+}

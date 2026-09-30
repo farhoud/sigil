@@ -1,0 +1,1956 @@
+{
+  "version": 1,
+  "source": "rooms.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "a9f466ca2c3e3c2849be55c645f9acdaade8bf0f75fd2719c966c1c5c87e1fc0"
+    ],
+    "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+    "vocabularyGeneration": 2
+  },
+  "units": [
+    {
+      "facet": "facet:identity.sigil:1029",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "prose": "    Module commands and queries must not read the session themselves. They take the\n    signed-in user as an explicit actor.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "40c71217e3ab603db7e92df7553493fa4fad0fb063af6ea17b7f462fe7090532",
+          "body": {
+            "kind": "reading",
+            "outcome": "unresolved"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1155",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "prose": "    A user account must not carry a role. Owning and renting come from a user's\n    relationship to rooms and requests.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "db9234f79086bcf7f3f0be9b21fc7fa724c4aeb0b4c5cb26438fa108de912ba0",
+          "body": {
+            "kind": "reading",
+            "outcome": "unresolved"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1290",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "prose": "    Signing up and then signing in creates a session, and resolving the\n    signed-in user from that session's headers returns the user.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "299b136a7f020c3c662d3af04b797d913d5956113c98bdb55dc6571ccba130ae",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "provides",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "5798bb781ed94e3a0e3354d62a7d2988bd0779a26d9900e47f820b2c94337139",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "provides",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "provides",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+          "law": "asserted",
+          "witness": "299b136a7f020c3c662d3af04b797d913d5956113c98bdb55dc6571ccba130ae"
+        },
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "provides",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "5798bb781ed94e3a0e3354d62a7d2988bd0779a26d9900e47f820b2c94337139"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1428",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "prose": "    Resolving the signed-in user with no session or an invalid one returns no user,\n    and requireUser then refuses as unauthenticated.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "5e64371649659ea398266e346fc93b53fe96678260b37c4da5de90b4a2a095ee",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1566",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "prose": "    Submitting a form after clearing the session changes nothing and is refused.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "80e76bed6f799e79059fd4d6ada48beafb78b7c598eec7234117d6a227273c4f",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1648",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "prose": "    Signing out ends the session, and the next page load redirects to sign-in.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "be53cd3d5cbb8e296ac1a9a9ea4752f1ba0790cff1d0d3fdc12c2b1dee8cf551",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1746",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "prose": "    Identity lets a person sign up, sign in, and sign out with email and password\n    on a user account.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "b7a40aa6d3abda7dbc0daf916a4f79067647ad5e12fada1e1e4d6069f00b0944",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "uses",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "uses",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+          "law": "asserted",
+          "witness": "b7a40aa6d3abda7dbc0daf916a4f79067647ad5e12fada1e1e4d6069f00b0944"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:1852",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "prose": "    Identity provides requireUser, which returns the signed-in user for the current\n    session or refuses as unauthenticated. Every page and action except sign-up and\n    sign-in calls it.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "eae4aabd3d0474148e18975b5a00c5d2a7e99bd5e229efc44cec0fa6365db8c0",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "provides",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "provides",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "eae4aabd3d0474148e18975b5a00c5d2a7e99bd5e229efc44cec0fa6365db8c0"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:195",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "prose": "    Identity owns each *user account*, which has one email and one password\n    credential and no stored role.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "fe30bac0cbe6789d1ebe08f993a5375a8f8bc7f52b6161141fde6f1ad8d8e239",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "owns",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "owns",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+          "law": "asserted",
+          "witness": "fe30bac0cbe6789d1ebe08f993a5375a8f8bc7f52b6161141fde6f1ad8d8e239"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:2043",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "prose": "    Identity provides resolution of the session from request headers outside\n    Next.js, so the signed-in user can be tested without a running app.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "8ee1b788bed63be20e5bce359f435fe926942f9b066f879ac07b3a50fea6fd1d",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "provides",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "provides",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "8ee1b788bed63be20e5bce359f435fe926942f9b066f879ac07b3a50fea6fd1d"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:2211",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "prose": "    Better Auth backs Identity because Auth.js is security-fixes-only and Lucia is\n    deprecated.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "b7b9838613c8a614145f7cf734ba49e64aa742cb56aaa7d02be497453b0da89c",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:2311",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "prose": "    Roles come from the relationship, not the account, so one person can own and\n    rent without two accounts.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "cdab099982ad7ed8ce902cede67360cdd23cb821158be1afa90fea0d2e5ac2f8",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:30",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "goal",
+      "prose": "    Establish who is acting on every page and action, with one account type and\n    email and password sign-in, so the rest of Slotted never guesses.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "bd77f8b6917b63ca0a08c27109a07c3d28743cd6065a82fe48268a668fe9fa10",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:307",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "prose": "    Identity owns each *session* created at sign-in and ended at sign-out.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "c26b5dbe58621f80de1674f08836c5b75742b3e09e5df2bf6ba05435af25f88e",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "owns",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "owns",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+          "law": "asserted",
+          "witness": "c26b5dbe58621f80de1674f08836c5b75742b3e09e5df2bf6ba05435af25f88e"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:397",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "logic",
+      "prose": "    Resolving the *signed-in user* takes four steps. Step one reads the session\n    from the request headers. Step two looks up the user account that the session\n    belongs to. Step three returns the signed-in user, or returns no user when the\n    session is missing or invalid. Step four turns a missing user into an\n    unauthenticated refusal at the requireUser gate, and otherwise hands the\n    signed-in user to the calling page or action.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "2a9608fdcef84a7707e2e1952ae4c277361246088d10478f1164694e96eef287",
+          "body": {
+            "kind": "claim",
+            "subject": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+            "relation": "to",
+            "object": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+          "body": {
+            "kind": "step",
+            "ordinal": 1
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "58c6328ccc7e32d3655fce71ea40a65aefe06cdfd2fc9d9d50892c93222f7794",
+          "body": {
+            "kind": "claim",
+            "subject": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+            "relation": "reads",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "body": {
+            "kind": "step",
+            "ordinal": 2
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "6f1cdb91f22ff2c2c21ff8bf55494fc1eee76af64d3d3a6f8fef0b803b7509fc",
+          "body": {
+            "kind": "claim",
+            "subject": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+            "relation": "to",
+            "object": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "bbfac9a19658c4a4ce91a14cfed5a9e6da579ae3d2e4bc06a1f6b7b38fb28ff4",
+          "body": {
+            "kind": "claim",
+            "subject": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+            "relation": "to",
+            "object": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "d3b5ce1c501e9b4710166d7f63b4e7f0c1933598b32f2293754609eb54bf7234",
+          "body": {
+            "kind": "claim",
+            "subject": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+            "relation": "to",
+            "object": "f25b06e580fd2b9efcc1650b48e995d562bb160e4a543674dbd074d69940e96e",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "d6037a73b1cb4b97873b9cea0a975bdd6340be6a7a9b5ca37dcea932ef5ee3ff",
+          "body": {
+            "kind": "claim",
+            "subject": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+            "relation": "reads",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+          "body": {
+            "kind": "step",
+            "ordinal": 4
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "body": {
+            "kind": "step",
+            "ordinal": 3
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e55af5a5df7d6f313b172e83b946bd5b8cd3edff9e298df3aecfc9a217342bc6",
+          "body": {
+            "kind": "claim",
+            "subject": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+            "relation": "writes",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "ebddf451ae0147aaef9265bf8984fffcff0f31b7a462bfa1c49ad008a0b1b33b",
+          "body": {
+            "kind": "claim",
+            "subject": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+            "relation": "reads",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+          "relation": "flow-end",
+          "object": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "law": "flow-end-transitive",
+          "witness": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23"
+        },
+        {
+          "subject": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+          "relation": "reads",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:session",
+          "law": "asserted",
+          "witness": "d6037a73b1cb4b97873b9cea0a975bdd6340be6a7a9b5ca37dcea932ef5ee3ff"
+        },
+        {
+          "subject": "312f5f487be03cecfcc359cb16fbc674aec6ce32457f95aa4ceb99bb4f8ae184",
+          "relation": "to",
+          "object": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "law": "asserted",
+          "witness": "2a9608fdcef84a7707e2e1952ae4c277361246088d10478f1164694e96eef287"
+        },
+        {
+          "subject": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "relation": "flow-end",
+          "object": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "law": "flow-end-transitive",
+          "witness": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294"
+        },
+        {
+          "subject": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "relation": "reads",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+          "law": "asserted",
+          "witness": "58c6328ccc7e32d3655fce71ea40a65aefe06cdfd2fc9d9d50892c93222f7794"
+        },
+        {
+          "subject": "617f486c7e470ae0adf9803f1437a55c5921aebd54c694a6ba0adfc295830b23",
+          "relation": "to",
+          "object": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "law": "asserted",
+          "witness": "6f1cdb91f22ff2c2c21ff8bf55494fc1eee76af64d3d3a6f8fef0b803b7509fc"
+        },
+        {
+          "subject": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+          "relation": "reads",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "ebddf451ae0147aaef9265bf8984fffcff0f31b7a462bfa1c49ad008a0b1b33b"
+        },
+        {
+          "subject": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+          "relation": "to",
+          "object": "f25b06e580fd2b9efcc1650b48e995d562bb160e4a543674dbd074d69940e96e",
+          "law": "asserted",
+          "witness": "d3b5ce1c501e9b4710166d7f63b4e7f0c1933598b32f2293754609eb54bf7234"
+        },
+        {
+          "subject": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "relation": "flow-end",
+          "object": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+          "law": "flow-end-transitive",
+          "witness": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559"
+        },
+        {
+          "subject": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "relation": "to",
+          "object": "e2205282ce88414972c8a8ba718be0d256b179dbaf11eb1776ae88a48d5cb559",
+          "law": "asserted",
+          "witness": "bbfac9a19658c4a4ce91a14cfed5a9e6da579ae3d2e4bc06a1f6b7b38fb28ff4"
+        },
+        {
+          "subject": "e3c0e1b5b3a6b4862ad6c202bd909c0944781aa2e3e6160d204a299fb7e8f294",
+          "relation": "writes",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "e55af5a5df7d6f313b172e83b946bd5b8cd3edff9e298df3aecfc9a217342bc6"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:identity.sigil:864",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "prose": "    The optimistic redirect on the session cookie is not a security boundary. Only\n    requireUser may decide whether a signed-in user exists for a page or action.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "58e896e9a6113c57f6ab26036a78109f5f78aaf873a6f12adc363e8587c651b8",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:identity.sigil:Identity",
+            "relation": "authorityFor",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:identity.sigil:Identity",
+          "relation": "authorityFor",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "58e896e9a6113c57f6ab26036a78109f5f78aaf873a6f12adc363e8587c651b8"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:1248",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "prose": "    Only the room owner may edit a room, archive it, unarchive it, or change its\n    room timezone.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "d59a40aeccfa5644ebf03db8c5b6c09daa6f908fac4db7c52b4fde5427ccdca3",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "relation": "authorityFor",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e57844e2deb1bce75248065848cde25118249c171e960b2d5eabac3810f3677e",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "relation": "authorityFor",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "relation": "authorityFor",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "d59a40aeccfa5644ebf03db8c5b6c09daa6f908fac4db7c52b4fde5427ccdca3"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "relation": "authorityFor",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "e57844e2deb1bce75248065848cde25118249c171e960b2d5eabac3810f3677e"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:1349",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "prose": "    Every room-scoped mutation, including availability edits and booking status\n    changes made by other modules, must run inside the room lock. Changes to\n    different rooms must not block each other.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "27e9f9066cf99d2462fa3e6623f08cd099b68cd093508d007a513993f236d5c4",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "routesThrough",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "routesThrough",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+          "law": "asserted",
+          "witness": "27e9f9066cf99d2462fa3e6623f08cd099b68cd093508d007a513993f236d5c4"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:1554",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "prose": "    Rooms exposes a *transactional entry*, a second entry beside the module public\n    entry that runs inside the room lock and that only Booking may import. Rooms\n    must expose the archive, unarchive, and room timezone mutations only through\n    its transactional entry, and Rooms must not import Booking.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "e28138a30000e461fa2cd34592198ed345db52de776b2512deb2a39a4a8e2265",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e30d2e31e0ebaec198752ff21769c12cf35c10dfb0073679ab4436ecd7dcf7f3",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "routesThrough",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+          "law": "asserted",
+          "witness": "e28138a30000e461fa2cd34592198ed345db52de776b2512deb2a39a4a8e2265"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "routesThrough",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+          "law": "asserted",
+          "witness": "e30d2e31e0ebaec198752ff21769c12cf35c10dfb0073679ab4436ecd7dcf7f3"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:1864",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "constraints",
+      "prose": "    Rooms depends on Identity and requires the signed-in user to record a\n    room owner.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "391e00b98d034e95c3f32d9ce71ba479ffd5ea53c0152d9bdf689a712a19aad5",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "requires",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "8e48cadf9adbded4f02125523fbe7fedd93810923c56d732945ddfe965ad072c",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "dependsOn",
+            "object": "urn:sigil:component:identity.sigil:Identity",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "dependsOn",
+          "object": "urn:sigil:component:identity.sigil:Identity",
+          "law": "asserted",
+          "witness": "8e48cadf9adbded4f02125523fbe7fedd93810923c56d732945ddfe965ad072c"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "requires",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "391e00b98d034e95c3f32d9ce71ba479ffd5ea53c0152d9bdf689a712a19aad5"
+        }
+      ],
+      "obligations": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "filled": true,
+          "promise": {
+            "claim": "391e00b98d034e95c3f32d9ce71ba479ffd5ea53c0152d9bdf689a712a19aad5",
+            "facet": "facet:rooms.sigil:1864",
+            "component": "urn:sigil:component:rooms.sigil:Rooms",
+            "section": "constraints",
+            "source": "rooms.sigil",
+            "prose": "    Rooms depends on Identity and requires the signed-in user to record a\n    room owner.\n"
+          }
+        }
+      ]
+    },
+    {
+      "facet": "facet:rooms.sigil:1969",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "prose": "    Creating a room with an invalid room timezone is rejected.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "b1a67e9f2b503de2033a411f661f0223dfd8cca79a00725b2e8de5b17580f7eb",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "requires",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "requires",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "b1a67e9f2b503de2033a411f661f0223dfd8cca79a00725b2e8de5b17580f7eb"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2033",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "prose": "    Editing a room by a signed-in user who is not its room owner is refused.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "a83ed35b4aa1b764fcf9655a526241116bf1b9c86be67bad9c9290e5c82253d4",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "relation": "authorityFor",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "relation": "authorityFor",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "a83ed35b4aa1b764fcf9655a526241116bf1b9c86be67bad9c9290e5c82253d4"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2111",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "prose": "    The room list excludes every archived room and includes rooms from every\n    room owner.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "13ce536ace1f297c6af9c52ad54e22c12fd2a6d8dc113463eeb06ce98d52d880",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+            "relation": "excludes",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "f4efc3efffee73d77af4f5f6ea02375ac9cd183abf8e3ae3291f681dbc4d9153",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+          "law": "asserted",
+          "witness": "f4efc3efffee73d77af4f5f6ea02375ac9cd183abf8e3ae3291f681dbc4d9153"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+          "relation": "excludes",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+          "law": "asserted",
+          "witness": "13ce536ace1f297c6af9c52ad54e22c12fd2a6d8dc113463eeb06ce98d52d880"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2205",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "prose": "    Unarchiving an archived room returns it to the room list.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "44e6ddca8ed1ee0de9781e499135079dd925d73c33a14e0e3cf929abdcef784a",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+            "relation": "transitionsTo",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+          "relation": "transitionsTo",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+          "law": "asserted",
+          "witness": "44e6ddca8ed1ee0de9781e499135079dd925d73c33a14e0e3cf929abdcef784a"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2268",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "cases",
+      "prose": "    Two concurrent changes under the room lock on one room run one after the other,\n    while changes on different rooms do not block each other.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "cc08fb791132709fd72b44c8ba7fe5f5689e95a08e32cd3acd00e31f8892b757",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "routesThrough",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+            "modality": "permitted",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "routesThrough",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+          "law": "asserted",
+          "witness": "cc08fb791132709fd72b44c8ba7fe5f5689e95a08e32cd3acd00e31f8892b757"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2433",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms lets a signed-in user create a room, and lets the room owner edit its\n    name, description, capacity, and location text.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "2e295ad087339f5263c135e680f644cf12473b44617ad630a20bf87678637fe1",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "ec2426fcacc58962718e77c83911416b56fd1aeb7fcbdcf708ca7ef2ad076c1d",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "relation": "authorityFor",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "2e295ad087339f5263c135e680f644cf12473b44617ad630a20bf87678637fe1"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "relation": "authorityFor",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "ec2426fcacc58962718e77c83911416b56fd1aeb7fcbdcf708ca7ef2ad076c1d"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:250",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "prose": "    Rooms owns each *room*, which has a name, description, capacity, location text,\n    and a *room timezone* that is an IANA zone required at creation. Capacity is\n    informational and a request carries no party size.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "cc2bbad51de9804e6854510211d456dfb6d30800acb2ea8a028829be54a81fbc",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "owns",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "edb81893947e2c58d95ae336c66c83562e62d1c4119ebaf21c52916575e823a8",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "owns",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "owns",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "cc2bbad51de9804e6854510211d456dfb6d30800acb2ea8a028829be54a81fbc"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "owns",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "edb81893947e2c58d95ae336c66c83562e62d1c4119ebaf21c52916575e823a8"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2566",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides the *room list* of every room that is not an archived room to\n    any signed-in user.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "60fa69138829bb7806e86b8e2ad2d6a70de0b9b5712986b36964f2e984ddc3ec",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "b3853ac0b6e82502204443ccd64d24a0cbc44af3cbfb6239d372161dc7d13662",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+            "relation": "excludes",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+          "law": "asserted",
+          "witness": "60fa69138829bb7806e86b8e2ad2d6a70de0b9b5712986b36964f2e984ddc3ec"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20list",
+          "relation": "excludes",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+          "law": "asserted",
+          "witness": "b3853ac0b6e82502204443ccd64d24a0cbc44af3cbfb6239d372161dc7d13662"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2672",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides archive, unarchive, and room timezone change of a room through\n    its transactional entry, for Booking's workflows to use.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "50eaf03131a45118aeee4a187a98ca82f33a120e0cde0ffa0affd0ff9d01a1c9",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "7705a6c5413f94a0ce236da12475142be66bbecea2153018e9cf52b7fbc71dbd",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "routesThrough",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "50eaf03131a45118aeee4a187a98ca82f33a120e0cde0ffa0affd0ff9d01a1c9"
+        },
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "routesThrough",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:transactional%20entry",
+          "law": "asserted",
+          "witness": "7705a6c5413f94a0ce236da12475142be66bbecea2153018e9cf52b7fbc71dbd"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2816",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides the room lock, which opens a transaction on one room and hands\n    it to a change, for Booking's workflows and the commands of Rooms to use.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "a0c41a4fe10619bbccf725b59702b12485cf227e268c127ffcfc70729b0e5e91",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+          "law": "asserted",
+          "witness": "a0c41a4fe10619bbccf725b59702b12485cf227e268c127ffcfc70729b0e5e91"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:2977",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides the room owner of a room so other modules can authorize a\n    signed-in user against it.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "406226a983d971b0c63c8d270368b389cda6787a696d52676a6c18eb9e570f42",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "law": "asserted",
+          "witness": "406226a983d971b0c63c8d270368b389cda6787a696d52676a6c18eb9e570f42"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:3086",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides the room timezone of a room so other modules can read a range in\n    it.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "8830be33022d410f52e099c4d4ea5261073b5829c13086e4a4350d014593837f",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "8830be33022d410f52e099c4d4ea5261073b5829c13086e4a4350d014593837f"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:3179",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "interface",
+      "prose": "    Rooms provides each room owner the list of every room that owner created,\n    including each archived room, so the owner can reach an archived room to\n    unarchive it.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "05759fa6601d257646e47dbcdba8f344b8ad246488079cbac7fd4e46fd47f75a",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "provides",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "provides",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+          "law": "asserted",
+          "witness": "05759fa6601d257646e47dbcdba8f344b8ad246488079cbac7fd4e46fd47f75a"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:3371",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "decisions",
+      "prose": "    The room timezone is locked while upcoming items exist because no booking\n    should ever move in time. That check lives in Booking, which is why Rooms never\n    imports it.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "37bb7f69fe1aef462db928fcd5ee50146f4c6cea348f082adba039499e1148a2",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:3550",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "decisions",
+      "prose": "    A row lock in Postgres serializes room changes because the no-overlap rule and\n    exact automatic declines need one ordering per room.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "b60c64110e0285b12284899317066e5a27fb36511c0f45ef22a4a98f2868c436",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:471",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "prose": "    Every room has exactly one *room owner*, the signed-in user who created it.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "3072660bd5311c31b58e6082694552d415fa212224594fea47c99f71c93f654a",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "owns",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "owns",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "law": "asserted",
+          "witness": "3072660bd5311c31b58e6082694552d415fa212224594fea47c99f71c93f654a"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:552",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "state",
+      "prose": "    A room is either listed or an *archived room*. Rooms owns the archived room\n    mark: a room carries it from archive until unarchive.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "5de653d69e614b5fcdc0a326c85ccd5091b9fe211b64d604401b421c74d2901c",
+          "body": {
+            "kind": "claim",
+            "subject": "urn:sigil:component:rooms.sigil:Rooms",
+            "relation": "owns",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "urn:sigil:component:rooms.sigil:Rooms",
+          "relation": "owns",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+          "law": "asserted",
+          "witness": "5de653d69e614b5fcdc0a326c85ccd5091b9fe211b64d604401b421c74d2901c"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:705",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "logic",
+      "prose": "    Creating a room takes three steps. Step one requires a signed-in user. Step two\n    validates the room timezone against the IANA zone list and rejects an unknown\n    zone. Step three records the signed-in user as the room owner and returns the\n    new room.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+          "body": {
+            "kind": "step",
+            "ordinal": 1
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "3a3e2198678f1f2eada144bd499dc0a7171a1a7470fe3a92dd9ec3b21698e3ee",
+          "body": {
+            "kind": "claim",
+            "subject": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+            "relation": "reads",
+            "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "591855429735a85211b5ba050142680564c175c05996c0cecd16ac4672fe69a5",
+          "body": {
+            "kind": "claim",
+            "subject": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+            "relation": "to",
+            "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "7c97606c4329054dd98e6e105f51573064f6d544ce6339a7bcff8569eb43eb88",
+          "body": {
+            "kind": "claim",
+            "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+            "relation": "to",
+            "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "7e21b4aa2e4cc3e05f7222653d569ee4c796d309185f2c62b049e8969c4eaa63",
+          "body": {
+            "kind": "claim",
+            "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+            "relation": "to",
+            "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "98e628212b422b84cb4a7492313e75365a8124a7b0dc14716e09fd0ef246e6ff",
+          "body": {
+            "kind": "claim",
+            "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+            "relation": "writes",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "bcc001f6280af7aede8f0e96cdacde956238ee5bb20e9b095e144592c8b48ddd",
+          "body": {
+            "kind": "claim",
+            "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+            "relation": "writes",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+          "body": {
+            "kind": "step",
+            "ordinal": 2
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "body": {
+            "kind": "step",
+            "ordinal": 3
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "ebe5f50b121a5c5817ebf13d50cb6edc0364b9f2b65aa0d262b15cba3b6aa42d",
+          "body": {
+            "kind": "claim",
+            "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+            "relation": "reads",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "eeb4f41ae2abbb0dbed3c455b4b6ffaea010f8472738b1d606acc1361a7b3b27",
+          "body": {
+            "kind": "claim",
+            "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+            "relation": "to",
+            "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+          "relation": "flow-end",
+          "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "law": "flow-end-transitive",
+          "witness": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd"
+        },
+        {
+          "subject": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+          "relation": "reads",
+          "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+          "law": "asserted",
+          "witness": "3a3e2198678f1f2eada144bd499dc0a7171a1a7470fe3a92dd9ec3b21698e3ee"
+        },
+        {
+          "subject": "3a11e8064bcb288fdd0c4da7e76b49719d7920ccb85d34844fd2420eda99d34a",
+          "relation": "to",
+          "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "law": "asserted",
+          "witness": "591855429735a85211b5ba050142680564c175c05996c0cecd16ac4672fe69a5"
+        },
+        {
+          "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+          "relation": "flow-end",
+          "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "law": "flow-end-transitive",
+          "witness": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd"
+        },
+        {
+          "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+          "relation": "reads",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20timezone",
+          "law": "asserted",
+          "witness": "ebe5f50b121a5c5817ebf13d50cb6edc0364b9f2b65aa0d262b15cba3b6aa42d"
+        },
+        {
+          "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+          "relation": "to",
+          "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+          "law": "asserted",
+          "witness": "eeb4f41ae2abbb0dbed3c455b4b6ffaea010f8472738b1d606acc1361a7b3b27"
+        },
+        {
+          "subject": "c6a4c43e0eb98d2777cc5aefb41dfe092b3c09011e67400e7159e44c4c017b84",
+          "relation": "to",
+          "object": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "law": "asserted",
+          "witness": "7c97606c4329054dd98e6e105f51573064f6d544ce6339a7bcff8569eb43eb88"
+        },
+        {
+          "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "relation": "to",
+          "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+          "law": "asserted",
+          "witness": "7e21b4aa2e4cc3e05f7222653d569ee4c796d309185f2c62b049e8969c4eaa63"
+        },
+        {
+          "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "relation": "writes",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "bcc001f6280af7aede8f0e96cdacde956238ee5bb20e9b095e144592c8b48ddd"
+        },
+        {
+          "subject": "e07204230da9dda4386685177585024a36dcf30c942a6737e69fc718eddee5cd",
+          "relation": "writes",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+          "law": "asserted",
+          "witness": "98e628212b422b84cb4a7492313e75365a8124a7b0dc14716e09fd0ef246e6ff"
+        }
+      ],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:84",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "goal",
+      "prose": "    Let any signed-in user list a room for others to rent, keep the set of rooms\n    browsable, and give every room-scoped change one serialized path.\n",
+      "coverage": "read-without-commitment",
+      "asserted": [
+        {
+          "claim": "8b4f9b94967dd6a2cf9f9fd6cbf693b7754de6fa485a75d405a20ba8bc023e71",
+          "body": {
+            "kind": "reading",
+            "outcome": "no-commitment"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [],
+      "obligations": []
+    },
+    {
+      "facet": "facet:rooms.sigil:968",
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "componentLabel": "Rooms",
+      "section": "logic",
+      "prose": "    Running a change under the *room lock* takes three steps. Step one opens a\n    transaction and locks the row of the room. Step two passes the transaction to\n    the change. Step three commits and returns the result, or rolls back if the\n    change fails.\n",
+      "coverage": "interpreted",
+      "asserted": [
+        {
+          "claim": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+          "body": {
+            "kind": "step",
+            "ordinal": 6
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "1f1ca198e5367e55bf854254b67acbfae89a1c819ca0d1ffad2b8b71a4ede93d",
+          "body": {
+            "kind": "claim",
+            "subject": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+            "relation": "to",
+            "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "51d48326471a11fcd52690a4f0be7e46ef981460bf25b555f62c20afbec0a2fd",
+          "body": {
+            "kind": "claim",
+            "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+            "relation": "invokes",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+          "body": {
+            "kind": "step",
+            "ordinal": 5
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "7a0bc92c41a9943d19692536b98dad657d01cd24690a376c3919487984868972",
+          "body": {
+            "kind": "claim",
+            "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+            "relation": "to",
+            "object": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+          "body": {
+            "kind": "step",
+            "ordinal": 4
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "e1f18d5ae66d2c62e42746c39f28db83269477bdf2dd1a79bce695d4a404ca70",
+          "body": {
+            "kind": "claim",
+            "subject": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+            "relation": "to",
+            "object": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        },
+        {
+          "claim": "ec017ed75c3a16b4054da3839accaf5c86fc133ef42fb4722695f141f1d15442",
+          "body": {
+            "kind": "claim",
+            "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+            "relation": "reads",
+            "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+            "modality": "required",
+            "expected": "true"
+          },
+          "satisfiesUnit": true
+        }
+      ],
+      "derived": [
+        {
+          "subject": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+          "relation": "to",
+          "object": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+          "law": "asserted",
+          "witness": "1f1ca198e5367e55bf854254b67acbfae89a1c819ca0d1ffad2b8b71a4ede93d"
+        },
+        {
+          "subject": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+          "relation": "flow-end",
+          "object": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+          "law": "flow-end-transitive",
+          "witness": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd"
+        },
+        {
+          "subject": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+          "relation": "to",
+          "object": "0396d949ae576162bb0da99a1b53575f5db13b355c6b58cbe7f338a6e48227dd",
+          "law": "asserted",
+          "witness": "e1f18d5ae66d2c62e42746c39f28db83269477bdf2dd1a79bce695d4a404ca70"
+        },
+        {
+          "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+          "relation": "flow-end",
+          "object": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+          "law": "flow-end-transitive",
+          "witness": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7"
+        },
+        {
+          "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+          "relation": "invokes",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+          "law": "asserted",
+          "witness": "51d48326471a11fcd52690a4f0be7e46ef981460bf25b555f62c20afbec0a2fd"
+        },
+        {
+          "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+          "relation": "reads",
+          "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room",
+          "law": "asserted",
+          "witness": "ec017ed75c3a16b4054da3839accaf5c86fc133ef42fb4722695f141f1d15442"
+        },
+        {
+          "subject": "81a71876b2c28f21ce3c064eb3803f815b8cb005a3f1b0525b2eb133f51f59e2",
+          "relation": "to",
+          "object": "629b8a1a037691934b23b48818d7afcb62d2fdc5535b1767acbc687a339bcef7",
+          "law": "asserted",
+          "witness": "7a0bc92c41a9943d19692536b98dad657d01cd24690a376c3919487984868972"
+        }
+      ],
+      "obligations": []
+    }
+  ],
+  "simplification": [
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "13ce536ace1f297c6af9c52ad54e22c12fd2a6d8dc113463eeb06ce98d52d880",
+        "b3853ac0b6e82502204443ccd64d24a0cbc44af3cbfb6239d372161dc7d13662"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2111",
+        "facet:rooms.sigil:2566"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "27e9f9066cf99d2462fa3e6623f08cd099b68cd093508d007a513993f236d5c4",
+        "cc08fb791132709fd72b44c8ba7fe5f5689e95a08e32cd3acd00e31f8892b757"
+      ],
+      "facets": [
+        "facet:rooms.sigil:1349",
+        "facet:rooms.sigil:2268"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "50eaf03131a45118aeee4a187a98ca82f33a120e0cde0ffa0affd0ff9d01a1c9",
+        "8830be33022d410f52e099c4d4ea5261073b5829c13086e4a4350d014593837f"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2672",
+        "facet:rooms.sigil:3086"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "5798bb781ed94e3a0e3354d62a7d2988bd0779a26d9900e47f820b2c94337139",
+        "8ee1b788bed63be20e5bce359f435fe926942f9b066f879ac07b3a50fea6fd1d"
+      ],
+      "facets": [
+        "facet:identity.sigil:1290",
+        "facet:identity.sigil:2043"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "5798bb781ed94e3a0e3354d62a7d2988bd0779a26d9900e47f820b2c94337139",
+        "eae4aabd3d0474148e18975b5a00c5d2a7e99bd5e229efc44cec0fa6365db8c0"
+      ],
+      "facets": [
+        "facet:identity.sigil:1290",
+        "facet:identity.sigil:1852"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "60fa69138829bb7806e86b8e2ad2d6a70de0b9b5712986b36964f2e984ddc3ec",
+        "f4efc3efffee73d77af4f5f6ea02375ac9cd183abf8e3ae3291f681dbc4d9153"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2566",
+        "facet:rooms.sigil:2111"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "7705a6c5413f94a0ce236da12475142be66bbecea2153018e9cf52b7fbc71dbd",
+        "e30d2e31e0ebaec198752ff21769c12cf35c10dfb0073679ab4436ecd7dcf7f3"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2672",
+        "facet:rooms.sigil:1554"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "8ee1b788bed63be20e5bce359f435fe926942f9b066f879ac07b3a50fea6fd1d",
+        "eae4aabd3d0474148e18975b5a00c5d2a7e99bd5e229efc44cec0fa6365db8c0"
+      ],
+      "facets": [
+        "facet:identity.sigil:2043",
+        "facet:identity.sigil:1852"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "a83ed35b4aa1b764fcf9655a526241116bf1b9c86be67bad9c9290e5c82253d4",
+        "d59a40aeccfa5644ebf03db8c5b6c09daa6f908fac4db7c52b4fde5427ccdca3"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2033",
+        "facet:rooms.sigil:1248"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "a83ed35b4aa1b764fcf9655a526241116bf1b9c86be67bad9c9290e5c82253d4",
+        "ec2426fcacc58962718e77c83911416b56fd1aeb7fcbdcf708ca7ef2ad076c1d"
+      ],
+      "facets": [
+        "facet:rooms.sigil:2033",
+        "facet:rooms.sigil:2433"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    },
+    {
+      "kind": "duplicate-proposition",
+      "claims": [
+        "d59a40aeccfa5644ebf03db8c5b6c09daa6f908fac4db7c52b4fde5427ccdca3",
+        "ec2426fcacc58962718e77c83911416b56fd1aeb7fcbdcf708ca7ef2ad076c1d"
+      ],
+      "facets": [
+        "facet:rooms.sigil:1248",
+        "facet:rooms.sigil:2433"
+      ],
+      "detail": "two units author the same proposition; one formulation may preserve both promises"
+    }
+  ],
+  "nonCommittingRoles": [
+    "decisions"
+  ]
+}

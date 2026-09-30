@@ -1,0 +1,230 @@
+{
+  "binding": {
+    "format": 3,
+    "source": "identity.sigil",
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2,
+    "closure": [
+      "identity.sigil"
+    ],
+    "facets": [
+      "facet:identity.sigil:1029",
+      "facet:identity.sigil:1155",
+      "facet:identity.sigil:1290",
+      "facet:identity.sigil:1428",
+      "facet:identity.sigil:1566",
+      "facet:identity.sigil:1648",
+      "facet:identity.sigil:1746",
+      "facet:identity.sigil:1852",
+      "facet:identity.sigil:195",
+      "facet:identity.sigil:2043",
+      "facet:identity.sigil:2211",
+      "facet:identity.sigil:2311",
+      "facet:identity.sigil:30",
+      "facet:identity.sigil:307",
+      "facet:identity.sigil:397",
+      "facet:identity.sigil:864"
+    ]
+  },
+  "rows": [
+    {
+      "facet": "facet:identity.sigil:1029",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    Module commands and queries must not read the session themselves. They take the\n    signed-in user as an explicit actor.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1155",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    A user account must not carry a role. Owning and renting come from a user's\n    relationship to rooms and requests.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1290",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Signing up and then signing in creates a session, and resolving the\n    signed-in user from that session's headers returns the user.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1428",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Resolving the signed-in user with no session or an invalid one returns no user,\n    and requireUser then refuses as unauthenticated.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1566",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Submitting a form after clearing the session changes nothing and is refused.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1648",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "cases",
+      "source": "identity.sigil",
+      "prose": "    Signing out ends the session, and the next page load redirects to sign-in.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1746",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity lets a person sign up, sign in, and sign out with email and password\n    on a user account.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:1852",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity provides requireUser, which returns the signed-in user for the current\n    session or refuses as unauthenticated. Every page and action except sign-up and\n    sign-in calls it.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:195",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "source": "identity.sigil",
+      "prose": "    Identity owns each *user account*, which has one email and one password\n    credential and no stored role.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2043",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "interface",
+      "source": "identity.sigil",
+      "prose": "    Identity provides resolution of the session from request headers outside\n    Next.js, so the signed-in user can be tested without a running app.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2211",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "source": "identity.sigil",
+      "prose": "    Better Auth backs Identity because Auth.js is security-fixes-only and Lucia is\n    deprecated.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:2311",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "decisions",
+      "source": "identity.sigil",
+      "prose": "    Roles come from the relationship, not the account, so one person can own and\n    rent without two accounts.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:30",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "goal",
+      "source": "identity.sigil",
+      "prose": "    Establish who is acting on every page and action, with one account type and\n    email and password sign-in, so the rest of Slotted never guesses.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:307",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "state",
+      "source": "identity.sigil",
+      "prose": "    Identity owns each *session* created at sign-in and ended at sign-out.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:397",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "logic",
+      "source": "identity.sigil",
+      "prose": "    Resolving the *signed-in user* takes four steps. Step one reads the session\n    from the request headers. Step two looks up the user account that the session\n    belongs to. Step three returns the signed-in user, or returns no user when the\n    session is missing or invalid. Step four turns a missing user into an\n    unauthenticated refusal at the requireUser gate, and otherwise hands the\n    signed-in user to the calling page or action.\n"
+    },
+    {
+      "facet": "facet:identity.sigil:864",
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "section": "constraints",
+      "source": "identity.sigil",
+      "prose": "    The optimistic redirect on the session cookie is not a security boundary. Only\n    requireUser may decide whether a signed-in user exists for a page or action.\n"
+    }
+  ],
+  "flows": [
+    {
+      "component": "urn:sigil:component:identity.sigil:Identity",
+      "componentLabel": "Identity",
+      "source": "identity.sigil",
+      "facets": [
+        "facet:identity.sigil:397"
+      ]
+    }
+  ],
+  "entities": [
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity",
+      "kind": "Component",
+      "label": "Identity",
+      "owner": null,
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:session",
+      "kind": "Tag",
+      "label": "session",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "kind": "Tag",
+      "label": "signed-in user",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    },
+    {
+      "id": "urn:sigil:component:identity.sigil:Identity:tag:user%20account",
+      "kind": "Tag",
+      "label": "user account",
+      "owner": "urn:sigil:component:identity.sigil:Identity",
+      "source": "identity.sigil"
+    }
+  ],
+  "declared": [
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "cases"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "constraints"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "decisions"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "goal"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "interface"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "logic"
+    ],
+    [
+      "urn:sigil:component:identity.sigil:Identity",
+      "state"
+    ]
+  ]
+}

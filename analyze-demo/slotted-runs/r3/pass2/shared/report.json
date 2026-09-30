@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "source": "shared.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "15d91537dbec20965c39dd5b1d88e4418a0aa129b089e4771ebac3fe925160cd"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 6,
+  "findings": [
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "38319665b8d9406918e527e88903decd75db6cc34a7d3785b3f96b28dda3c298",
+      "object": "urn:sigil:component:shared.sigil:SharedKernel:tag:30-minute%20grid",
+      "claims": [
+        "1471e930ef4ca956d59395998ac294b81f66b9a369ec9d0019904d2801ced506"
+      ],
+      "component": "urn:sigil:component:shared.sigil:SharedKernel",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "source": "rooms.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "e24b657c9ffcb679f42350135e74863c092f1c45ce262674ff8e2b31ff93e66a"
+    ],
+    "guidanceFingerprint": "a0ce12995dc8127d7629890b7f0986c985f88f282a08c82d469d2c3cc1cf5555",
+    "vocabularyGeneration": 2
+  },
+  "state": "loose",
+  "iterations": 8,
+  "findings": [
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "claims": [
+        "391e00b98d034e95c3f32d9ce71ba479ffd5ea53c0152d9bdf689a712a19aad5"
+      ],
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20lock",
+      "claims": [
+        "ec10652f166cc35e6005ca706fbc2347ee87a4f8fb22f25a916e8981a171904f"
+      ],
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "0be7c5f16239881ff144364c628a2442d62189043606d8dd72673e9374405c9c",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:room%20owner",
+      "claims": [
+        "28f3b186e0cc9fb9703f216c02325effd525ac7551e79bbbbd09615d7a5ce174"
+      ],
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    },
+    {
+      "class": "flow",
+      "law": "unguarded-flow",
+      "subject": "f25b06e580fd2b9efcc1650b48e995d562bb160e4a543674dbd074d69940e96e",
+      "object": "urn:sigil:component:identity.sigil:Identity:tag:signed-in%20user",
+      "claims": [
+        "391e00b98d034e95c3f32d9ce71ba479ffd5ea53c0152d9bdf689a712a19aad5"
+      ],
+      "component": "urn:sigil:component:rooms.sigil:Rooms",
+      "section": "constraints",
+      "detail": "this flow acts on what a reaching claim requires, and no step guards on it"
+    }
+  ]
+}

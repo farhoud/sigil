@@ -1,0 +1,184 @@
+{
+  "version": 2,
+  "source": "booking.sigil",
+  "identity": {
+    "exportDigest": "11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb",
+    "interpretations": [
+      "f6842acbce7bc96a450b8275549c0c5698d10d79f61042edb710f225bda12a9d"
+    ],
+    "guidanceFingerprint": "21f7aa5480b84e355ef88423bceee3c2155dbf2ea33a27bcc4a2b83f143a53df",
+    "vocabularyGeneration": 2
+  },
+  "state": "disjoint",
+  "iterations": 9,
+  "findings": [
+    {
+      "class": "contradiction",
+      "law": "contradictory-claims",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "6ff574ef57cf4db27dc03a56256ebf1ce023d4a9abab1bbeb7d9e39bb56e1d07"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "contradiction",
+      "law": "contradictory-claims",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "778f649253b95d3db65701dc1071a4d0be389f6a580502bf0cd5263744febff7"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "interface",
+      "detail": ""
+    },
+    {
+      "class": "contradiction",
+      "law": "negated-claim-holds",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      "claims": [
+        "6ff574ef57cf4db27dc03a56256ebf1ce023d4a9abab1bbeb7d9e39bb56e1d07"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "ownership-conflict",
+      "law": "exclusive-ownership",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:rooms.sigil:Rooms",
+      "claims": [
+        "532e124935f6678dce4389aa4a3d0f67deb4e56d45def5538c9e73800d510f6f"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "ownership-conflict",
+      "law": "exclusive-ownership",
+      "subject": "urn:sigil:component:rooms.sigil:Rooms",
+      "object": "urn:sigil:component:booking.sigil:Booking",
+      "claims": [
+        "532e124935f6678dce4389aa4a3d0f67deb4e56d45def5538c9e73800d510f6f"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "constraints",
+      "detail": ""
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "0ef1c1d667f89c059f4d0d2e2595065bd4390caab7b2da5abd6d694a944194c3",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+      "claims": [
+        "bf39eb259e6f8dadc31a77e31abb95cccfa2eb90205ea0bcc2506fb72cad9edc"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "6df6a6aee41db24b963d9ecadf1013f999d7036081aeeb2120aa02284d220e7a",
+      "object": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room",
+      "claims": [
+        "e27962b9fca7f6d52b0df1693ce50231d4123a71aa643c17d6eb44884822ed0d"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "urn:sigil:component:rooms.sigil:Rooms:tag:archived%20room does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "ungrounded-claim",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:confirmed%20booking",
+      "claims": [
+        "92f8ee4e4691c2a8a40a29ecf2642d6e2cd86d36a003eed06ef10b5fea5eb9a7"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "goal",
+      "detail": "urn:sigil:component:booking.sigil:Booking:tag:confirmed%20booking does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
+    },
+    {
+      "class": "interpretation",
+      "law": "uninterpreted-section",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "goal",
+      "claims": [],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "goal",
+      "detail": "this role declares a Facet the interpretation returned nothing for; the gap is in the interpretation"
+    },
+    {
+      "class": "flow",
+      "law": "step-excluded-action",
+      "subject": "e64bf7b26ea4ea52862774e44c8b6c9b40983155424cc9a0378e245b0d12f086",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:booking%20request",
+      "claims": [
+        "9bc8271e66b190636f9dcd4fca873b6baae98b62ce21d6aa395cb82a5d922840",
+        "e64bf7b26ea4ea52862774e44c8b6c9b40983155424cc9a0378e245b0d12f086"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "this step does what a claim reaching its flow forbids"
+    },
+    {
+      "class": "flow",
+      "law": "step-excluded-action",
+      "subject": "f07598d17dc329e8ff033d1c4922501ee1e30868b6a0eeacfdde606cad147023",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:booking%20request",
+      "claims": [
+        "9bc8271e66b190636f9dcd4fca873b6baae98b62ce21d6aa395cb82a5d922840",
+        "f07598d17dc329e8ff033d1c4922501ee1e30868b6a0eeacfdde606cad147023"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "this step does what a claim reaching its flow forbids"
+    },
+    {
+      "class": "flow",
+      "law": "step-negated-action",
+      "subject": "8120856e7ea8389794546a5a2a8e99447815e9d2869f0cb8f232e5d37e01ec20",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:confirmed%20booking",
+      "claims": [
+        "10b800a87968b420ad544016cd6a08a284334b03440b6e8119ec65b517c880e1",
+        "8120856e7ea8389794546a5a2a8e99447815e9d2869f0cb8f232e5d37e01ec20"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "this step does what a claim reaching its flow forbids"
+    },
+    {
+      "class": "flow",
+      "law": "step-negated-action",
+      "subject": "deb4722c1d66149b4cc11a157ad60e9aac6aa0afbc730cd23a431834cd892325",
+      "object": "urn:sigil:component:booking.sigil:Booking:tag:confirmed%20booking",
+      "claims": [
+        "10b800a87968b420ad544016cd6a08a284334b03440b6e8119ec65b517c880e1",
+        "deb4722c1d66149b4cc11a157ad60e9aac6aa0afbc730cd23a431834cd892325"
+      ],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "this step does what a claim reaching its flow forbids"
+    },
+    {
+      "class": "flow",
+      "law": "suppressed-graph",
+      "subject": "urn:sigil:component:booking.sigil:Booking",
+      "object": "",
+      "claims": [],
+      "component": "urn:sigil:component:booking.sigil:Booking",
+      "section": "logic",
+      "detail": "a row of this flow carries a defect, so its dead-end check did not run; dropping the row instead would manufacture dead ends upstream"
+    }
+  ]
+}
