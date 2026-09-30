@@ -708,7 +708,7 @@ states, and transition logic.
 Its [.sigil/config.json](examples/promise/.sigil/config.json) makes it an
 independent workspace named `promise`.
 
-`Slotted` in [examples/slotted/_module.sigil](examples/slotted/_module.sigil) is
+`Slotted` in [examples/slotted/slotted.sigil](examples/slotted/slotted.sigil) is
 a room-booking design used to demonstrate computed claims evaluation across
 multiple modules. The [computed evaluation demo](docs/computed-evaluation-demo.md)
 explains its module map, commands, observed results, and the difference between
@@ -718,24 +718,28 @@ Its [.sigil/config.json](examples/slotted/.sigil/config.json) makes it an
 independent workspace named `slotted`; imports beginning with `@` resolve from
 that directory.
 
-`User` in [examples/slotted/user.sigil](examples/slotted/user.sigil) defines the
-shared user identity and identifiers. `Auth` in
-[examples/slotted/auth.sigil](examples/slotted/auth.sigil) reuses those Tags for
-sign-in, sessions, roles, and permissions.
+Slotted has six components, each in its own file, plus a shared kernel:
 
-`Profile` in
-[examples/slotted/profile.sigil](examples/slotted/profile.sigil) shows a
-component with a prose public interface and a `UserProfile` Tag, imported by
-Auth under the distinct component name `Profile`.
+- [Identity](examples/slotted/identity.sigil) owns users, sessions, and the
+  signed-in user.
+- [Rooms](examples/slotted/rooms.sigil) owns rooms, room owners, the room
+  timezone, archiving, and the room lock.
+- [Availability](examples/slotted/availability.sigil) owns weekly windows,
+  blackouts, and open time.
+- [Booking](examples/slotted/booking.sigil) owns booking requests, their
+  lifecycle, and the no-overlap rule.
+- [Calendar](examples/slotted/calendar.sigil) owns the room calendar and what
+  each viewer may see.
+- [SharedKernel](examples/slotted/shared.sigil) owns the clock, the 30-minute
+  grid, time conversion, and domain errors. Any module may use it.
 
-`BookingCalendarView` in
-[examples/slotted/booking-calendar-view.sigil](examples/slotted/booking-calendar-view.sigil)
-shows a UI component whose interface combines natural language, an ASCII
-wireframe, and a repository image reference.
+Each component reuses the other components' Tags through imports instead of
+defining them again.
 
-Slotted deliberately retains a contradiction, an ownership conflict, an unmet
-obligation, and a disconnected flow step as computed-evaluation fixture
-problems. They are intentional demo content, not unfinished design work; their
+Slotted deliberately contains four design mistakes as computed-evaluation
+fixture problems: a contradiction and an ownership conflict in Booking, and an
+unmet obligation and a dead-end flow step in Calendar. They are intentional
+demo content, not unfinished design work, so please do not fix them. Their
 observed findings and run-to-run variation are documented in the linked demo.
 Slotted is an example project for testing the language, not the purpose of this
 repository.

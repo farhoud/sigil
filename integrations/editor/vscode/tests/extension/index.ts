@@ -55,7 +55,7 @@ export async function run(): Promise<void> {
     hovers.some((hover) =>
       hover.contents.some((content) =>
         (typeof content === "string" ? content : content.value).includes(
-          "Availability",
+          "SharedKernel",
         )
       )
     ),
@@ -73,15 +73,15 @@ export async function run(): Promise<void> {
   );
   assert(definitions.length > 0, "Expected go-to-definition results");
 
-  const sectionReferenceOffset = document.getText().indexOf(
-    "Booking depends on Availability for open time",
-  ) +
-    "Booking depends on Availability for ".length;
+  const sectionFixture = "Booking depends on Availability, which provides";
+  const sectionFixtureOffset = document.getText().indexOf(sectionFixture);
   assert.notEqual(
-    sectionReferenceOffset,
+    sectionFixtureOffset,
     -1,
     "Expected the section component reference fixture",
   );
+  const sectionReferenceOffset = sectionFixtureOffset +
+    "Booking depends on Availability, which provides ".length;
   const sectionPosition = document.positionAt(sectionReferenceOffset);
   const sectionHovers = await eventually(async () =>
     await vscode.commands.executeCommand<vscode.Hover[]>(
@@ -184,6 +184,8 @@ export async function run(): Promise<void> {
     assert.deepEqual(report.scope.design.roots, ["booking.sigil"]);
     assert(report.scope.design.sources.includes("availability.sigil"));
     assert(report.scope.design.sources.includes("rooms.sigil"));
+    assert(report.scope.design.sources.includes("identity.sigil"));
+    assert(report.scope.design.sources.includes("shared.sigil"));
     assert(
       report.diagnostics.items.some((item) =>
         item.code === "DESIGN_UNRESOLVED"
