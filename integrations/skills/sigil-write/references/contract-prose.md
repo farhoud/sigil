@@ -103,6 +103,14 @@ command is unavailable, read the workspace `.sigil` files. Collect each
 `*inline definition*`, each group heading, and each `import { ... }` list.
 Keep the inventory next to you while drafting.
 
+Identify named interactions before drafting, even when the current Tag
+inventory names only their actors or inputs. If an interaction has its own
+promises or another Component refers to it, define a short noun-form Tag in
+the provider's Interface and import it in consumers. For example, `user`
+names an actor; it cannot stand in for the `search submission` interaction.
+Keep the action verb in prose rather than defining a verb-form Tag such as
+`submit`.
+
 ### Pick each Tag in this order
 
 For each concept a Facet needs, stop at the first step that works:
@@ -250,6 +258,9 @@ Check the authored scope against this list:
   its prose; the grouping heading alone does not count.
 - Tags name concepts, not verbs, adjectives, clauses, or complete claims.
 - A Tag inventory was taken before drafting.
+- Named interactions with their own promises or references from another
+  Component have noun-form Tags in their provider's Interface, imported by
+  consumers; an actor Tag does not stand in for an interaction.
 - Every new Tag is owned by the Component that defines it, and no Tag in the
   inventory already names that concept.
 - Every Tag another Component owns is imported from that owner, not redefined.

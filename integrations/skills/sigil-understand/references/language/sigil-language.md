@@ -45,9 +45,9 @@ component SearchPanel {
   }
 
   interface {
-    Accept search text and display matching records.
+    A *record search* accepts search text and displays matching records.
 
-    Show an empty result message when no records match.
+    Show an empty result message when a record search has no matches.
   }
 }
 ```
@@ -57,9 +57,11 @@ its user. Each blank-line-separated paragraph is a **Facet**: one authored
 contribution that can be discussed and reviewed. This component has three Facets.
 Wrapping a paragraph over several physical lines does not add Facets.
 
-You do not need Tags, grouping blocks, imports, or all seven contracts to begin.
-Goal and Interface must each contain content. The other contracts are optional;
-add them when the design has something useful to say in their roles.
+The asterisks introduce the Tag `record search`, a reusable name for the
+interaction. Section 5 explains Tags in detail. A component can be valid
+without Tags, grouping blocks, imports, or all seven contracts. Goal and
+Interface must each contain content. Add optional contracts when they have
+something useful to say in their roles.
 
 Examples in this guide describe hypothetical designs. They are not requirements
 for your project. Blocks labeled **complete source** can stand alone in a
@@ -92,19 +94,23 @@ component SearchPanel {
   }
 
   state {
-    The search is idle, loading, ready, or failed.
+    The record search is idle, loading, ready, or failed.
 
-    At most one request is the active request.
+    At most one request is the *active request*.
   }
 
   logic {
-    Submitting search text starts loading and replaces the active request.
+    Submitting search text moves the record search to loading and replaces
+    the active request.
 
-    A successful active request enters ready and displays its results.
+    A successful active request moves the record search to ready and displays
+    its results.
 
-    A failed active request enters failed and displays a search error.
+    A failed active request moves the record search to failed and displays
+    a search error.
 
-    Cancelling clears the active request and returns the search to idle.
+    Search cancellation clears the active request and returns
+    the record search to idle.
   }
 
   constraints {
@@ -112,28 +118,33 @@ component SearchPanel {
   }
 
   cases {
-    A successful search with no matches shows the empty result message.
+    A successful record search with no matches shows the empty result message.
 
-    A request fails; the user sees an error and can submit another search.
+    An active request fails; the user sees an error and can start another
+    record search.
 
-    A response arrives after cancellation; it does not change the display.
+    A response arrives after search cancellation; it does not change the
+    display.
 
-    An older response arrives after a newer result; the newer result remains.
+    An older response arrives after a newer result; the record search keeps
+    the newer result.
   }
 
   interface {
-    Accept search text and display matching records.
+    A *record search* accepts search text and displays matching records.
 
-    Show an empty result message when no records match.
+    Show an empty result message when a record search has no matches.
 
-    Let the user replace or cancel an active search.
+    Let the user replace an active record search or request
+    *search cancellation* for it.
 
-    Show a search error when a request fails and allow another attempt.
+    Show a search error when an active request fails and allow another
+    record search.
   }
 
   decisions {
     Keep the active request authoritative because responses can arrive out
-    of submission order, including after cancellation.
+    of submission order, including after search cancellation.
   }
 }
 ```
@@ -141,6 +152,8 @@ component SearchPanel {
 Each addition has a purpose. State names the configurations. Logic describes
 changes between them. Constraints gives the rule those changes must respect.
 Decisions explains the choice. Cases makes difficult event orderings reviewable.
+The design reuses record search from the first version and defines search
+cancellation in Interface for its own promises.
 
 This example uses all seven contracts because the requirement benefits from
 all seven. It is not a template that every component must fill out. Nor does
@@ -150,13 +163,13 @@ current implementation task.
 
 A practical authoring sequence is:
 
-1. State the responsibility and its boundary.
+1. State the responsibility, its boundary, and named interactions.
 2. Work through relevant state, behavior, and binding rules.
 3. Check the design against a normal case and its material failure cases.
 4. Write the required Interface around the task's interactions and those
    commitments.
 5. Record important reasons and unresolved choices.
-6. Introduce names and grouping where they make these contributions easier to use.
+6. Check Tag reuse and grouping across the contributions.
 
 For an agent, the task and available evidence bound this work. Do not silently
 turn a plausible implementation preference into an authored requirement.
@@ -168,12 +181,12 @@ Use this table while deciding where a contribution belongs:
 | Contract | Question it answers | Search example |
 | --- | --- | --- |
 | `goal` | Why does this responsibility exist? | Help users find records. |
-| `interface` | What interaction or observable promise is offered? | Users can cancel a search. |
-| `state` | What data, modes, or conditions matter? | A search is idle, loading, ready, or failed. |
-| `logic` | What happens, and in what order? | Cancelling clears the active request. |
+| `interface` | What interaction or observable promise is offered? | Users can request search cancellation. |
+| `state` | What data, modes, or conditions matter? | A record search is idle, loading, ready, or failed. |
+| `logic` | What happens, and in what order? | Search cancellation clears the active request. |
 | `constraints` | What must remain true or is forbidden? | Only the active request may publish. |
 | `decisions` | Why was a course chosen? | Late responses must not undo a newer action. |
-| `cases` | What happens in a particular situation? | A response after cancellation leaves the display unchanged. |
+| `cases` | What happens in a particular situation? | A response after search cancellation leaves the display unchanged. |
 
 ### Related statements can have different roles
 
@@ -206,22 +219,23 @@ decisions {
     Keep the active request authoritative because completion order can differ
     from submission order.
 
-    Allowing every response to publish was rejected because an older response
-    could replace newer results.
+    Allowing a response outside the active request to publish was rejected
+    because an older response could replace newer results.
   }
 }
 ```
 
-ResultAuthority is a grouping name used in both contracts. The first Facet
-states a rule. The others explain it. A rejected alternative is not a requested
-feature. A rationale paragraph alone should not be the only place a binding
-technology or architecture choice is recorded.
+ResultAuthority is a grouping name used in both contracts. These fragments
+reuse the active request Tag from SearchPanel. The first Facet states a rule.
+The others explain it. A rejected alternative is not a requested feature. A
+rationale paragraph alone should not be the only place a binding technology
+or architecture choice is recorded.
 
 ### Write Cases that expose a decision
 
 Weak: "Cancellation works correctly."
 
-Better: "A response arrives after cancellation; it does not change the display."
+Better: "A response arrives after search cancellation; it does not change the display."
 
 The second gives a situation and an observation a reviewer can assess. Useful
 Cases include empty data, invalid input, cancellation, partial failure, retry,
@@ -257,9 +271,9 @@ requires updating its import paths and relative content links.
 
 ```sigil
 constraints {
-  A cancelled request cannot publish results.
+  Search cancellation prevents the active request from publishing results.
 
-  Search text is retained when a request fails.
+  Search text is retained when the active request fails.
 }
 ```
 
@@ -270,7 +284,8 @@ clauses together when splitting them would obscure the contribution:
 
 ```sigil
 logic {
-  When the active request fails, enter the failed state and display its error.
+  When the active request fails, move the record search to failed and display
+  its error.
 }
 ```
 
@@ -294,11 +309,14 @@ interface {
 
   The *search results* contain matching records in display order.
 
-  Accept a query and display search results.
+  A *search submission* accepts a query and produces search results.
+
+  Display search results from the latest search submission.
 }
 ```
 
-The first two Facets introduce names. The third refers to those identities.
+The first three Facets introduce names. The fourth reuses the interaction and
+its result.
 Multiword names are allowed. Names are case-sensitive: Query and query differ.
 Names are exact: repeated spaces, tabs, and Unicode spelling differences are
 not normalized. For example, `search results` and `search  results` differ.
@@ -309,6 +327,12 @@ Use a Tag when naming the same concept across contributions or components
 clarifies the design. Leave a one-off explanation untagged when an identity adds
 nothing. The word "example" does not need a Tag just because a paragraph presents
 an example.
+
+Before drafting, identify named interactions that carry their own promises or
+appear in another component. Give each such interaction a noun-form Tag in the
+provider's Interface, then import it in consumers. `search submission` names
+the interaction; `user` would name its actor and cannot stand in for it. Keep
+verbs such as "submit" in the prose.
 
 ### Define once; reuse afterward
 
@@ -366,15 +390,15 @@ Facets while keeping each Facet's contract role.
 ```sigil
 interface {
   search lifecycle {
-    Start a search from the caller's query.
+    A *search submission* starts a search from the caller's query.
 
-    Cancel the active search.
+    A *search cancellation* stops the active search.
   }
 }
 
 logic {
   search lifecycle {
-    Cancelling prevents the active request from publishing results.
+    Search cancellation prevents the active search from publishing results.
   }
 }
 ```
@@ -395,9 +419,10 @@ component Session {
     The *session lifecycle* starts when credentials are accepted.
 
     session lifecycle {
-      Signing out ends the session.
+      A *sign-out* ends the session lifecycle.
 
-      Expiry requires new credentials.
+      A *session expiry* requires new credentials before the session lifecycle
+      can restart.
     }
   }
 }
@@ -432,7 +457,7 @@ component SearchService {
 
     The *search results* contain matching records in display order.
 
-    *submit* accepts a query and produces search results.
+    A *search submission* accepts a query and produces search results.
   }
 }
 ```
@@ -440,7 +465,7 @@ component SearchService {
 **Consumer — `screens/search.sigil`:**
 
 ```sigil
-@search/service.sigil from SearchService import { query, search results, submit }
+@search/service.sigil from SearchService import { query, search results, search submission }
 
 component SearchScreen {
   goal {
@@ -448,7 +473,8 @@ component SearchScreen {
   }
 
   logic {
-    Pass the user's query to submit and display the returned search results.
+    Invoke search submission with the user's query and display the returned
+    search results.
   }
 
   interface {
@@ -465,7 +491,7 @@ Long selections can use multiple lines and an optional trailing comma:
 @search/service.sigil from SearchService import {
   query,
   search results,
-  submit,
+  search submission,
 }
 ```
 
@@ -473,6 +499,12 @@ Each name stays on one physical line. The import selects three Tags.
 `from SearchService` identifies their owner; it
 is not a component namespace import. The Logic Facet explicitly describes the
 invocation. Importing or mentioning a Tag alone would not establish that call.
+
+SearchService defines search submission in its Interface because that named
+interaction has its own promise and SearchScreen refers to it. `user` would
+name the actor, not the interaction SearchScreen invokes.
+The earlier record search names SearchPanel's UI lifecycle; search submission
+names the separate SearchService interaction.
 
 SearchService owns the Tags. SearchScreen owns its Facets and the behavior they
 describe. A consumer's requirements do not rewrite its provider upstream.
@@ -520,7 +552,8 @@ component JobWorker {
   }
 
   interface {
-    Accept a job and report whether work is active as Running.
+    Accept a job and provide a *job status report* that indicates whether
+    work is active as Running.
   }
 }
 ```
@@ -528,7 +561,7 @@ component JobWorker {
 **Consumer — `screens/job-status.sigil`:**
 
 ```sigil
-@jobs/worker.sigil from JobWorker import { Running }
+@jobs/worker.sigil from JobWorker import { Running, job status report }
 
 component JobStatus {
   goal {
@@ -536,7 +569,7 @@ component JobStatus {
   }
 
   interface {
-    Show an activity indicator while the worker reports Running.
+    Show an activity indicator when the job status report indicates Running.
   }
 }
 ```
@@ -545,7 +578,7 @@ Tags introduced in State, Logic, Constraints, Cases, or Decisions need valid
 Interface evidence before they can be imported. Importability does not grant
 runtime access to private data or override an access restriction. The design
 still needs an interaction that supplies the information; here the worker offers
-the `Running` status through its Interface.
+the `Running` status through its job status report.
 
 A component with no Tags is valid but has no Tags to import. Imports describe
 vocabulary dependencies; they are not a complete inventory of runtime calls or
@@ -571,7 +604,7 @@ component Delivery {
   }
 
   logic {
-    A submitted message follows this lifecycle:
+    A message delivery follows this lifecycle:
     ```mermaid
     stateDiagram-v2
       [*] --> Pending
@@ -581,7 +614,8 @@ component Delivery {
   }
 
   interface {
-    Accept a message and expose pending, delivered, or failed status.
+    A *message delivery* accepts a message and exposes pending, delivered,
+    or failed status.
   }
 }
 ````
@@ -693,16 +727,17 @@ component RetriableSearch {
   }
 
   interface {
-    Permit another attempt after a failed search.
+    A *search retry* permits another attempt after a failed search.
   }
 
   decisions {
-    Open question: Should retries require a user action or happen automatically?
+    Open question: Should search retry require a user action or happen
+    automatically?
 
-    Proposal: Require an explicit user action to avoid unexpected requests.
-    This choice has not been accepted.
+    Proposal: Require an explicit user action for search retry to avoid
+    unexpected requests. This choice has not been accepted.
 
-    Assumption to verify: Repeating a search has no external side effects.
+    Assumption to verify: A search retry has no external side effects.
   }
 }
 ```
@@ -735,20 +770,22 @@ For the running SearchPanel, suppose the user adds this requirement:
 **Before — existing Logic Facet:**
 
 ```text
-A failed active request enters failed and displays a search error.
+A failed active request moves the record search to failed and displays
+a search error.
 ```
 
 **After — replacement Logic Facet:**
 
 ```text
-A failed active request enters failed, displays a search error, and retains
-its search text for correction.
+A failed active request moves the record search to failed, displays
+a search error, and retains its search text for correction.
 ```
 
 **Additional Case Facet:**
 
 ```text
-A search fails; the user corrects the retained search text and submits again.
+A record search fails; the user corrects the retained search text and submits
+again.
 ```
 
 This edit changes the existing Logic section and adds a Facet to the existing
@@ -816,22 +853,24 @@ component BoundedQueue {
   }
 
   cases {
-    An insertion into a full queue reports full and preserves pending items.
+    An item insertion into a full queue reports full and preserves pending items.
 
-    After inserting pending items A then B, removing twice returns A then B.
+    After item insertion adds pending items A then B, the first item removal
+    returns A and the second returns B.
   }
 
   interface {
-    Accept an item when the number of pending items is below capacity, and
-    report full otherwise.
+    An *item insertion* accepts an item when the number of pending items is
+    below capacity, and reports full otherwise.
 
-    Remove the oldest of the pending items, or report empty.
+    An *item removal* returns the oldest of the pending items, or reports empty.
   }
 }
 ```
 
 The pending items and capacity Tags connect State to the Constraint and
-Interface. The design leaves implementation choices such as arrays versus
+Interface. Item insertion and item removal name the queue's offered
+interactions. The design leaves implementation choices such as arrays versus
 linked storage open.
 
 ### A domain data model
@@ -848,8 +887,8 @@ component ReservationWindow {
   }
 
   logic {
-    An instant is within the window when it is at or after the start instant
-    and strictly before the end instant.
+    A membership check reports an instant within the window when it is at or
+    after the start instant and strictly before the end instant.
   }
 
   constraints {
@@ -857,14 +896,14 @@ component ReservationWindow {
   }
 
   cases {
-    The start instant is within the window; the end instant is outside it.
+    A membership check includes the start instant and excludes the end instant.
   }
 
   interface {
     Accept a start instant and an end instant.
 
-    Report whether an instant falls within the window delimited by the
-    start instant and end instant.
+    A *membership check* reports whether an instant falls within the window
+    delimited by the start instant and end instant.
   }
 }
 ```
@@ -887,11 +926,13 @@ component AuditRetention {
   }
 
   cases {
-    A completed audit record from 29 days ago is not eligible for deletion.
+    A deletion eligibility check reports a completed audit record from
+    29 days ago as ineligible for deletion.
   }
 
   interface {
-    Evaluate whether a completed audit record is eligible for deletion.
+    A *deletion eligibility check* reports whether a completed audit record
+    is eligible for deletion.
   }
 
   decisions {
@@ -925,18 +966,18 @@ component ApplicationPersistence {
   }
 
   constraints {
-    Domain operations access persisted records through *repository interfaces*.
+    Domain operations access persisted records through repository interfaces.
 
     Signatures of domain operations contain no database client types.
   }
 
   cases {
-    A test of domain operations supplies an in-memory repository and requires
-    no database connection.
+    A test of domain operations supplies an in-memory implementation of
+    repository interfaces and requires no database connection.
   }
 
   interface {
-    Provide repository interfaces for reading and saving domain records.
+    Provide *repository interfaces* for reading and saving domain records.
   }
 
   decisions {
@@ -967,6 +1008,7 @@ Import Tags from the explicit file declaring their owner.
 | Starting a component | Goal and Interface need content. Try drafting relevant State, Logic, and Constraints before writing Interface; other contracts are optional. |
 | Adding detail | Edit the existing section; repeated sections are invalid. |
 | Naming a concept | Introduce `*name*` once; use bare names afterward. |
+| Naming an interaction | Define a noun-form Tag in the provider's Interface when it has its own promises or another component refers to it; import it in consumers. |
 | Grouping | Bare local headings can repeat; groups are flat and nonempty. |
 | Importing | Select Interface-evidenced Tags from the direct owner; no aliases, wildcards, or re-exports. |
 | Writing prose | Blank lines separate Facets; wrap prose to 79 content characters. |
