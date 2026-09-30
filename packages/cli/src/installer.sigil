@@ -9,52 +9,6 @@ component SkillInstaller {
     replacing *unrelated content* or consulting workspace configuration.
   }
 
-  interface {
-
-    SkillCompatibility {
-      Catalog and installation results include declared language/tool compatibility.
-      The four-skill bundle retains sigil as legacy 0.7 with frozen incompatible
-      tool
-      ranges and includes the three current 0.8 sibling skills. Discovery remains
-      data-driven; packaging compatibility metadata does not authorize silently
-      choosing or installing another binary.
-    }
-    SkillCatalog {
-      listInstalledSkills(sourceDirectory?) returns the *resolved source directory*
-      and
-      sorted valid skill names
-    }
-
-    SkillInstallation {
-      installSkills(options?) returns the selected scope, *agents*, source directory,
-      and installed, updated, existing, or copied destination results
-
-      scope *installation defaults* to global and accepts global or project
-
-      *agents default* to codex, claude, opencode, and pi
-
-      Codex, OpenCode, and Pi share *.agents/skills* for the selected scope
-
-      Claude Code installs skills at *.claude/skills* for the selected scope
-
-      global scope resolves *destinations* from userHome
-
-      project scope resolves destinations from *targetRoot* or the current working
-      directory
-    }
-
-    SkillSourceDiscovery {
-      resolveInstalledSkillsDirectory(moduleUrl?, executablePath?) returns the first
-      *available installation-relative skills* directory
-
-      sourceDirectory defaults to the directory resolved from the
-      *selected Sigil executable*
-      executable or source module
-
-      returned *absolute host paths*
-    }
-  }
-
   state {
     SkillCatalog {
       installable skills are sorted immediate non-hidden directories containing
@@ -152,26 +106,6 @@ component SkillInstaller {
     }
   }
 
-  decisions {
-    SkillInstallation {
-      Decision: Protect user-owned destinations by preflighting every target and
-      replacing only *installations* with Sigil management evidence.
-
-      Scope: Governs installation and update ownership for selected skill
-      destinations; excludes *source discovery* and link-versus-copy mechanics.
-
-      Trade-offs: One unmanaged conflict aborts the *complete installation* instead
-      of
-      partially updating other targets.
-
-      Consequences: Reinstallation can update managed destinations while unrelated
-      files, directories, and *filesystem links* remain untouched.
-
-      Revisit when: Agent hosts provide a shared *transactional package-management*
-      authority.
-    }
-  }
-
   cases {
     SkillCatalog {
       A distribution containing multiple valid skills lists them in stable order
@@ -206,6 +140,72 @@ component SkillInstaller {
 
       Two repositories invoking different selected binaries use the *skill assets*
       owned by their respective binaries.
+    }
+  }
+
+  interface {
+
+    SkillCompatibility {
+      Catalog and installation results include declared language/tool compatibility.
+      The four-skill bundle retains sigil as legacy 0.7 with frozen incompatible
+      tool
+      ranges and includes the three current 0.9 sibling skills. Discovery remains
+      data-driven; packaging compatibility metadata does not authorize silently
+      choosing or installing another binary.
+    }
+    SkillCatalog {
+      listInstalledSkills(sourceDirectory?) returns the *resolved source directory*
+      and
+      sorted valid skill names
+    }
+
+    SkillInstallation {
+      installSkills(options?) returns the selected scope, *agents*, source directory,
+      and installed, updated, existing, or copied destination results
+
+      scope *installation defaults* to global and accepts global or project
+
+      *agents default* to codex, claude, opencode, and pi
+
+      Codex, OpenCode, and Pi share *.agents/skills* for the selected scope
+
+      Claude Code installs skills at *.claude/skills* for the selected scope
+
+      global scope resolves *destinations* from userHome
+
+      project scope resolves destinations from *targetRoot* or the current working
+      directory
+    }
+
+    SkillSourceDiscovery {
+      resolveInstalledSkillsDirectory(moduleUrl?, executablePath?) returns the first
+      *available installation-relative skills* directory
+
+      sourceDirectory defaults to the directory resolved from the
+      *selected Sigil executable*
+      executable or source module
+
+      returned *absolute host paths*
+    }
+  }
+
+  decisions {
+    SkillInstallation {
+      Decision: Protect user-owned destinations by preflighting every target and
+      replacing only *installations* with Sigil management evidence.
+
+      Scope: Governs installation and update ownership for selected skill
+      destinations; excludes *source discovery* and link-versus-copy mechanics.
+
+      Trade-offs: One unmanaged conflict aborts the *complete installation* instead
+      of
+      partially updating other targets.
+
+      Consequences: Reinstallation can update managed destinations while unrelated
+      files, directories, and *filesystem links* remain untouched.
+
+      Revisit when: Agent hosts provide a shared *transactional package-management*
+      authority.
     }
   }
 }

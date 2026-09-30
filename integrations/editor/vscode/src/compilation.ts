@@ -99,10 +99,10 @@ export function runCompilationProcess(
       }
       if (
         !object(exported.value) || exported.value.schemaVersion !== 2 ||
-        exported.value.languageVersion !== "0.8.0"
+        exported.value.languageVersion !== "0.9.0"
       ) {
         throw new Error(
-          "Incompatible language export; Sigil 0.8 schema 2 is required.",
+          "Incompatible language export; Sigil 0.9 schema 2 is required.",
         );
       }
       await writeFile(frontend, JSON.stringify(exported.value));

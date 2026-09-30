@@ -54,7 +54,7 @@ project, or the platform; qualify it when ambiguity is possible.
 
 The versioned contract governing `.sigil` syntax, structure, sections, imports,
 workspace interpretation, and meaning. Current tools support the
-[Tag language revision](sigil-reference.md), `0.8.0`. The definitions below
+[Tag language revision](sigil-reference.md), `0.9.0`. The definitions below
 use the Tag model where it differs from the historical 0.7 behavior.
 
 ### Sigil source
@@ -221,10 +221,11 @@ The optional component section containing cases.
 
 ### Section
 
-A named contract block inside a component: `goal`, `interface`, `state`,
-`logic`, `constraints`, `decisions`, or `cases`.
-Each section may occur at most once per component. Goal and Interface are
-required and must each contain at least one direct or grouped Facet.
+A named contract block inside a component: `goal`, `state`, `logic`,
+`constraints`, `cases`, `interface`, or `decisions`.
+Each section may occur at most once per component and present sections must use
+that order. Goal and Interface are required and must each contain at least one
+direct or grouped Facet.
 
 ### Section body
 
@@ -260,7 +261,7 @@ retains its meaning and contract role in its own notation.
 ### Tag identity
 
 A component-owned Tag identity introduced inline or by a grouping heading. The
-historical 0.7 name was a Concept identifier; current 0.8 contracts use the
+historical 0.7 name was a Concept identifier; current 0.9 contracts use the
 Tag identity and ownership model. A grouping heading is a **Concept Tag**, with
 the existing bare heading syntax retained.
 

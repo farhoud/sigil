@@ -8,33 +8,6 @@ component SigilFileSystem {
     implementation used by core hosts and tests.
   }
 
-  interface {
-
-    ByteInput {
-      readBytesFile(path) returns *exact bytes* or rejects with the host failure.
-      Disk-backed Sigil and configuration ingress uses bytes and strict UTF-8
-      decoding; readTextFile remains available for other host text.
-
-      The deterministic in-memory implementation supports *exact byte fixtures*,
-      including invalid UTF-8, without replacement decoding.
-    }
-    FileSystemPort {
-      readTextFile(path) returns file text or rejects with the *host failure*
-
-      *exists(path)* returns whether the path exists
-
-      listFiles(root) returns files visible at or below root in *stable order*
-
-      all *operations* are asynchronous
-    }
-
-    InMemoryFileSystem {
-      InMemorySigilFileSystem(files) supplies normalized
-      *deterministic file behavior*
-      from a record or map
-    }
-  }
-
   logic {
     InMemoryFileSystem {
       Normalize every *supplied path* before storing it.
@@ -74,5 +47,34 @@ component SigilFileSystem {
 
       A *root listing* contains only normalized files at or beneath its root.
     }
+  }
+
+  interface {
+
+    ByteInput {
+      readBytesFile(path) returns *exact bytes* or rejects with the host failure.
+      Disk-backed Sigil and configuration ingress uses bytes and strict UTF-8
+      decoding; readTextFile remains available for other host text.
+
+      The deterministic in-memory implementation supports *exact byte fixtures*,
+      including invalid UTF-8, without replacement decoding.
+    }
+    FileSystemPort {
+      readTextFile(path) returns file text or rejects with the *host failure*
+
+      *exists(path)* returns whether the path exists
+
+      listFiles(root) returns files visible at or below root in *stable order*
+
+      all *operations* are asynchronous
+    }
+
+    InMemoryFileSystem {
+      InMemorySigilFileSystem(files) supplies normalized
+      *deterministic file behavior*
+      from a record or map
+    }
+    Exposes host filesystem access to direct consumers.
+
   }
 }

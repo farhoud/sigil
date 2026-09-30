@@ -13,16 +13,6 @@ component SigilConfigurationParser {
     while reusing the configuration model and diagnostic vocabulary.
   }
 
-  interface {
-    ConfigurationParsing {
-      parseSigilConfig(source, filePath?) returns a *SigilConfigParseResult* with
-      validated configuration when available and accumulated diagnostics
-
-      ConfigurationModel owns the result and configuration data; the
-      DiagnosticConstruction supplies diagnostic creation
-    }
-  }
-
   logic {
     ConfigurationParsing {
       Validate scalar text and parse strict JSON, then validate the complete
@@ -53,6 +43,25 @@ component SigilConfigurationParser {
     }
   }
 
+  cases {
+    ConfigurationParsing {
+      Valid ConfigFile returns validated configuration without diagnostics.
+
+      Malformed JSON or *invalid fields* returns configuration diagnostics and no
+      validated configuration.
+    }
+  }
+
+  interface {
+    ConfigurationParsing {
+      parseSigilConfig(source, filePath?) returns a *SigilConfigParseResult* with
+      validated configuration when available and accumulated diagnostics
+
+      ConfigurationModel owns the result and configuration data; the
+      DiagnosticConstruction supplies diagnostic creation
+    }
+  }
+
   decisions {
     ConfigurationParserBoundary {
       Decision: Give ConfigFile parsing its own deterministic component while keeping
@@ -67,15 +76,6 @@ component SigilConfigurationParser {
 
       Revisit when: Configuration interpretation requires workspace loading or
       *host-specific policy*.
-    }
-  }
-
-  cases {
-    ConfigurationParsing {
-      Valid ConfigFile returns validated configuration without diagnostics.
-
-      Malformed JSON or *invalid fields* returns configuration diagnostics and no
-      validated configuration.
     }
   }
 }

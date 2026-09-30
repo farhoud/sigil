@@ -61,7 +61,7 @@ Deno.test("foundation validates relocated catalog and rejects broken dependencie
     const metadata = await Deno.readTextFile(metadataPath);
     await Deno.writeTextFile(
       metadataPath,
-      JSON.stringify({ sigilVersion: "0.8.0", requiredSkills: [] }),
+      JSON.stringify({ sigilVersion: "0.9.0", requiredSkills: [] }),
     );
     await rejects(() => validateFoundation(catalog), /Required skills/);
     await Deno.writeTextFile(metadataPath, metadata);
@@ -83,7 +83,7 @@ Deno.test("foundation validates relocated catalog and rejects broken dependencie
     const computeMetadata = await Deno.readTextFile(computeMetadataPath);
     await Deno.writeTextFile(
       computeMetadataPath,
-      JSON.stringify({ sigilVersion: "0.8.0", requiredSkills: [] }),
+      JSON.stringify({ sigilVersion: "0.9.0", requiredSkills: [] }),
     );
     await rejects(() => validateFoundation(catalog), /Required skills/);
     await Deno.writeTextFile(computeMetadataPath, computeMetadata);

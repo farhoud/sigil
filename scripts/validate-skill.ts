@@ -1,5 +1,6 @@
 import { deepStrictEqual as equal, ok as assert } from "node:assert/strict";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { SIGIL_VERSION } from "../packages/core/src/model/language.ts";
 import {
   documentaryLinks,
   localDestination,
@@ -79,7 +80,11 @@ export async function validateFoundation(
       ["requiredSkills", "sigilVersion"],
       `Unexpected compatibility fields: ${name}`,
     );
-    equal(compatibility.sigilVersion, "0.8.0", `Language version: ${name}`);
+    equal(
+      compatibility.sigilVersion,
+      SIGIL_VERSION,
+      `Language version: ${name}`,
+    );
     equal(
       compatibility.requiredSkills,
       dependencies,

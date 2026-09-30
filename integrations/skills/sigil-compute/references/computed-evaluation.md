@@ -1,7 +1,7 @@
 # Computed evaluation orchestration contract
 
 This is the shared protocol for running the claims loop on one selected Sigil
-0.8 design source. The host owns the loop: it runs the tool, captures one
+0.9 design source. The host owns the loop: it runs the tool, captures one
 snapshot, delegates one interpretation, and recognizes one completed result.
 The tool never launches a model and never reads skills. The interpreter child
 only reads the prepared request and returns rows. The host supplies agent
@@ -168,7 +168,7 @@ only through the closure is context, not a covered design.
 
 ## Boundaries
 
-This loop evaluates an existing Sigil 0.8 design. It does not author, revise,
+This loop evaluates an existing Sigil 0.9 design. It does not author, revise,
 or delete design files, and a 0.7 contract or a greenfield design is not its
 input. `sigil-write` still delegates its review to `sigil-evaluate`; this
 skill is not the writer's reviewer. The claims binary does not read skills:

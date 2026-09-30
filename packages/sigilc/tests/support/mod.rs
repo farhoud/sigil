@@ -26,7 +26,7 @@ impl Workspace {
     }
     pub fn input(&self, paths: &[&str], imports: Value) -> DesignInput {
         DesignInput::parse(&serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion":"0.8.0", "frontendVersion":"test",
+            "schemaVersion": 2, "languageVersion":"0.9.0", "frontendVersion":"test",
             "sources": paths.iter().map(|p| json!({"path":p,"text":fs::read_to_string(self.0.join(p)).unwrap()})).collect::<Vec<_>>(),
             "context": ([".sigil/config.json",".sigil/local.json",".sigil/glossary.json"].iter().map(|p| json!({"path":p,"text":fs::read_to_string(self.0.join(p)).ok()})).collect::<Vec<_>>()),
             "diagnostics":[], "entities":[], "units":[], "imports":imports,
@@ -93,7 +93,7 @@ pub fn shared_workspace() -> Workspace {
     root
 }
 
-/// The shared 0.8 design fixture, parsed. Facet identities below are baked from
+/// The shared 0.9 design fixture, parsed. Facet identities below are baked from
 /// byte offsets in that fixture, so they live here rather than in each test.
 pub fn shared_input() -> DesignInput {
     DesignInput::parse(&serde_json::to_vec(&shared_value()).unwrap()).unwrap()

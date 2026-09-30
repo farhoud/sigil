@@ -12,7 +12,7 @@ fn parse(value: &Value) -> Result<DesignInput, String> {
 #[test]
 fn accepts_shared_exporter_fixture_with_all_structural_relations() {
     let input = parse(&fixture()).unwrap();
-    assert_eq!(input.language_version, "0.8.0");
+    assert_eq!(input.language_version, "0.9.0");
     assert_eq!(input.references.len(), 4);
     assert_eq!(input.links.len(), 1);
     assert_eq!(input.introductions.len(), 3);
@@ -21,6 +21,7 @@ fn accepts_shared_exporter_fixture_with_all_structural_relations() {
 fn rejects_old_versions_forged_owners_and_non_utf8_boundaries() {
     for (pointer, replacement) in [
         ("/schemaVersion", json!(1)),
+        ("/languageVersion", json!("0.8.0")),
         ("/languageVersion", json!("0.7.0")),
         ("/entities/0/range/start", json!(1)), // inside original BOM
         ("/units/0/range/end", json!(99999)),

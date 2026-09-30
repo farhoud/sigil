@@ -100,7 +100,10 @@ function diagnosticStage(code: SigilDiagnosticCode): DiagnosticStage {
     /^SIGIL_(UNRESOLVED|DUPLICATE_COMPONENT|DUPLICATE_TAG|TAG_NAME_COLLISION|UNUSED_TAG|UNTAGGED_FACET)/
       .test(code)
   ) return "resolution";
-  if (/^SIGIL_(MISSING|DUPLICATE_SECTION|EMPTY_TAG|NESTED_TAG)/.test(code)) {
+  if (
+    /^SIGIL_(MISSING|DUPLICATE_SECTION|SECTION_ORDER|EMPTY_TAG|NESTED_TAG)/
+      .test(code)
+  ) {
     return "structure";
   }
   return "parsing";

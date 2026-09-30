@@ -4,7 +4,7 @@ import { resolveSigilWorkspace } from "../src/pipeline.ts";
 import { selectCompilationBoundary } from "../src/compilation-boundary.ts";
 import { assert, assertEquals } from "./assert.ts";
 const config = JSON.stringify({
-  sigilVersion: "0.8.0",
+  sigilVersion: "0.9.0",
   workspace: { name: "test" },
   files: { include: ["**/*.sigil"] },
 });

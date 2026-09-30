@@ -1,6 +1,6 @@
 # sigil-core
 
-The shared Sigil 0.8 implementation. Artifact version **0.8.0** is prepared in
+The shared Sigil 0.9 implementation. Artifact version **0.8.0** is prepared in
 this checkout; publication is separate. After publication, import with:
 
 ```ts
@@ -14,11 +14,13 @@ ranges, with scalar and UTF-16 positions derived from the same captured source.
 
 Core owns deterministic language behavior used by CLI, LSP and native export:
 
-- All seven contract sections belong to a component. Preserve Facets, embedded
+- All seven contract sections belong to a component, in canonical order:
+  Goal, State, Logic, Constraints, Cases, Interface, Decisions. Preserve Facets, embedded
   payloads, Inline Links, grouping occurrences and inline Tag introductions.
 - Resolve exact component-owned Tags and explicit file/provider selections.
   Imported Tags remain provider-owned; using Facets remain consumer-owned. Cycles
-  are valid. `_module.sigil` is an ordinary source, with no re-export behavior.
+  are valid. Only Tags evidenced by a provider Interface are importable;
+  `_module.sigil` is an ordinary source, with no re-export behavior.
 - Preserve independent valid results and staged diagnostics when other input is
   invalid. Reject unsupported configured versions and removed language forms.
 - Format against resolved spans and provider vocabulary, preserving exact Tag

@@ -1,4 +1,4 @@
-//! Source-faithful Sigil 0.8 structural transport. Semantic interpretation is separate.
+//! Source-faithful Sigil 0.9 structural transport. Semantic interpretation is separate.
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 

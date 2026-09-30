@@ -11,76 +11,6 @@ component SigilWorkspaceGlossary {
     identity.
   }
 
-  interface {
-    GlossaryFile {
-      The filename is .sigil/glossary.json.
-
-      location: workspace root
-
-      *absence* leaves glossary features inactive without invalidating the workspace
-    }
-
-    GlossarySchema {
-      The *schemaVersion* is 1.
-
-      the top-level strict JSON object contains schemaVersion, glossary *terms*, and
-      contexts
-
-      terms and *contexts* are required arrays and may be empty
-
-      *unknown properties* are invalid
-    }
-
-    GlossaryEntry {
-      term is a non-empty *canonical spelling*
-
-      definition is a *non-empty reviewed meaning*
-
-      *aliases* is an optional array of unique non-empty alternative spellings
-
-      agentContext is an *optional boolean* that defaults to true
-
-      agentContext false excludes the entry from
-      *agent-facing scoped glossary context*
-    }
-
-    BoundedContext {
-      *id* matches [A-Za-z][A-Za-z0-9_-]* and is unique without regard to case
-
-      include is a non-empty array of workspace-relative POSIX globs
-
-      exclude is an *array* of workspace-relative POSIX globs
-
-      terms is an array of GlossaryEntry values
-    }
-
-    ContextResolution {
-      *workspace terms* are available to every included Sigil source
-
-      Each SourceDocument matches at most one BoundedContext.
-
-      *context terms* override workspace terms with the same
-      *case-insensitive spelling* in that source
-    }
-
-    TermRecognition {
-      A *canonical term* or alias matches case-insensitively as a whole word or
-      phrase.
-
-      the longest *matching phrase* wins
-
-      *occurrences* resolve only inside Facet prose
-
-      structural syntax, fenced content types and bodies, inline code, and URLs do
-      not contain occurrences
-
-      These glossary-specific exclusions do not define TagIdentity or Tag
-      recognition. Follow the [language
-      reference](sigil-reference.md#tags-and-references) for Tag identity and
-      references; glossary identity remains independent
-    }
-  }
-
   logic {
     ContextResolution {
       Resolve context include and exclude *globs* against normalized
@@ -152,6 +82,103 @@ component SigilWorkspaceGlossary {
     }
   }
 
+  cases {
+    ContextResolution {
+      A source matching no context receives workspace terms only.
+
+      A context definition of hold replaces the *workspace definition* of hold only
+      for
+      sources matched by that context.
+
+      A source matched by two contexts produces *SIGIL_GLOSSARY_CONTEXT_OVERLAP*.
+    }
+
+    TermRecognition {
+      workspace root matches before workspace when both entries exist.
+
+      An alias occurrence resolves to its *canonical entry*.
+
+      A term inside inline code or a *URL* remains ordinary text.
+
+      Two local entries claiming the same case-insensitive spelling produce
+      *SIGIL_GLOSSARY_TERM_COLLISION*.
+
+      A recognized entry with agentContext false remains visible to glossary
+      *inspection* and editor features but is absent from agent-facing scoped
+      context.
+    }
+  }
+
+  interface {
+    GlossaryFile {
+      The filename is .sigil/glossary.json.
+
+      location: workspace root
+
+      *absence* leaves glossary features inactive without invalidating the workspace
+    }
+
+    GlossarySchema {
+      The *schemaVersion* is 1.
+
+      the top-level strict JSON object contains schemaVersion, glossary *terms*, and
+      contexts
+
+      terms and *contexts* are required arrays and may be empty
+
+      *unknown properties* are invalid
+    }
+
+    GlossaryEntry {
+      term is a non-empty *canonical spelling*
+
+      definition is a *non-empty reviewed meaning*
+
+      *aliases* is an optional array of unique non-empty alternative spellings
+
+      agentContext is an *optional boolean* that defaults to true
+
+      agentContext false excludes the entry from
+      *agent-facing scoped glossary context*
+    }
+
+    BoundedContext {
+      *id* matches [A-Za-z][A-Za-z0-9_-]* and is unique without regard to case
+
+      include is a non-empty array of workspace-relative POSIX globs
+
+      exclude is an *array* of workspace-relative POSIX globs
+
+      terms is an array of GlossaryEntry values
+    }
+
+    ContextResolution {
+      *workspace terms* are available to every included Sigil source
+
+      Each SourceDocument matches at most one BoundedContext.
+
+      *context terms* override workspace terms with the same
+      *case-insensitive spelling* in that source
+    }
+
+    TermRecognition {
+      A *canonical term* or alias matches case-insensitively as a whole word or
+      phrase.
+
+      the longest *matching phrase* wins
+
+      *occurrences* resolve only inside Facet prose
+
+      structural syntax, fenced content types and bodies, inline code, and URLs do
+      not contain occurrences
+
+      These glossary-specific exclusions do not define TagIdentity or Tag
+      recognition. Follow the [language
+      reference](sigil-reference.md#tags-and-references) for Tag identity and
+      references; glossary identity remains independent
+    }
+  }
+
   decisions {
     GlossaryFile {
       Decision: Use an optional committed strict-JSON GlossaryFile as human-reviewed
@@ -214,33 +241,6 @@ component SigilWorkspaceGlossary {
 
       Revisit when: *Context consumers* require named audiences or more than included
       and excluded visibility.
-    }
-  }
-
-  cases {
-    ContextResolution {
-      A source matching no context receives workspace terms only.
-
-      A context definition of hold replaces the *workspace definition* of hold only
-      for
-      sources matched by that context.
-
-      A source matched by two contexts produces *SIGIL_GLOSSARY_CONTEXT_OVERLAP*.
-    }
-
-    TermRecognition {
-      workspace root matches before workspace when both entries exist.
-
-      An alias occurrence resolves to its *canonical entry*.
-
-      A term inside inline code or a *URL* remains ordinary text.
-
-      Two local entries claiming the same case-insensitive spelling produce
-      *SIGIL_GLOSSARY_TERM_COLLISION*.
-
-      A recognized entry with agentContext false remains visible to glossary
-      *inspection* and editor features but is absent from agent-facing scoped
-      context.
     }
   }
 }

@@ -20,5 +20,7 @@ component SigilDiagnosticModel {
       Partial results distinguish invalidity and unknown completeness from valid
       authored content, so incomplete recovery cannot support *absence-based checks*.
     }
+    Exposes diagnostics to direct consumers.
+
   }
 }

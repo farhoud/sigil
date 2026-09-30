@@ -7,141 +7,6 @@ component SigilLanguage {
     Facets, Tags, explicit selections, Inline Links, and recoverable diagnostics.
   }
 
-  interface {
-    LanguageVersion {
-      LanguageVersion = "0.8.0"
-
-      Workspace configuration declares the LanguageVersion that governs
-      interpretation.
-    }
-
-    SourceDocument {
-      Accept strict UTF-8 .sigil source under SourceGrammar and preserve original
-      text, physical lines, byte offsets, declarations, Facets, and payloads.
-
-      Return structural diagnostics and deterministic partial results according to
-      SourceRecovery; recovery retains invalidity and completeness evidence.
-
-      Diagnostic message prose is explanatory; code, stage, *severity*, source and
-      related locations, ordering, retained evidence, and suppression follow the
-      normative reference.
-    }
-
-    SourceGrammar {
-      The [language reference](sigil-reference.md) and
-      [EBNF grammar](sigil.ebnf) jointly govern all 0.8 *syntax*, lexical algorithms,
-      ownership, resolution, formatting, interpretation, and required diagnostics.
-
-      The [migration guide](migrating-to-0.8.md) explains *replacement* of earlier
-      source notation; it does not define another grammar or implemented support.
-    }
-
-    SourceRecovery {
-      Preserve *partial evidence* without treating recovered nodes as valid authored
-      declarations. Apply the reference's diagnostic catalog, ordering, recovery,
-      related-location, and suppression rules.
-
-      Invalid UTF-8 stops parsing that source; independent valid sources remain
-      available. *Incomplete regions* cannot prove absent requirements or references.
-    }
-
-    ComponentContract {
-      A component owns one *responsibility* and all seven permitted contract kinds
-      in one declaration; nonempty *Goal* and *Interface* each contain at least
-      one Facet.
-
-      Interface exposes operations, data, *events*, results, failures, and observable
-      promises available to dependents. Interpret selected Tags within the owner's
-      complete design while retaining each Facet's owner and contract role.
-    }
-
-    TagIdentity {
-      A Tag is identified by its *exact name* and component owner. One inline
-      definition and any repeated local grouping headings share that identity
-      independently of occurrence or section order.
-
-      Grouping remains optional. Direct and grouped Facets may coexist in every
-      contract; a component needs no Tags when *reusable names* add no meaning.
-
-      Every component-owned Tag is selectable regardless of its contract. A local
-      heading never acquires an *imported identity*, and consumer Facets never
-      contribute upstream to the provider's design.
-    }
-
-    ImportSemantics {
-      Select exact Tag names from their named owner in an explicit included .sigil
-      source using the reference's *workspace-root-relative import rules*.
-
-      All components in the importing source see the selected identities. An
-      import introduces neither a *component namespace* nor a re-export or runtime
-      call; documentary context may instead use Inline Links.
-
-      Each valid, unambiguous selection requires an *eligible bare reference* in
-      that source. Any contract and Embedded Facet introduction can supply use;
-      complete links, payloads, headings, and provider names alone cannot.
-    }
-
-    SectionSemantics {
-      Goal states purpose, responsibility, and intended outcomes.
-
-      Interface describes offered interactions and *observable promises*.
-
-      State describes *meaningful runtime* or domain data, configurations, modes,
-      and conditions.
-
-      Logic describes behavior, flows, *algorithms*, transformations, guards, and
-      lifecycle transitions.
-
-      *Constraints* record binding invariants, *prohibitions*, bounds, architecture,
-      and technology choices.
-
-      Decisions record rationale, scope, assumptions, alternatives, trade-offs,
-      consequences, and revisit *conditions* without turning proposals into policy.
-
-      Cases describe starting situations, actions, and expected *observations* in
-      examples or families; an example does not silently quantify over all inputs.
-    }
-
-    FacetDiscipline {
-      Each maximal run of *adjacent prose lines* forms one Facet. Blank lines and
-      structural boundaries separate Facets; legal wrapping preserves their
-      meaning and does not create or remove Tag references.
-
-      Preserve each Facet's owner, *contract role*, optional local grouping Tag,
-      source range, original lines, and content references.
-    }
-
-    EmbeddedContent {
-      Introducing prose followed immediately by one *fenced payload* forms an
-      Embedded Facet. Its closing fence ends the Facet, and any following prose
-      begins another Facet; each additional payload needs a new introduction.
-
-      Preserve *payload bytes*, raw lines, delimiter ranges, and relative indentation
-      as inert Sigil content. A dedented presentation removes only the opener's
-      exact indentation prefix where present.
-    }
-
-    InlineLinks {
-      Preserve *complete Inline Links* and images, including labels, destinations,
-      optional titles, raw spans, ranges, and enclosing Facet identity.
-
-      Resolve *local targets relative* to their source directory and retain query
-      and fragment meaning. Parsing does not retrieve or adopt linked material;
-      containing prose and contract determine its role.
-
-      Required unavailable material leaves interpretation unresolved; retain the
-      *authored link* and the provenance of material actually read separately.
-    }
-
-    FormattingStyle {
-      Ordinary prose follows the reference's 79-content-character limit and
-      exemptions for structural lines, fences, payloads, and link destinations.
-
-      Wrapping preserves exact Tag names, *reference identities*, Facet boundaries,
-      complete links, and payloads, and never turns prose into structural syntax.
-    }
-  }
-
   constraints {
     LanguageVersion {
       LanguageVersion is the sole owner of the Sigil language and
@@ -231,6 +96,186 @@ component SigilLanguage {
       An unformattable source or invalid recovered source yields diagnostics and
       no *writable* formatting result. Recovery cannot repair validity silently.
     }
+  }
+
+  cases {
+    SourceDocument {
+      A minimal component containing nonempty Goal and Interface is valid without
+      *grouping* or Tags. Empty required content is invalid.
+
+      In A😀B, B starts at scalar column three, *UTF-16 column* four, and byte offset
+      five when the line begins at byte zero; host positions translate explicitly.
+
+      A recovered *unclosed fence* retains the remaining source as payload and marks
+      enclosing completeness unknown instead of scanning apparent declarations.
+    }
+
+    TagIdentity {
+      One inline definition and repeated headings reuse one *owner-scoped Tag* in
+      any section order. Two inline definitions of that exact name are invalid.
+
+      Imported search results matches only that *exact single-line* spelling;
+      repeated spaces or a physical newline do not become the same reference.
+
+      Attaching a *payload* does not change Tag recognition in unchanged introducing
+      prose. Complete link labels and payload text cannot supply import use.
+    }
+
+    ImportSemantics {
+      A missing selected Tag leaves other *independent selections* available. A valid
+      mutual import is not invalid solely because it forms a cycle.
+
+      Selecting two *originating Tags* with the same accessible name leaves that
+      name unresolved; a local heading with that spelling is also a collision.
+    }
+  }
+
+  interface {
+    LanguageVersion {
+      LanguageVersion = "0.9.0"
+
+      Workspace configuration declares the LanguageVersion that governs
+      interpretation.
+    }
+
+    SourceDocument {
+      Accept strict UTF-8 .sigil source under SourceGrammar and preserve original
+      text, physical lines, byte offsets, declarations, Facets, and payloads.
+
+      Return structural diagnostics and deterministic partial results according to
+      SourceRecovery; recovery retains invalidity and completeness evidence.
+
+      Diagnostic message prose is explanatory; code, stage, *severity*, source and
+      related locations, ordering, retained evidence, and suppression follow the
+      normative reference.
+    }
+
+    SourceGrammar {
+      The [language reference](sigil-reference.md) and
+      [EBNF grammar](sigil.ebnf) jointly govern all 0.9 *syntax*, lexical algorithms,
+      ownership, resolution, formatting, interpretation, and required diagnostics.
+
+      The [migration guide](migrating-to-0.9.md) explains *replacement* of earlier
+      source notation; it does not define another grammar or implemented support.
+    }
+
+    SourceRecovery {
+      Preserve *partial evidence* without treating recovered nodes as valid authored
+      declarations. Apply the reference's diagnostic catalog, ordering, recovery,
+      related-location, and suppression rules.
+
+      Invalid UTF-8 stops parsing that source; independent valid sources remain
+      available. *Incomplete regions* cannot prove absent requirements or references.
+    }
+
+    ComponentContract {
+      A component owns one *responsibility* and all seven permitted contract kinds
+      in one declaration; nonempty *Goal* and *Interface* each contain at least
+      one Facet.
+
+      Interface exposes operations, data, *events*, results, failures, and observable
+      promises available to dependents. Interpret selected Tags within the owner's
+      complete design while retaining each Facet's owner and contract role.
+    }
+
+    TagIdentity {
+      A Tag is identified by its *exact name* and component owner. One inline
+      definition and any repeated local grouping headings share that identity
+      independently of occurrence or section order.
+
+      Grouping remains optional. Direct and grouped Facets may coexist in every
+      contract; a component needs no Tags when *reusable names* add no meaning.
+
+      A component-owned Tag is directly selectable only when the provider's
+      Interface contains a valid definition or resolved eligible-prose reference
+      to that Tag. A local heading never acquires an *imported identity*, and
+      consumer Facets never contribute upstream to the provider's design.
+    }
+
+    ImportSemantics {
+      Select exact Tag names from their named owner in an explicit included .sigil
+      source using the reference's *workspace-root-relative import rules*.
+
+      All components in the importing source see the selected identities. An
+      import introduces neither a *component namespace* nor a re-export or runtime
+      call; documentary context may instead use Inline Links. Using an imported
+      Tag in a consumer Interface does not expose it from that consumer; direct
+      imports remain anchored at the originating provider.
+
+      Each valid, unambiguous selection requires an *eligible bare reference* in
+      that source. Any contract and Embedded Facet introduction can supply use;
+      complete links, payloads, headings, and provider names alone cannot.
+    }
+
+    SectionSemantics {
+      Goal states purpose, responsibility, and intended outcomes.
+
+      Interface describes offered interactions and *observable promises*.
+
+      State describes *meaningful runtime* or domain data, configurations, modes,
+      and conditions.
+
+      Logic describes behavior, flows, *algorithms*, transformations, guards, and
+      lifecycle transitions.
+
+      *Constraints* record binding invariants, *prohibitions*, bounds, architecture,
+      and technology choices.
+
+      Decisions record rationale, scope, assumptions, alternatives, trade-offs,
+      consequences, and revisit *conditions* without turning proposals into policy.
+
+      Cases describe starting situations, actions, and expected *observations* in
+      examples or families; an example does not silently quantify over all inputs.
+    }
+
+    FacetDiscipline {
+      Each maximal run of *adjacent prose lines* forms one Facet. Blank lines and
+      structural boundaries separate Facets; legal wrapping preserves their
+      meaning and does not create or remove Tag references.
+
+      Preserve each Facet's owner, *contract role*, optional local grouping Tag,
+      source range, original lines, and content references.
+    }
+
+    EmbeddedContent {
+      Introducing prose followed immediately by one *fenced payload* forms an
+      Embedded Facet. Its closing fence ends the Facet, and any following prose
+      begins another Facet; each additional payload needs a new introduction.
+
+      Preserve *payload bytes*, raw lines, delimiter ranges, and relative indentation
+      as inert Sigil content. A dedented presentation removes only the opener's
+      exact indentation prefix where present.
+    }
+
+    InlineLinks {
+      Preserve *complete Inline Links* and images, including labels, destinations,
+      optional titles, raw spans, ranges, and enclosing Facet identity.
+
+      Resolve *local targets relative* to their source directory and retain query
+      and fragment meaning. Parsing does not retrieve or adopt linked material;
+      containing prose and contract determine its role.
+
+      Required unavailable material leaves interpretation unresolved; retain the
+      *authored link* and the provenance of material actually read separately.
+    }
+
+    FormattingStyle {
+      Ordinary prose follows the reference's 79-content-character limit and
+      exemptions for structural lines, fences, payloads, and link destinations.
+
+      Wrapping preserves exact Tag names, *reference identities*, Facet boundaries,
+      complete links, and payloads, and never turns prose into structural syntax.
+    }
+    Exposes DeterministicFormatting to direct consumers.
+
+    Exposes imported Tag to direct consumers.
+
+    Exposes leading indentation to direct consumers.
+
+    Exposes opening fence to direct consumers.
+
+    Exposes unclosed fence to direct consumers.
+
   }
 
   decisions {
@@ -403,38 +448,6 @@ component SigilLanguage {
       edge, and selections resolve only against the named component owner.
     }
   }
-
-  cases {
-    SourceDocument {
-      A minimal component containing nonempty Goal and Interface is valid without
-      *grouping* or Tags. Empty required content is invalid.
-
-      In A😀B, B starts at scalar column three, *UTF-16 column* four, and byte offset
-      five when the line begins at byte zero; host positions translate explicitly.
-
-      A recovered *unclosed fence* retains the remaining source as payload and marks
-      enclosing completeness unknown instead of scanning apparent declarations.
-    }
-
-    TagIdentity {
-      One inline definition and repeated headings reuse one *owner-scoped Tag* in
-      any section order. Two inline definitions of that exact name are invalid.
-
-      Imported search results matches only that *exact single-line* spelling;
-      repeated spaces or a physical newline do not become the same reference.
-
-      Attaching a *payload* does not change Tag recognition in unchanged introducing
-      prose. Complete link labels and payload text cannot supply import use.
-    }
-
-    ImportSemantics {
-      A missing selected Tag leaves other *independent selections* available. A valid
-      mutual import is not invalid solely because it forms a cycle.
-
-      Selecting two *originating Tags* with the same accessible name leaves that
-      name unresolved; a local heading with that spelling is also a collision.
-    }
-  }
 }
 
 component SigilWorkspaceConfig {
@@ -444,36 +457,6 @@ component SigilWorkspaceConfig {
 
     Keep *workspace boundaries* and source discovery independent from package
     manifests and ordinary source summaries.
-  }
-
-  interface {
-    ConfigFile {
-      The *filename* is .sigil/config.json.
-
-      location: *workspace root*
-    }
-
-    ConfiguredLanguageVersion {
-      sigilVersion: the *supported Sigil language version* used to interpret the
-      workspace
-    }
-
-    WorkspaceBoundary {
-      workspace.name: *non-empty stable workspace identifier*
-
-      workspace.members: *optional array* of unique workspace-relative project-root
-      paths
-    }
-
-    SourceSelection {
-      files.include: *non-empty array* of workspace-relative POSIX glob strings
-
-      files.exclude?: array of *workspace-relative POSIX glob strings*
-    }
-
-    ToolConfiguration {
-      tools?: object of namespaced JSON objects preserved for *host integrations*
-    }
   }
 
   state {
@@ -633,29 +616,6 @@ component SigilWorkspaceConfig {
     }
   }
 
-  decisions {
-    WorkspaceBoundary {
-      Decision: Make ConfigFile the sole authority for workspace roots and declared
-      members.
-
-      Scope: Governs the workspace root, declared members, and independent nested
-      workspaces; excludes ordinary summary sources and GlossaryFile authority.
-
-      Trade-offs: Repositories maintain explicit Sigil configuration in addition to
-      package or build *manifests*.
-
-      Discarded alternatives: Inferring *boundaries* from package manifests or
-      directory structure was rejected because those sources vary by host and
-      purpose.
-
-      Consequences: Nested independent workspaces must be excluded explicitly and
-      *package metadata* cannot silently change Sigil membership.
-
-      Revisit when: Another explicit interoperable authority can replace ConfigFile
-      without introducing boundary ambiguity.
-    }
-  }
-
   cases {
     LocalToolConfiguration {
       A missing LocalConfigFile preserves the ConfigFile tools object.
@@ -706,6 +666,63 @@ component SigilWorkspaceConfig {
 
       An undeclared package directory is not a configured summary boundary even when
       it contains a *package manifest*.
+    }
+  }
+
+  interface {
+    ConfigFile {
+      The *filename* is .sigil/config.json.
+
+      location: *workspace root*
+    }
+
+    ConfiguredLanguageVersion {
+      sigilVersion: the *supported Sigil language version* used to interpret the
+      workspace
+    }
+
+    WorkspaceBoundary {
+      workspace.name: *non-empty stable workspace identifier*
+
+      workspace.members: *optional array* of unique workspace-relative project-root
+      paths
+    }
+
+    SourceSelection {
+      files.include: *non-empty array* of workspace-relative POSIX glob strings
+
+      files.exclude?: array of *workspace-relative POSIX glob strings*
+    }
+
+    ToolConfiguration {
+      tools?: object of namespaced JSON objects preserved for *host integrations*
+    }
+    Exposes LocalToolConfiguration to direct consumers.
+
+    Exposes workspace discovery to direct consumers.
+
+  }
+
+  decisions {
+    WorkspaceBoundary {
+      Decision: Make ConfigFile the sole authority for workspace roots and declared
+      members.
+
+      Scope: Governs the workspace root, declared members, and independent nested
+      workspaces; excludes ordinary summary sources and GlossaryFile authority.
+
+      Trade-offs: Repositories maintain explicit Sigil configuration in addition to
+      package or build *manifests*.
+
+      Discarded alternatives: Inferring *boundaries* from package manifests or
+      directory structure was rejected because those sources vary by host and
+      purpose.
+
+      Consequences: Nested independent workspaces must be excluded explicitly and
+      *package metadata* cannot silently change Sigil membership.
+
+      Revisit when: Another explicit interoperable authority can replace ConfigFile
+      without introducing boundary ambiguity.
     }
   }
 }

@@ -8,7 +8,7 @@ import {
   loadWASM,
 } from "vscode-oniguruma";
 
-test("TextMate recognizes 0.8 imports and Tags while protecting links and payloads", async () => {
+test("TextMate recognizes 0.9 imports and Tags while protecting links and payloads", async () => {
   const wasm = await readFile(
     "node_modules/vscode-oniguruma/release/onig.wasm",
   );

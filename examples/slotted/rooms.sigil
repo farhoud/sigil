@@ -11,23 +11,6 @@ component Rooms {
     Let a user list a *room* that other users can request time on.
   }
 
-  interface {
-    An actor can create a room with *room metadata*, meaning a name,
-    description, capacity and location text, and with a required *room timezone*
-    that is not part of room metadata.
-
-    Editing room metadata never changes the room timezone.
-
-    The actor who creates a room becomes its *room owner*, and Rooms provides
-    the room owner of each room. Only the room owner can edit its room metadata.
-
-    Any actor can list every room that is not an *archived room* and open any
-    room by its identifier.
-
-    Rooms provides the *room lock*, a transaction that serializes every change
-    affecting one room and gives the caller that transaction.
-  }
-
   state {
     A room is active or an archived room, and Rooms owns the archived room
     mark.
@@ -57,6 +40,32 @@ component Rooms {
     room timezone must run inside that room's room lock.
   }
 
+  cases {
+    Two changes to the same room arrive together; the room lock runs one after
+    the other.
+
+    Changes to two different rooms do not wait for each other's room lock.
+
+    A room owner unarchives an archived room; it returns to the room list.
+  }
+
+  interface {
+    An actor can create a room with *room metadata*, meaning a name,
+    description, capacity and location text, and with a required *room timezone*
+    that is not part of room metadata.
+
+    Editing room metadata never changes the room timezone.
+
+    The actor who creates a room becomes its *room owner*, and Rooms provides
+    the room owner of each room. Only the room owner can edit its room metadata.
+
+    Any actor can list every room that is not an *archived room* and open any
+    room by its identifier.
+
+    Rooms provides the *room lock*, a transaction that serializes every change
+    affecting one room and gives the caller that transaction.
+  }
+
   decisions {
     The room lock was chosen so automatic declines and approval re-checks see a
     stable room; the database no-overlap rule stays the backstop.
@@ -65,14 +74,5 @@ component Rooms {
     each needs a check or sweep over the room's booking request records; unarchive
     is part of
     Booking's archive workflow.
-  }
-
-  cases {
-    Two changes to the same room arrive together; the room lock runs one after
-    the other.
-
-    Changes to two different rooms do not wait for each other's room lock.
-
-    A room owner unarchives an archived room; it returns to the room list.
   }
 }

@@ -32,15 +32,16 @@ import {
   type TagGroup,
 } from "./model/source.ts";
 
-const SECTIONS = new Set([
+const SECTION_ORDER = [
   "goal",
-  "interface",
   "state",
   "logic",
   "constraints",
-  "decisions",
   "cases",
-]);
+  "interface",
+  "decisions",
+] as const;
+const SECTIONS: ReadonlySet<string> = new Set(SECTION_ORDER);
 const trim = (text: string) => text.replace(/^[ \t]+|[ \t]+$/g, "");
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 type ComponentDraft = Mutable<ComponentDeclaration> & { sections: Section[] };
@@ -265,6 +266,29 @@ export function parseSigilDocument(
             (section as Mutable<Section>).valid = false;
           }
         }
+      }
+      let previousOrder = -1;
+      let previousSection: Section | undefined;
+      let orderViolation: Section | undefined;
+      for (const section of frame.node.sections) {
+        if (!section.known) continue;
+        const currentOrder = SECTION_ORDER.indexOf(
+          section.name as (typeof SECTION_ORDER)[number],
+        );
+        if (currentOrder < previousOrder) {
+          orderViolation = section;
+          break;
+        }
+        previousOrder = currentOrder;
+        previousSection = section;
+      }
+      if (orderViolation) {
+        error(
+          "SIGIL_SECTION_ORDER",
+          `Sections must appear in the order ${SECTION_ORDER.join(", ")}.`,
+          orderViolation.nameRange,
+          previousSection ? [previousSection.nameRange] : [],
+        );
       }
       if (
         diagnostics.some((d) =>

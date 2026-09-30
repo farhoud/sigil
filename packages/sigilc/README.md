@@ -11,7 +11,7 @@ Build it with Rust 1.91.1 or newer:
 cargo build --locked --manifest-path packages/sigilc/Cargo.toml
 ```
 
-Design commands require structural schema 2 for language 0.8.0 and emit report
+Design commands require structural schema 2 for language 0.9.0 and emit report
 version 2. Source locations carry explicit coordinate conventions and captured
 SHA-256 digests. Old captures and stored projections are retained but cannot be
 used as current evidence.
@@ -167,4 +167,3 @@ surface are untouched.
 
 Gate exits match the compiler's convention: 0 for coherent or loose, 1 for
 disjoint, 2 for usage, 3 for operational failure.
-

@@ -8,6 +8,17 @@ component SigilEntityCatalog {
     independent Implementation reconstruction.
   }
 
+  constraints {
+
+    TagCatalog {
+      Tag identity preserves exact names and *component owners* independently of
+      selection or occurrence order. The native vocabulary fingerprint changes for
+      Tags. Keep consumer Facet provenance in the structural companion rather than
+      transferring consumer promises or exposing Design relationships through the
+      identity-only Implementation catalog.
+    }
+  }
+
   interface {
     SourceOwnership {
       Reserve ResolvedDesignInput Component, Tag and physical authored unit
@@ -38,16 +49,6 @@ component SigilEntityCatalog {
       exact type and label repetition but reject identity mutation. Empty assertions
       remain valid. Catalog membership supplies no evidence that an entity or
       relationship has been implemented.
-    }
-  }
-  constraints {
-
-    TagCatalog {
-      Tag identity preserves exact names and *component owners* independently of
-      selection or occurrence order. The native vocabulary fingerprint changes for
-      Tags. Keep consumer Facet provenance in the structural companion rather than
-      transferring consumer promises or exposing Design relationships through the
-      identity-only Implementation catalog.
     }
   }
 }

@@ -1,4 +1,4 @@
-/** Command-line interface for versioned Sigil 0.8 workspaces. @module */
+/** Command-line interface for versioned Sigil 0.9 workspaces. @module */
 import { type HelpTopic, parseArgs } from "./args.ts";
 import { type CommandHandlerOptions, runCommand } from "./commands.ts";
 import { EXIT_RUNTIME, EXIT_USAGE, exitCodeForDiagnostics } from "./exit.ts";

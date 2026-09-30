@@ -24,7 +24,7 @@ Deno.test("glossary declarations and matches share original byte coordinates", (
   const input =
     "\uFEFFcomponent A {\r\ngoal {\r\nResponsibility.\r\n}\r\ninterface {\r\n😀 e\u0301 query.\r\n}\r\n}";
   const document =
-    parseSigilDocument("a.sigil", input, { sigilVersion: "0.8.0" }).document;
+    parseSigilDocument("a.sigil", input, { sigilVersion: "0.9.0" }).document;
   const context = resolveGlossaryForFile(glossary, "a.sigil").context;
   const occurrences = glossaryOccurrencesForDocument(context, document);
   assertEquals(occurrences.length, 1);

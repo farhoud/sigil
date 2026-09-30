@@ -15,6 +15,13 @@ component SigilSemanticModel {
     model contracts without owning their domain behavior or data definitions.
   }
 
+  constraints {
+    DomainModelAssembly {
+      This ordinary summary describes domain model contracts only; each component
+      owns its *owned data shapes*.
+    }
+  }
+
   interface {
     ModelNamespace {
       LanguageModel, ConfigurationModel, DiagnosticModel, SourceModel, GlossaryModel,
@@ -23,13 +30,10 @@ component SigilSemanticModel {
       owners. This summary assembles their responsibilities without acquiring or
       re-exporting their Tags.
     }
-  }
+    Exposes DomainModelAssembly to direct consumers.
 
-  constraints {
-    DomainModelAssembly {
-      This ordinary summary describes domain model contracts only; each component
-      owns its *owned data shapes*.
-    }
+    Exposes consumers to direct consumers.
+
   }
 
   decisions {

@@ -28,29 +28,6 @@ component Calendar {
     chosen *calendar range*, with detail that depends on who is looking.
   }
 
-  interface {
-    Calendar provides the room calendar of a room, shown in the room timezone
-    with its zone label. Calendar assumes its caller passes the actor, the clock
-    and a calendar range of room-local dates.
-
-    For the room owner, the room calendar shows open time, each blackout, each
-    Confirmed booking request with its renter and each Pending booking request,
-    and marks each Confirmed one that is outside availability.
-
-    Calendar requires the *renter display name* of each renter it shows to the
-    room owner.
-
-    For any other actor, the room calendar shows open time, other renters'
-    Confirmed booking request items as an anonymous *booked block*, and that
-    actor's own Pending and Confirmed booking request items marked as theirs.
-
-    The room calendar marks each slot on the slot grid as requestable or not,
-    so a renter selects a start slot and an end slot directly on it; the end
-    slot is the last slot of the requested range, which runs from the start of
-    the start slot to the end of the end slot, and a one-slot request selects
-    the same slot twice.
-  }
-
   logic {
     Building the room calendar reads open time and, for the room owner, each
     blackout from Availability, and reads each booking request overlapping the
@@ -92,11 +69,6 @@ component Calendar {
     booking request state.
   }
 
-  decisions {
-    Renter identity is masked as a booked block to protect renters, while the
-    room owner keeps a full view to triage each Pending booking request.
-  }
-
   cases {
     Ana holds a Confirmed booking request; Ben's room calendar shows a booked
     block with no name and none of Ana's Pending items.
@@ -105,5 +77,33 @@ component Calendar {
     on the room calendar.
 
     A calendar range of 32 days is refused.
+  }
+
+  interface {
+    Calendar provides the room calendar of a room, shown in the room timezone
+    with its zone label. Calendar assumes its caller passes the actor, the clock
+    and a calendar range of room-local dates.
+
+    For the room owner, the room calendar shows open time, each blackout, each
+    Confirmed booking request with its renter and each Pending booking request,
+    and marks each Confirmed one that is outside availability.
+
+    Calendar requires the *renter display name* of each renter it shows to the
+    room owner.
+
+    For any other actor, the room calendar shows open time, other renters'
+    Confirmed booking request items as an anonymous *booked block*, and that
+    actor's own Pending and Confirmed booking request items marked as theirs.
+
+    The room calendar marks each slot on the slot grid as requestable or not,
+    so a renter selects a start slot and an end slot directly on it; the end
+    slot is the last slot of the requested range, which runs from the start of
+    the start slot to the end of the end slot, and a one-slot request selects
+    the same slot twice.
+  }
+
+  decisions {
+    Renter identity is masked as a booked block to protect renters, while the
+    room owner keeps a full view to triage each Pending booking request.
   }
 }

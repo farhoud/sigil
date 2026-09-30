@@ -9,23 +9,6 @@ component Availability {
     *open time* of a room over any range of dates.
   }
 
-  interface {
-    A room owner can add and remove a *weekly window*, a weekday with a start
-    and end in room-local time on the *slot grid*.
-
-    A room owner can add and remove a *blackout*, one whole room-local date on
-    which the room is closed.
-
-    Availability provides the open time of a room for a range of room-local
-    dates, as spans of absolute instants.
-
-    Availability provides each blackout of a room within a range of room-local
-    dates.
-
-    Availability provides the *clock*, the single caller-supplied source of the
-    current instant.
-  }
-
   state {
     The slot grid divides room-local time into 30-minute slots.
 
@@ -77,14 +60,6 @@ component Availability {
     reports open time.
   }
 
-  decisions {
-    Availability derives open time per date because daylight saving shifts move
-    each weekly window relative to absolute time.
-
-    Every change to a weekly window or a blackout goes through Booking because
-    each change requires a sweep of Pending booking request records on the room.
-  }
-
   cases {
     A room is open Friday 18:00 to 24:00 and Saturday 00:00 to 02:00; open time
     is one continuous span from Friday 18:00 to Saturday 02:00.
@@ -99,5 +74,33 @@ component Availability {
     slot grid although local 09:00 falls at half past the hour in UTC.
 
     An actor who is not the room owner tries to add a blackout; it is refused.
+  }
+
+  interface {
+    A room owner can add and remove a *weekly window*, a weekday with a start
+    and end in room-local time on the *slot grid*.
+
+    A room owner can add and remove a *blackout*, one whole room-local date on
+    which the room is closed.
+
+    Availability provides the open time of a room for a range of room-local
+    dates, as spans of absolute instants.
+
+    Availability provides each blackout of a room within a range of room-local
+    dates.
+
+    Availability provides the *clock*, the single caller-supplied source of the
+    current instant.
+
+    Availability identifies a nonexistent local time and a repeated local time
+    when resolving room-local ranges.
+  }
+
+  decisions {
+    Availability derives open time per date because daylight saving shifts move
+    each weekly window relative to absolute time.
+
+    Every change to a weekly window or a blackout goes through Booking because
+    each change requires a sweep of Pending booking request records on the room.
   }
 }

@@ -7,61 +7,6 @@ component SigilComparisonScope {
     so callers do not need duplicate *comparison scope assembly*.
   }
 
-  interface {
-    ScopeInput {
-      Accept a versioned scope containing ordered workspace-relative Design root
-      paths and CompilerInputSelection. Design roots name authored Sigil
-      files in the validated ResolvedDesignInput bundle. Reject unknown
-      fields, duplicate roots, missing roots, paths outside the workspace, and
-      accidental empty selection. Intentional emptiness is explicit for each side and
-      visible in the result. Without an explicit scope, retain full frontend Design
-      membership and ordinary Implementation selection. Reject conflicting selection
-      inputs.
-    }
-
-    FocusOrder {
-      Preserve the caller's *explicit root order* as focus priority. Do not sort it
-      away during normalization or replace it with filesystem discovery order. Return
-      that order from scoped commands so the frontend and caller can see what to
-      address first and next without a temporary priority table. Report dependency
-      additions deterministically after the requested roots, retaining their
-      inclusion reasons without displacing explicit priorities. Identify requested
-      order separately from unordered effective membership. Reprioritization changes
-      order identity, not unchanged semantic bindings. Order guides caller priority;
-      sigilc does not schedule interpretation or infer that an earlier entry has been
-      completed.
-    }
-
-    DesignMembership {
-      Resolve Design *roots* through frontend imports and structural ownership to a
-      closed set of physical files. Include transitive import targets and owner
-      declarations required by selected Tags and Facets. Terminate cycles with a
-      visited set. Preserve every authored unit in each included file with its
-      physical source and canonical owner. Report requested roots separately from
-      files included by dependency closure. Included dependency files participate in
-      Design compilation and catalog construction, rather than supplying hidden
-      comparison assumptions. Do not silently drop unresolved references or errors.
-      When unresolved imports require conservative full-bundle membership, report
-      that widening. Preserve applicable configuration, glossary context and global
-      diagnostics. Do not infer source membership from temporary prose or caller
-      metadata.
-    }
-
-    ScopedComparison {
-      Expose scope inspection without requiring reconstructed projections or a
-      current catalog. Return current input identities and retained frontend
-      diagnostics; inspection success is not a completed semantic gate. Use the same
-      resolved scope for freshness inspection, preparation, ingestion, Design
-      compilation, catalog export and Implementation comparison. Require per-source
-      operations to target a member of their selected side. Report deterministic
-      requested and effective membership and its fingerprint alongside current
-      SemanticInputs identities and the ordinary native named states. Keep
-      excluded cached objects
-      reusable. Distinguish outside-scope objects from deleted sources; neither
-      contributes assertions to the selected world.
-    }
-  }
-
   constraints {
 
     StructuralScope {
@@ -124,6 +69,61 @@ component SigilComparisonScope {
       successful
       focused comparison is not reported as complete-refactor convergence. Gate exits
       retain their subcommand-specific named states.
+    }
+  }
+
+  interface {
+    ScopeInput {
+      Accept a versioned scope containing ordered workspace-relative Design root
+      paths and CompilerInputSelection. Design roots name authored Sigil
+      files in the validated ResolvedDesignInput bundle. Reject unknown
+      fields, duplicate roots, missing roots, paths outside the workspace, and
+      accidental empty selection. Intentional emptiness is explicit for each side and
+      visible in the result. Without an explicit scope, retain full frontend Design
+      membership and ordinary Implementation selection. Reject conflicting selection
+      inputs.
+    }
+
+    FocusOrder {
+      Preserve the caller's *explicit root order* as focus priority. Do not sort it
+      away during normalization or replace it with filesystem discovery order. Return
+      that order from scoped commands so the frontend and caller can see what to
+      address first and next without a temporary priority table. Report dependency
+      additions deterministically after the requested roots, retaining their
+      inclusion reasons without displacing explicit priorities. Identify requested
+      order separately from unordered effective membership. Reprioritization changes
+      order identity, not unchanged semantic bindings. Order guides caller priority;
+      sigilc does not schedule interpretation or infer that an earlier entry has been
+      completed.
+    }
+
+    DesignMembership {
+      Resolve Design *roots* through frontend imports and structural ownership to a
+      closed set of physical files. Include transitive import targets and owner
+      declarations required by selected Tags and Facets. Terminate cycles with a
+      visited set. Preserve every authored unit in each included file with its
+      physical source and canonical owner. Report requested roots separately from
+      files included by dependency closure. Included dependency files participate in
+      Design compilation and catalog construction, rather than supplying hidden
+      comparison assumptions. Do not silently drop unresolved references or errors.
+      When unresolved imports require conservative full-bundle membership, report
+      that widening. Preserve applicable configuration, glossary context and global
+      diagnostics. Do not infer source membership from temporary prose or caller
+      metadata.
+    }
+
+    ScopedComparison {
+      Expose scope inspection without requiring reconstructed projections or a
+      current catalog. Return current input identities and retained frontend
+      diagnostics; inspection success is not a completed semantic gate. Use the same
+      resolved scope for freshness inspection, preparation, ingestion, Design
+      compilation, catalog export and Implementation comparison. Require per-source
+      operations to target a member of their selected side. Report deterministic
+      requested and effective membership and its fingerprint alongside current
+      SemanticInputs identities and the ordinary native named states. Keep
+      excluded cached objects
+      reusable. Distinguish outside-scope objects from deleted sources; neither
+      contributes assertions to the selected world.
     }
   }
 }

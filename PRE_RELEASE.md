@@ -10,7 +10,7 @@ Current architecture:
 - The language frontend owns parsing, resolution, inspection and structural export.
 - Rust `sigilc` owns source identity, disposable worlds, fixed semantic rules,
   ordered scope, catalogs and Design/Implementation reports.
-- The 0.8 design skills guide source-based understanding, writing and review;
+- The 0.9 design skills guide source-based understanding, writing and review;
   external producers prepare and ingest native interpretations.
 - The retained VS Code extension provides language features, preview/navigation
   and native gate status/diagnostics.
@@ -33,11 +33,11 @@ present; the durable workflow is the repository-owned Sigil skill and native
 command guide. A pre-release milestone does not waive it. Publishing or
 deploying requires separate authorization.
 
-## Sigil 0.8 design skills
+## Sigil 0.9 design skills
 
 `sigil-understand`, `sigil-evaluate`, and `sigil-write` are separate 0.1.0 skill
-artifacts for source-based 0.8 design work. They ship together with their bundled
-language authority and declared sibling dependencies. Their artifact versions are independent of the activated 0.8 root workspace and
+artifacts for source-based 0.9 design work. They ship together with their bundled
+language authority and declared sibling dependencies. Their artifact versions are independent of the activated 0.9 root workspace and
 updated core, CLI, LSP, editor and native compiler artifacts.
 
 `test:skill` validates this foundation offline. `test:skill:native` checks retained

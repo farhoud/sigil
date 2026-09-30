@@ -30,7 +30,7 @@ Deno.test("file URI conversion preserves Sigil paths", () => {
 });
 
 // @sigil tests packages/lsp/_module.sigil::SigilLsp::ProtocolSession interface,state,logic,constraints,cases
-Deno.test("initializes with the approved 0.8 capabilities and lifecycle", async () => {
+Deno.test("initializes with the approved 0.9 capabilities and lifecycle", async () => {
   const server = makeServer();
   const before = await server.handle(request(1, "shutdown"));
   assertEquals(errorCode(before), -32002);
@@ -164,6 +164,59 @@ Deno.test("publishes and clears diagnostics from open document overlays", async 
     textDocument: { uri: contractUri },
   }));
   assertEquals(diagnosticsFor(closed, contractUri).length, 0);
+});
+
+Deno.test("shares the Goal and Decisions Facet warning exemptions", async () => {
+  const source = `component Feature {
+  goal {
+    Explain the feature.
+  }
+
+  state {
+    Track the feature.
+  }
+
+  logic {
+    Compute the feature.
+  }
+
+  constraints {
+    Bound the feature.
+  }
+
+  cases {
+    Handle the feature.
+  }
+
+  interface {
+    Expose the feature.
+  }
+
+  decisions {
+    Prefer the feature.
+  }
+}
+`;
+  const server = new SigilLanguageServer({
+    currentDirectory: root,
+    fs: new InMemorySigilFileSystem({
+      [`${root}/.sigil/config.json`]: JSON.stringify({
+        sigilVersion: SIGIL_VERSION,
+        workspace: { name: "lsp-untagged-facets", members: [] },
+        files: { include: ["**/*.sigil"], exclude: [] },
+        tools: {},
+      }),
+      [contractPath]: source,
+    }),
+  });
+  await initialize(server);
+  const published = await server.handle(notification("textDocument/didOpen", {
+    textDocument: { uri: contractUri, version: 1, text: source },
+  }));
+  const warnings = diagnosticsFor(published, contractUri).filter((item) =>
+    item.code === "SIGIL_UNTAGGED_FACET"
+  );
+  assertEquals(warnings.length, 5);
 });
 
 // @sigil tests packages/lsp/_module.sigil::SigilLsp::DiagnosticPublishing interface
@@ -1102,14 +1155,15 @@ const contractSource = `component Thing {
     Represent one useful Execution.
   }
 
-  interface {
-    Execution {
-      run() starts an Execution.
-    }
-  }
   cases {
     Execution {
       Running succeeds. Each Execution ends.
+    }
+  }
+
+  interface {
+    Execution {
+      run() starts an Execution.
     }
   }
 }
@@ -1122,6 +1176,10 @@ component Consumer {
     Consume the provider contract for Execution.
   }
 
+  constraints {
+    Consumer retries preserve Execution.
+  }
+
   interface {
     ConsumerSurface {
       run() uses Execution.
@@ -1129,9 +1187,6 @@ component Consumer {
       execution and ExecutionCache remain prose
       beside Execution.
     }
-  }
-  constraints {
-    Consumer retries preserve Execution.
   }
 }
 `;

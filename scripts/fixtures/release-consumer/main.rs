@@ -104,9 +104,9 @@ fn run() -> Result<(), String> {
     }
     let structural = compact(&stdout_text(&exported));
     if !structural.contains("\"schemaVersion\":2")
-        || !structural.contains("\"languageVersion\":\"0.8.0\"")
+        || !structural.contains("\"languageVersion\":\"0.9.0\"")
     {
-        return Err("expected Sigil 0.8 schema-2 structural export".into());
+        return Err("expected Sigil 0.9 schema-2 structural export".into());
     }
     let frontend = unrelated.join("frontend.json");
     fs::write(&frontend, &exported.stdout).map_err(io_error)?;

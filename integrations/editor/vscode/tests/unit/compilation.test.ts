@@ -113,7 +113,7 @@ async function fixture(nativeScript?: string) {
   const cwd = await mkdtemp(path.join(os.tmpdir(), "sigil editor tests "));
   await writeFile(
     path.join(cwd, "export"),
-    'process.stdout.write(JSON.stringify({schemaVersion:2,languageVersion:"0.8.0", sources:[{path:"a.sigil",text:"exact"}]}));',
+    'process.stdout.write(JSON.stringify({schemaVersion:2,languageVersion:"0.9.0", sources:[{path:"a.sigil",text:"exact"}]}));',
   );
   await writeFile(
     path.join(cwd, "compile"),
@@ -272,7 +272,8 @@ test("obsolete or failing language exports never launch the native compiler", as
   for (
     const script of [
       'console.log(JSON.stringify({schemaVersion:1,languageVersion:"0.7.0"}));',
-      'console.log(JSON.stringify({schemaVersion:2,languageVersion:"0.8.0",diagnostics:[{code:"INVALID"}]}));process.exitCode=1;',
+      'console.log(JSON.stringify({schemaVersion:2,languageVersion:"0.8.0"}));',
+      'console.log(JSON.stringify({schemaVersion:2,languageVersion:"0.9.0",diagnostics:[{code:"INVALID"}]}));process.exitCode=1;',
     ]
   ) {
     const cwd = await fixture();

@@ -2,7 +2,7 @@
 
 Implemented pre-production VS Code extension for Sigil.
 
-Language 0.8 responsibilities:
+Language 0.9 responsibilities:
 
 - provide `.sigil` TextMate syntax highlighting and resolver-backed component,
   Tag, and reviewed glossary-term highlighting through LSP semantic tokens;
@@ -46,7 +46,7 @@ Implementation state. The editor validates those pairings and displays native
 findings and truncation counts. It does not interpret eqval tables or infer
 color from absent diagnostics. File-only locations do not invent code ranges.
 
-Native compilation requires language 0.8 Design export schema 2 and native
+Native compilation requires language 0.9 Design export schema 2 and native
 report version 2. Old reports are rejected. Ranged findings carry a source
 digest and an explicit coordinate convention; the editor verifies disk bytes and
 maps them to visible UTF-16 text, including hidden BOMs and normalized line

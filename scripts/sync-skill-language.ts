@@ -1,10 +1,12 @@
 import { basename, isAbsolute, join, posix, resolve } from "node:path";
+import { SIGIL_VERSION } from "../packages/core/src/model/language.ts";
 
 /** Explicit inputs: additions require a deliberate packaging decision. */
 export const LANGUAGE_SOURCES = [
   "spec/sigil-reference.md",
   "spec/sigil.ebnf",
   "spec/sigil-language.md",
+  "spec/migrating-to-0.9.md",
   "spec/sigil-config.md",
   "spec/sigil-config.schema.json",
 ] as const;
@@ -22,7 +24,7 @@ export interface DocumentaryLink {
 }
 export interface LanguageManifest {
   formatVersion: 1;
-  sigilVersion: "0.8.0";
+  sigilVersion: typeof SIGIL_VERSION;
   upstreamRepository: string;
   upstreamRevision: string;
   transformation: "documentary-background-links-v1";
@@ -162,7 +164,7 @@ export async function sha256(bytes: Uint8Array): Promise<string> {
 
 function assertManifest(manifest: LanguageManifest): void {
   if (
-    manifest.formatVersion !== 1 || manifest.sigilVersion !== "0.8.0" ||
+    manifest.formatVersion !== 1 || manifest.sigilVersion !== SIGIL_VERSION ||
     manifest.upstreamRepository !== UPSTREAM ||
     !/^[0-9a-f]{40}$/.test(manifest.upstreamRevision) ||
     manifest.transformation !== "documentary-background-links-v1" ||
@@ -271,7 +273,7 @@ export async function syncLanguagePack(
   }
   const manifest: LanguageManifest = {
     formatVersion: 1,
-    sigilVersion: "0.8.0",
+    sigilVersion: SIGIL_VERSION,
     upstreamRepository: UPSTREAM,
     upstreamRevision: revision,
     transformation: "documentary-background-links-v1",

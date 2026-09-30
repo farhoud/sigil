@@ -114,7 +114,7 @@ export interface DesignImport {
 /** Structural transport only; no semantic laws or model-produced interpretation. */
 export interface DesignInput {
   readonly schemaVersion: 2;
-  readonly languageVersion: "0.8.0";
+  readonly languageVersion: typeof SIGIL_VERSION;
   readonly frontendVersion: string;
   readonly sources: readonly { path: string; text: string }[];
   readonly context: readonly { path: string; text: string | null }[];

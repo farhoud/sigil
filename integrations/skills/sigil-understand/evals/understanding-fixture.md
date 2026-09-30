@@ -40,11 +40,11 @@ component SearchPanel {
   goal {
     Help the user find records with query.
   }
-  interface {
-    Display search results for the current search.
-  }
   constraints {
     Only the active request may publish search results.
+  }
+  interface {
+    Display search results for the current search.
   }
   decisions {
     Request cancellation is one possible implementation, not a selected design.

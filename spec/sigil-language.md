@@ -1,6 +1,6 @@
 # Sigil Language Guide
 
-**Language version:** 0.8.0; implemented in this checkout, publication separate.
+**Language version:** 0.9.0; implemented in this checkout, publication separate.
 
 This guide teaches humans and coding agents how to read, write, and revise
 Sigil. The [Language Reference](sigil-reference.md) and its
@@ -8,7 +8,7 @@ Sigil. The [Language Reference](sigil-reference.md) and its
 its examples and authoring advice do not introduce additional language rules.
 
 The active repository contracts and current core, CLI, LSP and VS Code tools
-use 0.8.0. Historical skill sources remain excluded. See [Migrating to 0.8](migrating-to-0.8.md).
+use 0.9.0. Historical skill sources remain excluded. See [Migrating to 0.9](migrating-to-0.9.md).
 
 ## Contents
 
@@ -89,16 +89,6 @@ component SearchPanel {
     Help a user find records by their search text.
   }
 
-  interface {
-    Accept search text and display matching records.
-
-    Show an empty result message when no records match.
-
-    Let the user replace or cancel an active search.
-
-    Show a search error when a request fails and allow another attempt.
-  }
-
   state {
     The search is idle, loading, ready, or failed.
 
@@ -119,11 +109,6 @@ component SearchPanel {
     Only the active request may publish results or an error.
   }
 
-  decisions {
-    Keep the active request authoritative because responses can arrive out
-    of submission order, including after cancellation.
-  }
-
   cases {
     A successful search with no matches shows the empty result message.
 
@@ -132,6 +117,21 @@ component SearchPanel {
     A response arrives after cancellation; it does not change the display.
 
     An older response arrives after a newer result; the newer result remains.
+  }
+
+  interface {
+    Accept search text and display matching records.
+
+    Show an empty result message when no records match.
+
+    Let the user replace or cancel an active search.
+
+    Show a search error when a request fails and allow another attempt.
+  }
+
+  decisions {
+    Keep the active request authoritative because responses can arrive out
+    of submission order, including after cancellation.
   }
 }
 ```
@@ -245,7 +245,7 @@ Do not create a new component just because a paragraph is long.
 
 Each component has one declaration with a workspace-unique name. All its
 contracts belong there. Splitting a declaration across files with `expand` is
-not part of 0.8. File placement is an organizational choice, but moving a source
+not part of 0.9. File placement is an organizational choice, but moving a source
 requires updating its import paths and relative content links.
 
 ### Give independently reviewable ideas separate Facets
@@ -444,12 +444,12 @@ component SearchScreen {
     Let the user find and inspect records.
   }
 
-  interface {
-    Accept a query and display search results.
-  }
-
   logic {
     Pass the user's query to submit and display the returned search results.
+  }
+
+  interface {
+    Accept a query and display search results.
   }
 }
 ```
@@ -493,14 +493,14 @@ to Search in its prose. A heading named Search would create or reuse a local
 Tag and collide with the import. A heading never adopts the provider's identity.
 
 Two providers can own different Tags named status, but importing both into one
-source is ambiguous. There are no aliases or qualified Tag references in 0.8.
+source is ambiguous. There are no aliases or qualified Tag references in 0.9.
 Choose distinct provider vocabulary where appropriate; do not pretend renaming
 an unrelated local heading resolves two colliding imports.
 
 Imports are file-scoped. If several components share a source, its imports are
 accessible in each and can collide with any component's local vocabulary.
 
-### Tags from State are also importable
+### Tags from other sections need Interface evidence
 
 **Complete two-source example — independent of the search examples above.**
 
@@ -512,12 +512,12 @@ component JobWorker {
     Process a submitted job.
   }
 
-  interface {
-    Accept a job and report whether work is active.
-  }
-
   state {
     The worker is *Idle* or *Running*.
+  }
+
+  interface {
+    Accept a job and report whether work is active as Running.
   }
 }
 ```
@@ -538,9 +538,11 @@ component JobStatus {
 }
 ```
 
-Tags in any contract can be imported. Importability does not grant runtime
-access to private data or override an access restriction. The design still
-needs an interaction that supplies the information; here the worker offers it.
+Tags introduced in State, Logic, Constraints, Cases, or Decisions need valid
+Interface evidence before they can be imported. Importability does not grant
+runtime access to private data or override an access restriction. The design
+still needs an interaction that supplies the information; here the worker offers
+the `Running` status through its Interface.
 
 A component with no Tags is valid but has no Tags to import. Imports describe
 vocabulary dependencies; they are not a complete inventory of runtime calls or
@@ -565,10 +567,6 @@ component Delivery {
     Deliver a submitted message and report its outcome.
   }
 
-  interface {
-    Accept a message and expose pending, delivered, or failed status.
-  }
-
   logic {
     A submitted message follows this lifecycle:
     ```mermaid
@@ -577,6 +575,10 @@ component Delivery {
       Pending --> Delivered: accepted by destination
       Pending --> Failed: delivery rejected
     ```
+  }
+
+  interface {
+    Accept a message and expose pending, delivered, or failed status.
   }
 }
 ````
@@ -801,12 +803,6 @@ component BoundedQueue {
     Buffer work while bounding the number of pending items.
   }
 
-  interface {
-    Accept an item when space is available and report full otherwise.
-
-    Remove the oldest pending item, or report empty.
-  }
-
   state {
     Pending items have insertion order and a fixed positive capacity.
   }
@@ -819,6 +815,12 @@ component BoundedQueue {
     An insertion into a full queue reports full and preserves pending items.
 
     Removing twice after inserting A then B returns A then B.
+  }
+
+  interface {
+    Accept an item when space is available and report full otherwise.
+
+    Remove the oldest pending item, or report empty.
   }
 }
 ```
@@ -833,12 +835,6 @@ choices such as arrays versus linked storage open.
 component ReservationWindow {
   goal {
     Describe the time interval occupied by a reservation.
-  }
-
-  interface {
-    Accept a start instant and an end instant.
-
-    Report whether an instant falls within the reservation.
   }
 
   state {
@@ -857,6 +853,12 @@ component ReservationWindow {
   cases {
     The start instant is within the window; the end instant is outside it.
   }
+
+  interface {
+    Accept a start instant and an end instant.
+
+    Report whether an instant falls within the reservation.
+  }
 }
 ```
 
@@ -871,14 +873,18 @@ component AuditRetention {
     Bound how long completed audit records remain available.
   }
 
-  interface {
-    Evaluate whether a completed audit record is eligible for deletion.
-  }
-
   constraints {
     RetentionPeriod {
       Keep completed audit records for at least 30 days after completion.
     }
+  }
+
+  cases {
+    A record completed 29 days ago is not eligible for deletion.
+  }
+
+  interface {
+    Evaluate whether a completed audit record is eligible for deletion.
   }
 
   decisions {
@@ -894,10 +900,6 @@ component AuditRetention {
 
       Revisit when: Investigation needs require a longer history.
     }
-  }
-
-  cases {
-    A record completed 29 days ago is not eligible for deletion.
   }
 }
 ```
@@ -915,24 +917,24 @@ component ApplicationPersistence {
     Keep domain operations independent of database integration details.
   }
 
-  interface {
-    Provide repository operations for reading and saving domain records.
-  }
-
   constraints {
     Domain operations access persisted records through repository interfaces.
 
     Database client types do not appear in domain operation signatures.
   }
 
-  decisions {
-    Keep database integration behind repositories so domain rules can be
-    exercised without database access.
-  }
-
   cases {
     A domain rule test supplies an in-memory repository and requires no
     database connection.
+  }
+
+  interface {
+    Provide repository operations for reading and saving domain records.
+  }
+
+  decisions {
+    Keep database integration behind repositories so domain rules can be
+    exercised without database access.
   }
 }
 ```
@@ -949,7 +951,7 @@ sources; see [workspace configuration](sigil-config.md). Additional projects
 can be declared as workspace members. Excluded nested workspaces remain
 independent. Read the reference for exact discovery and boundary rules.
 
-`_module.sigil` is an ordinary filename in 0.8. It can hold a project summary,
+`_module.sigil` is an ordinary filename in 0.9. It can hold a project summary,
 but it does not re-export components or provide directory-import shorthand.
 Import Tags from the explicit file declaring their owner.
 
@@ -959,7 +961,7 @@ Import Tags from the explicit file declaring their owner.
 | Adding detail | Edit the existing section; repeated sections are invalid. |
 | Naming a concept | Introduce `*name*` once; use bare names afterward. |
 | Grouping | Bare local headings can repeat; groups are flat and nonempty. |
-| Importing | Select used Tags from the owner; no aliases, wildcards, or re-exports. |
+| Importing | Select Interface-evidenced Tags from the direct owner; no aliases, wildcards, or re-exports. |
 | Writing prose | Blank lines separate Facets; wrap prose to 79 content characters. |
 | Adding notation | Attach a fence directly to introducing prose. |
 | Adding context | State a link's role and read required targets. |
@@ -968,4 +970,4 @@ Import Tags from the explicit file declaring their owner.
 
 For exact rules, error conditions, and parser behavior, use the
 [Language Reference](sigil-reference.md). For changes from the previous language,
-use the [migration guide](migrating-to-0.8.md).
+use the [migration guide](migrating-to-0.9.md).

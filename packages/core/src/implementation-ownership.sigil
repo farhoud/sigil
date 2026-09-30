@@ -12,158 +12,6 @@ component SigilImplementationOwnership {
     for CLI and LSP without writing annotations into Sigil source.
   }
 
-  interface {
-    ImplementationEvidenceInput {
-      contains *exactly workspaceSnapshotIdentity*, discoveryState, sources, and
-      diagnostics
-
-      workspaceSnapshotIdentity is copied from the *ResolvedSigilWorkspace* for which
-      the host performed implementation-source discovery
-
-      *discoveryState* is exactly complete or unavailable
-
-      sources is an *immutable ordered collection* of ImplementationSourceRecord
-      values
-
-      diagnostics is an immutable ordered collection of complete SigilDiagnostic
-      records from DiagnosticModel, owned by SigilDiagnosticModel
-
-      ImplementationSourceRecord contains exactly *filePath* and text; filePath is
-      one
-      normalized workspace-relative path accepted by isSupportedImplementationSource,
-      and text is the exact decoded text the host read from that filePath
-
-      complete means every successfully discovered supported source is present,
-      including the valid zero-source case; records are ordered by normalized path
-      and *duplicate* normalized paths are rejected
-
-      unavailable requires an *empty source collection* and at least one discovery
-      diagnostic
-
-      discovery diagnostics follow DiagnosticModel ordering and coalescing;
-      preserve stage and related locations as part of each complete record
-    }
-
-    OwnedImplementationLookup {
-      ownedImplementationTargetsFor(resolvedWorkspace, implementationSources,
-      componentIdentity, tagName?, sectionName?) returns an *owned-implementation*
-      projection or undefined
-
-      implementationSources is exactly the ordered immutable source collection from
-      ImplementationEvidenceInput.sources, not the evidence envelope itself; envelope
-      *evidence envelope validation* and snapshot/discovery-state handling remain
-      with the caller.
-
-      componentIdentity contains the *exact case-sensitive componentName* and
-      normalized workspace-relative declarationPath of one resolved component
-
-      returns undefined only when componentIdentity identifies no exact resolved
-      component or *tagName* is supplied and identifies no Tag in that component
-
-      returns a projection with an *empty targets collection* when the component and
-      optional Tag resolve but no annotation matches the optional section scope
-
-      The query scans implementation comments that link entrypoint definitions or
-      agent-facing Markdown back to the *selected Sigil component* and optional Tag
-      and
-      section scopes.
-    }
-
-    OwnershipDiagnostics {
-      ownershipDiagnosticsFor(resolvedWorkspace, implementationSources) returns all
-      *deterministic ownership-annotation diagnostics* from supported implementation
-      sources without requiring a selected component.
-
-      The result includes malformed, detached, *unknown-target*, and
-      unresolved-section
-      diagnostics and excludes valid annotations and unsupported source paths.
-    }
-
-    OwnedImplementationProjection {
-      includes the *owning contract*, optional Tag and section scopes, normalized
-      implementation targets, and diagnostics
-    }
-
-    OwnedImplementationTarget {
-      each target identifies one *owned implementation artifact*
-
-      each target preserves the artifact kind, file path, *selected sections*, and
-      optional symbol identity when available
-
-      location is the one-way entrypoint location for a code annotation or the
-      document-start location for agent-facing Markdown. It has no *end position* and
-      is absent only for file-scoped annotations without an entrypoint.
-
-      annotationRange is the exact ownership-comment range used as
-      *annotation provenance*. It
-      remains internal discovery evidence and does not make an annotation a promise
-      that the linked implementation completely owns, implements, or remains aligned
-      with the selected Sigil sections.
-    }
-
-    ImplementationSourceSupport {
-      isSupportedImplementationSource(filePath) returns whether the path can contain
-      a *supported ownership annotation*
-
-      supportedImplementationSourceGlobPatterns returns immutable workspace watcher
-      patterns covering the same *supported source extensions*
-
-      supported paths include single-language code, *markup*, stylesheet, and
-      single-file component sources
-    }
-
-    ComponentFileRegions {
-      A single-file component or *markup source* is scanned as an ordered set of
-      regions rather than as one language.
-
-        Each region carries the comment syntax used to find *ownership annotations* and
-        the
-      binding
-      used to resolve their targets.
-
-      A script region uses the *code comment syntax* of its enclosing family, a style
-      region uses stylesheet block and line comments, and every remaining region is
-      template markup.
-
-      A template markup region accepts an *HTML comment*, and a server-template
-      family
-      additionally accepts its own template comment form.
-
-      Binding uses one *binding mode*: symbol, optional-symbol, or file. Symbol
-      requires an
-      adjacent entrypoint definition, file never resolves one, and optional-symbol
-      resolves an adjacent entrypoint when one exists and otherwise binds the
-      containing file.
-    }
-
-    ImplementationAnnotation {
-      identifies a relation, *repository-relative Sigil* path, component name,
-      optional
-      Tag name, and one or more selected sections
-
-      the containing implementation file and adjacent entrypoint definition identify
-      the *owned implementation target*
-
-      uses *@sigil* <relation> <file>::<component>[::<Tag>] <section>[,<section>...]
-
-      file is a repository-relative Sigil path
-
-      file identifies the source declaring the named component; removed expansion
-      locations require the migration locator mapping, not runtime fallback.
-
-      The optional Tag suffix accepts an *existing simple unquoted name* or one
-      JSON-quoted string after the file/component locator. Parse a quoted suffix
-      atomically, preserving spaces, quotes, backslashes, and embedded :: exactly.
-
-      implements links an artifact that implements the
-      *selected section occurrences*.
-
-      uses links an artifact that uses the selected section occurrences.
-
-      tests links an artifact that tests the selected section occurrences.
-    }
-  }
-
   logic {
     OwnedImplementationProjection {
       scan supplied implementation sources for *supported ownership comments*
@@ -343,6 +191,278 @@ component SigilImplementationOwnership {
       preserves its owning component, optional Tag, optional section scope, and
       diagnostics.
     }
+  }
+
+  cases {
+
+    FacetTagAssociation {
+      A Facet under a local grouping matches that Tag *selector* even when its prose
+      does not repeat the name. An inline-only Tag and an imported Tag referenced in
+      consumer prose also support exact selectors without inventing grouping
+      declarations. Each resulting link retains the consumer owner, selected
+      sections, exact Tag scope, and separate origin.
+    }
+
+    QuotedTagSelectors {
+      A JSON-quoted Tag *suffix containing spaces*, an escaped quote, a backslash, or
+      :: resolves its exact name atomically. Existing simple unquoted names and
+      implements, uses, and tests relations remain valid.
+
+      A Tag with no consumer-owned Facet in the selected section yields the existing
+      unresolved-section diagnostic, even when the provider has a *matching section*.
+    }
+    ImplementationEvidenceInput {
+      Complete discovery with zero records is valid evidence and *differs* from
+      unavailable discovery with zero records and at least one diagnostic.
+
+        Two records that normalize to the same workspace-relative path are rejected
+        before implementation *ownership* scanning.
+    }
+
+    ComponentFileRegions {
+      A single-file component contributes one target per annotated region, so a
+      template comment and a scoped style comment bind to the file while a *script*
+      comment above a function binds to that function.
+
+      An annotation inside a script-setup block with no following definition binds to
+      the file instead of producing a *detached-annotation* diagnostic.
+
+      One annotation inside a stylesheet block comment is valid because plain CSS
+      offers no *line-comment form*.
+
+      A scheme separator such as the one in url(https://example.test/a.png) does not
+      begin a *stylesheet line comment*.
+
+      Astro frontmatter between leading triple-dash fences resolves a *symbol-level*
+      target from the definition following its annotation.
+
+      An annotation inside an embedded script block of a markup source resolves to
+      the *symbol-level target* from the following definition rather than being
+      silently dropped.
+
+      A server-template comment carries an annotation without emitting it to the
+      rendered page, while an HTML comment in the same source remains valid.
+
+      A server-template comment form written in an *HTML* or single-file component
+      source is ordinary content and yields neither a target nor a diagnostic.
+    }
+
+    ImplementationSourceSupport {
+      A supported source path is accepted by the predicate and matched by a shared
+      *watcher pattern*.
+
+      A single-file component, template markup, and *stylesheet path* are supported
+      sources.
+
+      Sigil, JSON, unsupported, and *extensionless paths* are rejected by the
+      predicate.
+    }
+
+    OwnedImplementationLookup {
+      A TypeScript line comment immediately before one function links that function
+      to a *Sigil component* or Tag.
+
+      A language multiline comment contains multiple ownership annotations for one
+      *class*, method, interface, struct, or equivalent entrypoint.
+
+      An HTML comment links an *agent-facing Markdown workflow file* to a Sigil
+      component or Tag.
+
+      A component annotation can implement logic and Constraints occurrences
+      without
+      naming a Tag.
+
+      A Tag annotation can use the *interface occurrence* of that Tag.
+
+      *JSON content* is ignored.
+
+      An unknown exact component identity or supplied Tag returns undefined.
+
+      Two components with the same name but different declaration paths are queried
+      independently and never share ownership targets through name-only *fallback*.
+
+      A resolved exact component with no *matching annotation* returns an empty
+      projection.
+    }
+
+    OwnershipDiagnostics {
+      A workspace check can report an *invalid ownership annotation* even when its
+      target component is not otherwise selected by a host command.
+    }
+
+    TargetResolution {
+      A source annotation adjacent to a supported entrypoint produces a symbol-level
+      implementation target.
+
+      A Markdown instruction comment produces a *file-level implementation* target.
+
+      A detached or *ambiguous annotation* produces a diagnostic instead of an
+      inferred
+      target.
+
+      A Tag annotation naming a section where the Tag does not occur produces a
+      *section diagnostic*.
+
+      A consumer annotation selecting an imported Tag points to consumer-owned
+      Facets
+      in selected sections while retaining the separate provider Tag identity.
+    }
+  }
+
+  interface {
+    ImplementationEvidenceInput {
+      contains *exactly workspaceSnapshotIdentity*, discoveryState, sources, and
+      diagnostics
+
+      workspaceSnapshotIdentity is copied from the *ResolvedSigilWorkspace* for which
+      the host performed implementation-source discovery
+
+      *discoveryState* is exactly complete or unavailable
+
+      sources is an *immutable ordered collection* of ImplementationSourceRecord
+      values
+
+      diagnostics is an immutable ordered collection of complete SigilDiagnostic
+      records from DiagnosticModel, owned by SigilDiagnosticModel
+
+      ImplementationSourceRecord contains exactly *filePath* and text; filePath is
+      one
+      normalized workspace-relative path accepted by isSupportedImplementationSource,
+      and text is the exact decoded text the host read from that filePath
+
+      complete means every successfully discovered supported source is present,
+      including the valid zero-source case; records are ordered by normalized path
+      and *duplicate* normalized paths are rejected
+
+      unavailable requires an *empty source collection* and at least one discovery
+      diagnostic
+
+      discovery diagnostics follow DiagnosticModel ordering and coalescing;
+      preserve stage and related locations as part of each complete record
+    }
+
+    OwnedImplementationLookup {
+      ownedImplementationTargetsFor(resolvedWorkspace, implementationSources,
+      componentIdentity, tagName?, sectionName?) returns an *owned-implementation*
+      projection or undefined
+
+      implementationSources is exactly the ordered immutable source collection from
+      ImplementationEvidenceInput.sources, not the evidence envelope itself; envelope
+      *evidence envelope validation* and snapshot/discovery-state handling remain
+      with the caller.
+
+      componentIdentity contains the *exact case-sensitive componentName* and
+      normalized workspace-relative declarationPath of one resolved component
+
+      returns undefined only when componentIdentity identifies no exact resolved
+      component or *tagName* is supplied and identifies no Tag in that component
+
+      returns a projection with an *empty targets collection* when the component and
+      optional Tag resolve but no annotation matches the optional section scope
+
+      The query scans implementation comments that link entrypoint definitions or
+      agent-facing Markdown back to the *selected Sigil component* and optional Tag
+      and
+      section scopes.
+    }
+
+    OwnershipDiagnostics {
+      ownershipDiagnosticsFor(resolvedWorkspace, implementationSources) returns all
+      *deterministic ownership-annotation diagnostics* from supported implementation
+      sources without requiring a selected component.
+
+      The result includes malformed, detached, *unknown-target*, and
+      unresolved-section
+      diagnostics and excludes valid annotations and unsupported source paths.
+    }
+
+    OwnedImplementationProjection {
+      includes the *owning contract*, optional Tag and section scopes, normalized
+      implementation targets, and diagnostics
+    }
+
+    OwnedImplementationTarget {
+      each target identifies one *owned implementation artifact*
+
+      each target preserves the artifact kind, file path, *selected sections*, and
+      optional symbol identity when available
+
+      location is the one-way entrypoint location for a code annotation or the
+      document-start location for agent-facing Markdown. It has no *end position* and
+      is absent only for file-scoped annotations without an entrypoint.
+
+      annotationRange is the exact ownership-comment range used as
+      *annotation provenance*. It
+      remains internal discovery evidence and does not make an annotation a promise
+      that the linked implementation completely owns, implements, or remains aligned
+      with the selected Sigil sections.
+    }
+
+    ImplementationSourceSupport {
+      isSupportedImplementationSource(filePath) returns whether the path can contain
+      a *supported ownership annotation*
+
+      supportedImplementationSourceGlobPatterns returns immutable workspace watcher
+      patterns covering the same *supported source extensions*
+
+      supported paths include single-language code, *markup*, stylesheet, and
+      single-file component sources
+    }
+
+    ComponentFileRegions {
+      A single-file component or *markup source* is scanned as an ordered set of
+      regions rather than as one language.
+
+        Each region carries the comment syntax used to find *ownership annotations* and
+        the
+      binding
+      used to resolve their targets.
+
+      A script region uses the *code comment syntax* of its enclosing family, a style
+      region uses stylesheet block and line comments, and every remaining region is
+      template markup.
+
+      A template markup region accepts an *HTML comment*, and a server-template
+      family
+      additionally accepts its own template comment form.
+
+      Binding uses one *binding mode*: symbol, optional-symbol, or file. Symbol
+      requires an
+      adjacent entrypoint definition, file never resolves one, and optional-symbol
+      resolves an adjacent entrypoint when one exists and otherwise binds the
+      containing file.
+    }
+
+    ImplementationAnnotation {
+      identifies a relation, *repository-relative Sigil* path, component name,
+      optional
+      Tag name, and one or more selected sections
+
+      the containing implementation file and adjacent entrypoint definition identify
+      the *owned implementation target*
+
+      uses *@sigil* <relation> <file>::<component>[::<Tag>] <section>[,<section>...]
+
+      file is a repository-relative Sigil path
+
+      file identifies the source declaring the named component; removed expansion
+      locations require the migration locator mapping, not runtime fallback.
+
+      The optional Tag suffix accepts an *existing simple unquoted name* or one
+      JSON-quoted string after the file/component locator. Parse a quoted suffix
+      atomically, preserving spaces, quotes, backslashes, and embedded :: exactly.
+
+      implements links an artifact that implements the
+      *selected section occurrences*.
+
+      uses links an artifact that uses the selected section occurrences.
+
+      tests links an artifact that tests the selected section occurrences.
+    }
+    Exposes ownership annotation to direct consumers.
+
+    Exposes ownership link to direct consumers.
+
   }
 
   decisions {
@@ -610,122 +730,6 @@ component SigilImplementationOwnership {
       Revisit when: Symbol-level targets are needed inside *template markup* or
       stylesheet selectors, or a supported framework stops being recoverable from
       source text alone.
-    }
-  }
-
-  cases {
-
-    FacetTagAssociation {
-      A Facet under a local grouping matches that Tag *selector* even when its prose
-      does not repeat the name. An inline-only Tag and an imported Tag referenced in
-      consumer prose also support exact selectors without inventing grouping
-      declarations. Each resulting link retains the consumer owner, selected
-      sections, exact Tag scope, and separate origin.
-    }
-
-    QuotedTagSelectors {
-      A JSON-quoted Tag *suffix containing spaces*, an escaped quote, a backslash, or
-      :: resolves its exact name atomically. Existing simple unquoted names and
-      implements, uses, and tests relations remain valid.
-
-      A Tag with no consumer-owned Facet in the selected section yields the existing
-      unresolved-section diagnostic, even when the provider has a *matching section*.
-    }
-    ImplementationEvidenceInput {
-      Complete discovery with zero records is valid evidence and *differs* from
-      unavailable discovery with zero records and at least one diagnostic.
-
-        Two records that normalize to the same workspace-relative path are rejected
-        before implementation *ownership* scanning.
-    }
-
-    ComponentFileRegions {
-      A single-file component contributes one target per annotated region, so a
-      template comment and a scoped style comment bind to the file while a *script*
-      comment above a function binds to that function.
-
-      An annotation inside a script-setup block with no following definition binds to
-      the file instead of producing a *detached-annotation* diagnostic.
-
-      One annotation inside a stylesheet block comment is valid because plain CSS
-      offers no *line-comment form*.
-
-      A scheme separator such as the one in url(https://example.test/a.png) does not
-      begin a *stylesheet line comment*.
-
-      Astro frontmatter between leading triple-dash fences resolves a *symbol-level*
-      target from the definition following its annotation.
-
-      An annotation inside an embedded script block of a markup source resolves to
-      the *symbol-level target* from the following definition rather than being
-      silently dropped.
-
-      A server-template comment carries an annotation without emitting it to the
-      rendered page, while an HTML comment in the same source remains valid.
-
-      A server-template comment form written in an *HTML* or single-file component
-      source is ordinary content and yields neither a target nor a diagnostic.
-    }
-
-    ImplementationSourceSupport {
-      A supported source path is accepted by the predicate and matched by a shared
-      *watcher pattern*.
-
-      A single-file component, template markup, and *stylesheet path* are supported
-      sources.
-
-      Sigil, JSON, unsupported, and *extensionless paths* are rejected by the
-      predicate.
-    }
-
-    OwnedImplementationLookup {
-      A TypeScript line comment immediately before one function links that function
-      to a *Sigil component* or Tag.
-
-      A language multiline comment contains multiple ownership annotations for one
-      *class*, method, interface, struct, or equivalent entrypoint.
-
-      An HTML comment links an *agent-facing Markdown workflow file* to a Sigil
-      component or Tag.
-
-      A component annotation can implement logic and Constraints occurrences
-      without
-      naming a Tag.
-
-      A Tag annotation can use the *interface occurrence* of that Tag.
-
-      *JSON content* is ignored.
-
-      An unknown exact component identity or supplied Tag returns undefined.
-
-      Two components with the same name but different declaration paths are queried
-      independently and never share ownership targets through name-only *fallback*.
-
-      A resolved exact component with no *matching annotation* returns an empty
-      projection.
-    }
-
-    OwnershipDiagnostics {
-      A workspace check can report an *invalid ownership annotation* even when its
-      target component is not otherwise selected by a host command.
-    }
-
-    TargetResolution {
-      A source annotation adjacent to a supported entrypoint produces a symbol-level
-      implementation target.
-
-      A Markdown instruction comment produces a *file-level implementation* target.
-
-      A detached or *ambiguous annotation* produces a diagnostic instead of an
-      inferred
-      target.
-
-      A Tag annotation naming a section where the Tag does not occur produces a
-      *section diagnostic*.
-
-      A consumer annotation selecting an imported Tag points to consumer-owned
-      Facets
-      in selected sections while retaining the separate provider Tag identity.
     }
   }
 }

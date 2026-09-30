@@ -6,12 +6,12 @@ import { InMemorySigilFileSystem, loadDesignInput } from "../src/mod.ts";
 
 export const designFixtureFiles = {
   ".sigil/config.json": JSON.stringify({
-    sigilVersion: "0.8.0",
+    sigilVersion: "0.9.0",
     workspace: { name: "fixture" },
     files: { include: ["**/*.sigil"] },
   }),
   "base.sigil":
-    "\uFEFFcomponent Base {\r\ngoal {\r\nOwn provider vocabulary.\r\n}\r\ninterface {\r\nA *value* and *result* exist.\r\n}\r\nconstraints {\r\nvalue {\r\nPreserve value and result.\r\n}\r\n}\r\n}\r\n",
+    "\uFEFFcomponent Base {\r\ngoal {\r\nOwn provider vocabulary.\r\n}\r\nconstraints {\r\nvalue {\r\nPreserve value and result.\r\n}\r\n}\r\ninterface {\r\nA *value* and *result* exist.\r\n}\r\n}\r\n",
   "consumer.sigil":
     "@base.sigil from Base import { value, result }\ncomponent Consumer {\ngoal {\nServe the caller.\n}\ninterface {\nUse value and result with [notes](./notes.md).\n```text\nraw 😀  \n```\n}\n}\n",
 };
@@ -22,7 +22,7 @@ Deno.test("Design schema 2 preserves all Tag relations and exact source buffers"
   );
   assert(bundle);
   assertEquals(bundle.schemaVersion, 2);
-  assertEquals(bundle.languageVersion, "0.8.0");
+  assertEquals(bundle.languageVersion, "0.9.0");
   assertEquals(bundle.entities.filter((e) => e.type === "Tag").length, 2);
   assertEquals(bundle.introductions.length, 3);
   assertEquals(bundle.groups.length, 1);

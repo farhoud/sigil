@@ -8,32 +8,6 @@ component SigilResolver {
     across one loaded workspace, retaining deterministic partial results.
   }
 
-  interface {
-    RelationshipResolution {
-      resolveSigilRelationships(workspace) returns the ResolutionModel relationships,
-      source workspace, components, import selections, Tag occurrences and
-      references, and accumulated diagnostics.
-    }
-
-    ImportUse {
-      Each resolved *selection* retains qualifying *bare-reference use* in its
-      source,
-      including exact Facet owner, contract role, kind, and authoritative range.
-    }
-
-    TagResolution {
-      Each component exposes its local and *selected imported Tag identities*,
-      grouping
-      occurrences, inline definitions, and actual consumer references.
-    }
-
-    UntaggedFacet {
-      untaggedFacetDiagnostics(resolution) returns one SIGIL_UNTAGGED_FACET warning
-      for each UntaggedFacet: a Facet with no resolved Tag reference or valid inline
-      definition in its own prose.
-    }
-  }
-
   logic {
     RelationshipResolution {
       Apply ImportSemantics by indexing every component and local Tag introduction
@@ -57,6 +31,10 @@ component SigilResolver {
       names, using the *normative complete-name boundaries* and longest-match
       ordering.
       Preserve every qualifying range and its consumer-owned Facet.
+
+      Admit a component-owned Tag to direct imports only when its provider Interface
+      contains a valid definition, grouping heading, or resolved eligible-prose
+      reference. Interface use of an imported Tag never creates a re-export.
     }
 
     ImportUse {
@@ -71,7 +49,8 @@ component SigilResolver {
 
     UntaggedFacet {
       A grouping heading, an ambiguous reference, a fenced payload, and a complete
-      link do not tag a Facet. Sources with incomplete recovery report no
+      link do not tag a Facet. Goal and Decisions skip this advisory absence check;
+      the other five sections retain it. Sources with incomplete recovery report no
       UntaggedFacet.
     }
   }
@@ -81,7 +60,7 @@ component SigilResolver {
       Follow the *normative sources* at [the normative
       reference](../../../spec/sigil-reference.md),
       [grammar](../../../spec/sigil.ebnf), and [migration
-      guidance](../../../spec/migrating-to-0.8.md).
+      guidance](../../../spec/migrating-to-0.9.md).
     }
 
     RelationshipResolution {
@@ -132,5 +111,35 @@ component SigilResolver {
       A Facet whose only Tag is its grouping heading is an UntaggedFacet. A Facet
       that references an imported Tag is not.
     }
+  }
+
+  interface {
+    RelationshipResolution {
+      resolveSigilRelationships(workspace) returns the ResolutionModel relationships,
+      source workspace, components, import selections, Tag occurrences and
+      references, and accumulated diagnostics.
+    }
+
+    ImportUse {
+      Each resolved *selection* retains qualifying *bare-reference use* in its
+      source,
+      including exact Facet owner, contract role, kind, and authoritative range.
+    }
+
+    TagResolution {
+      Each component exposes its local and *selected imported Tag identities*,
+      grouping
+      occurrences, inline definitions, and actual consumer references.
+    }
+
+    UntaggedFacet {
+      untaggedFacetDiagnostics(resolution) returns one SIGIL_UNTAGGED_FACET warning
+      for each UntaggedFacet: a Facet with no resolved Tag reference or valid inline
+      definition in its own prose.
+    }
+    Exposes explicit Tag selections to direct consumers.
+
+    Exposes whitespace to direct consumers.
+
   }
 }

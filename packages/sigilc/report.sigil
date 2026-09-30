@@ -9,6 +9,37 @@ component SigilGateDiagnostics {
     frontend interpret eqval tables or reimplement semantic decisions.
   }
 
+  constraints {
+    NativeFindings {
+      Presentation adds no semantic rules, *obligation satisfaction*, worker inputs,
+      projection binding fields or diagnostic history. Frontends consume native named
+      states and findings directly, without translating a legacy report.
+    }
+  }
+
+  cases {
+    ObservedEditorGap {
+      During the native editor cutover the running *loop* returned Loose Design and
+      unavailable comparison as states and raw tables, but no ranged findings. That
+      real consumer need requires native presentation, not a TypeScript table
+      interpreter. Verify the corrected output on the same refactor and adopt it in
+      the retained editor before retiring its old event protocol.
+    }
+
+    Attribution {
+      A missing authored interpretation points to its exact physical unit range. A
+      contradiction points to available contributing source files and retains its
+      rule witness. A code disagreement preserves the Design obligation alongside
+      independent Implementation witnesses. Unresolved is not Drift.
+    }
+
+    Bounds {
+      More than 1000 findings reports truncation while preserving a *red state* and
+      prioritizing its contradictions. A fact shared by more than 8 files reports
+      omitted locations. Repeated output is deterministic.
+    }
+  }
+
   interface {
 
     ReportSchema {
@@ -52,37 +83,6 @@ component SigilGateDiagnostics {
       counts. *Prioritize contradictions* over warning findings. Preserve full native
       tables separately; presentation truncation never changes states. Keep output
       deterministic and do not recursively expand proof trees.
-    }
-  }
-
-  constraints {
-    NativeFindings {
-      Presentation adds no semantic rules, *obligation satisfaction*, worker inputs,
-      projection binding fields or diagnostic history. Frontends consume native named
-      states and findings directly, without translating a legacy report.
-    }
-  }
-
-  cases {
-    ObservedEditorGap {
-      During the native editor cutover the running *loop* returned Loose Design and
-      unavailable comparison as states and raw tables, but no ranged findings. That
-      real consumer need requires native presentation, not a TypeScript table
-      interpreter. Verify the corrected output on the same refactor and adopt it in
-      the retained editor before retiring its old event protocol.
-    }
-
-    Attribution {
-      A missing authored interpretation points to its exact physical unit range. A
-      contradiction points to available contributing source files and retains its
-      rule witness. A code disagreement preserves the Design obligation alongside
-      independent Implementation witnesses. Unresolved is not Drift.
-    }
-
-    Bounds {
-      More than 1000 findings reports truncation while preserving a *red state* and
-      prioritizing its contradictions. A fact shared by more than 8 files reports
-      omitted locations. Repeated output is deterministic.
     }
   }
 }

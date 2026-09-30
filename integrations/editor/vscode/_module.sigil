@@ -17,66 +17,6 @@ component SigilVsCodeExtension {
     *duplicating deterministic Sigil semantics*.
   }
 
-  interface {
-    ExtensionPackage {
-      provides an *installable VSIX* whose artifact version is owned by package.json
-
-      the VSIX is distributed through a *versioned GitHub Release*
-    }
-
-    EditorLanguageSupport {
-      registers the sigil language for *.sigil files*
-
-      provides *TextMate syntax* highlighting before extension-host activation
-
-      starts the *bundled language server* through vscode-languageclient
-
-      surfaces diagnostics, document symbols, definition navigation, hover, and
-      semantic highlighting
-
-      accepts the bundled server's dynamic registration for supported ownership
-      implementation-source changes
-    }
-
-    DocumentPreview {
-      contributes a Sigil: Open *Preview command* and an editor-title action for
-      Sigil
-      documents
-
-      renders the whole active .sigil file to Markdown and opens it as a read-only
-      preview beside the *editor*
-    }
-
-    SupportedExtensionHosts {
-      runs as a *workspace extension* in trusted desktop and remote Node extension
-      hosts
-
-      supports file-backed workspaces and file URIs
-
-      does not support VS Code for the *Web* or virtual workspaces
-    }
-
-    ReadOnlyEditorSupport {
-      collects no *telemetry*
-
-      does not modify SourceDocument
-    }
-
-    CompilationSurface {
-      Use DesignExport for structural export, ScopeInput and DesignMembership for
-      native file membership, and NativeFindings for compiler-owned presentation.
-      Contribute Compile File and Compile Workspace with Design or Implementation
-      focus. Export current structure through sigil export design, then invoke native
-      sigilc directly and display its named state and native diagnostics. File focus
-      uses the active physical Sigil file as an ordered native Design root; native
-      scope adds imports and structural owners. Show the effective scope honestly,
-      including wider dependencies, rather than claiming a cursor-selected component
-      was independently compiled. Implementation focus requires an explicit native
-      source-selection JSON path. No model invocation, compiler package, profile or
-      legacy event adapter.
-    }
-  }
-
   state {
     EditorLanguageSupport {
       The *language client lifecycle* is stopped, starting, running, or stopping.
@@ -150,7 +90,7 @@ component SigilVsCodeExtension {
   constraints {
 
       TextMate grammar, bundled language services, preview, and *native commands*
-      target the same 0.8 authority. Highlight explicit owner-file/component Tag
+      target the same 0.9 authority. Highlight explicit owner-file/component Tag
       selections, all seven contracts, local grouping and inline Tags, links, and
       inert payloads without legacy expand or directory-import fallback.
 
@@ -237,6 +177,128 @@ component SigilVsCodeExtension {
       arrays without a shell and clean temporary capture files after the child exits.
       Delete the old JSONL lifecycle, profiles, diagnostic history, stage UI and
       related tests. Do not parse Sigil or interpret eqval tables in the extension.
+    }
+  }
+
+  cases {
+    EditorLanguageSupport {
+      Opening a *.sigil file* applies TextMate highlighting and starts language
+      features.
+
+      Malformed source diagnostics retain their exact ranges.
+
+      Explicit *Tag selections* and resolved Tags support navigation, hover, and
+      semantic highlighting.
+
+      Changing an ownership annotation invalidates the server cache and the next
+      component or Tag hover shows refreshed links.
+
+      A failed bundled server produces visible output and an error without crashing
+      VS Code.
+
+      Deactivation stops the client and server.
+    }
+
+    DocumentPreview {
+      Running preview on a *Sigil file* opens its whole-file Markdown render beside
+      the
+      editor.
+
+      Selecting the *editor-title action* renders the same whole-file preview
+      regardless of cursor position.
+
+      When the unavailable language server prevents a preview, the preview command
+      leaves editors unchanged and shows an informational message.
+    }
+
+    SupportedExtensionHosts {
+      A trusted desktop or *remote file-backed workspace* receives full language
+      support.
+
+      Restricted Mode disables the extension under *current manifest defaults*.
+
+      A virtual or web workspace receives no *supported extension-host* contract.
+    }
+
+    ExtensionPackage {
+      A user installs the *VSIX* downloaded from GitHub Releases through Install from
+      VSIX.
+    }
+
+    CompilationSurface {
+      File compilation passes the *workspace-relative active Sigil* path as native
+      scope root, independent of cursor position. Multi-component-file and invalid
+      duplicate-name cases use the same physical-file boundary, with native ownership
+      closure. Scope output exposes included dependency files and explicit root
+      order. All six state/exit pairings display their native name and correct color;
+      unavailable comparison remains unset. Reject malformed or mismatched results.
+      The extension-host test exercises current structural export and native
+      diagnostic projection, with separate fixed-report fixtures for gate states.
+      Language navigation and ordinary Markdown preview still work. Removed workflow
+      commands and the obsolete Compile Component alias are absent. Dirty documents
+      prevent capture; edits and settings changes invalidate the displayed result.
+      Failed/cancelled/superseded runs never overwrite a newer result. No profile or
+      event-protocol arguments reach sigilc.
+    }
+  }
+
+  interface {
+    ExtensionPackage {
+      provides an *installable VSIX* whose artifact version is owned by package.json
+
+      the VSIX is distributed through a *versioned GitHub Release*
+    }
+
+    EditorLanguageSupport {
+      registers the sigil language for *.sigil files*
+
+      provides *TextMate syntax* highlighting before extension-host activation
+
+      starts the *bundled language server* through vscode-languageclient
+
+      surfaces diagnostics, document symbols, definition navigation, hover, and
+      semantic highlighting
+
+      accepts the bundled server's dynamic registration for supported ownership
+      implementation-source changes
+    }
+
+    DocumentPreview {
+      contributes a Sigil: Open *Preview command* and an editor-title action for
+      Sigil
+      documents
+
+      renders the whole active .sigil file to Markdown and opens it as a read-only
+      preview beside the *editor*
+    }
+
+    SupportedExtensionHosts {
+      runs as a *workspace extension* in trusted desktop and remote Node extension
+      hosts
+
+      supports file-backed workspaces and file URIs
+
+      does not support VS Code for the *Web* or virtual workspaces
+    }
+
+    ReadOnlyEditorSupport {
+      collects no *telemetry*
+
+      does not modify SourceDocument
+    }
+
+    CompilationSurface {
+      Use DesignExport for structural export, ScopeInput and DesignMembership for
+      native file membership, and NativeFindings for compiler-owned presentation.
+      Contribute Compile File and Compile Workspace with Design or Implementation
+      focus. Export current structure through sigil export design, then invoke native
+      sigilc directly and display its named state and native diagnostics. File focus
+      uses the active physical Sigil file as an ordered native Design root; native
+      scope adds imports and structural owners. Show the effective scope honestly,
+      including wider dependencies, rather than claiming a cursor-selected component
+      was independently compiled. Implementation focus requires an explicit native
+      source-selection JSON path. No model invocation, compiler package, profile or
+      legacy event adapter.
     }
   }
 
@@ -349,68 +411,6 @@ component SigilVsCodeExtension {
       *Implementation compilation* from commands and the status item. Require
       explicit Implementation source selection and display native named states so
       yellow Converged is never mislabeled Drift.
-    }
-  }
-
-  cases {
-    EditorLanguageSupport {
-      Opening a *.sigil file* applies TextMate highlighting and starts language
-      features.
-
-      Malformed source diagnostics retain their exact ranges.
-
-      Explicit *Tag selections* and resolved Tags support navigation, hover, and
-      semantic highlighting.
-
-      Changing an ownership annotation invalidates the server cache and the next
-      component or Tag hover shows refreshed links.
-
-      A failed bundled server produces visible output and an error without crashing
-      VS Code.
-
-      Deactivation stops the client and server.
-    }
-
-    DocumentPreview {
-      Running preview on a *Sigil file* opens its whole-file Markdown render beside
-      the
-      editor.
-
-      Selecting the *editor-title action* renders the same whole-file preview
-      regardless of cursor position.
-
-      When the unavailable language server prevents a preview, the preview command
-      leaves editors unchanged and shows an informational message.
-    }
-
-    SupportedExtensionHosts {
-      A trusted desktop or *remote file-backed workspace* receives full language
-      support.
-
-      Restricted Mode disables the extension under *current manifest defaults*.
-
-      A virtual or web workspace receives no *supported extension-host* contract.
-    }
-
-    ExtensionPackage {
-      A user installs the *VSIX* downloaded from GitHub Releases through Install from
-      VSIX.
-    }
-
-    CompilationSurface {
-      File compilation passes the *workspace-relative active Sigil* path as native
-      scope root, independent of cursor position. Multi-component-file and invalid
-      duplicate-name cases use the same physical-file boundary, with native ownership
-      closure. Scope output exposes included dependency files and explicit root
-      order. All six state/exit pairings display their native name and correct color;
-      unavailable comparison remains unset. Reject malformed or mismatched results.
-      The extension-host test exercises current structural export and native
-      diagnostic projection, with separate fixed-report fixtures for gate states.
-      Language navigation and ordinary Markdown preview still work. Removed workflow
-      commands and the obsolete Compile Component alias are absent. Dirty documents
-      prevent capture; edits and settings changes invalidate the displayed result.
-      Failed/cancelled/superseded runs never overwrite a newer result. No profile or
-      event-protocol arguments reach sigilc.
     }
   }
 }

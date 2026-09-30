@@ -13,23 +13,6 @@ component SigilGraphBuilder {
     diagnostics policy, and presentation.
   }
 
-  interface {
-    GraphConstruction {
-      buildSigilGraph(resolution) returns *SigilGraph*
-    }
-
-    GraphData {
-      SigilGraph exposes component nodes, *file dependency edges*, and imported-Tag
-      selection edges retaining provider component and actual consumer-use
-      provenance.
-    }
-
-    StronglyConnectedGroups {
-      stronglyConnectedComponentGroups(graph) returns *immutable ordered arrays* of
-      existing component-node identities, including singleton groups
-    }
-  }
-
   logic {
     GraphConstruction {
       Create one *component node* for each resolved component.
@@ -91,28 +74,6 @@ component SigilGraphBuilder {
     }
   }
 
-  decisions {
-    DeterministicSCCProjection {
-      Decision: Derive maximal selected-Tag component strongly connected groups with
-      ordered Tarjan traversal and return *existing component-node identities*.
-
-      Scope: Governs structural cycle projection; excludes *cycle diagnostics*,
-      retrieval relevance, and presentation.
-
-      Trade-offs: Traversal order is compatibility-significant even though maximal
-      *SCC membership* is mathematically order-independent.
-
-      Design issues addressed: Retrieval and compiler scheduling need one shared
-      *cycle owner* instead of independently implementing graph traversal.
-
-      Discarded alternatives: Consumer-owned DFS, *discovery-order Tarjan traversal*,
-      and a second SCC node model were rejected as duplicative or unstable.
-
-      Consequences: Core consumers share identical maximal groups and *retain graph*
-      node identity without introducing new edges or diagnostics.
-    }
-  }
-
   cases {
     GraphData {
       A resolved import produces a *file dependency edge* and an selected-Tag
@@ -136,6 +97,45 @@ component SigilGraphBuilder {
 
       A self-import remains a *singleton group* distinguishable by its graph self
       edge.
+    }
+  }
+
+  interface {
+    GraphConstruction {
+      buildSigilGraph(resolution) returns *SigilGraph*
+    }
+
+    GraphData {
+      SigilGraph exposes component nodes, *file dependency edges*, and imported-Tag
+      selection edges retaining provider component and actual consumer-use
+      provenance.
+    }
+
+    StronglyConnectedGroups {
+      stronglyConnectedComponentGroups(graph) returns *immutable ordered arrays* of
+      existing component-node identities, including singleton groups
+    }
+  }
+
+  decisions {
+    DeterministicSCCProjection {
+      Decision: Derive maximal selected-Tag component strongly connected groups with
+      ordered Tarjan traversal and return *existing component-node identities*.
+
+      Scope: Governs structural cycle projection; excludes *cycle diagnostics*,
+      retrieval relevance, and presentation.
+
+      Trade-offs: Traversal order is compatibility-significant even though maximal
+      *SCC membership* is mathematically order-independent.
+
+      Design issues addressed: Retrieval and compiler scheduling need one shared
+      *cycle owner* instead of independently implementing graph traversal.
+
+      Discarded alternatives: Consumer-owned DFS, *discovery-order Tarjan traversal*,
+      and a second SCC node model were rejected as duplicative or unstable.
+
+      Consequences: Core consumers share identical maximal groups and *retain graph*
+      node identity without introducing new edges or diagnostics.
     }
   }
 }

@@ -4,6 +4,28 @@ component SigilClaimsVocabulary {
     returned text as data.
   }
 
+  constraints {
+    AcceptedVocabulary {
+      The set is this component's own and is read from nothing while running. No
+      change elsewhere in the *compiler* widens what an interpretation may return,
+      and no component outside this one decides what the set contains. It always
+      carries every name the closure's laws read; a set missing one is refused
+      before any request is prepared, rather than leaving a law that never fires.
+    }
+
+    AtomDiscipline {
+      The *returned text* is data and is never executed as a program. No file
+      outside the compiled binary widens what is accepted.
+    }
+  }
+
+  cases {
+    AcceptedVocabulary {
+      A relation the compiler defines and this set omits is refused like any
+      other *unknown name*.
+    }
+  }
+
   interface {
     AcceptedVocabulary {
       Publish the *relation names* a claim may use and the property names a
@@ -24,21 +46,6 @@ component SigilClaimsVocabulary {
     }
   }
 
-  constraints {
-    AcceptedVocabulary {
-      The set is this component's own and is read from nothing while running. No
-      change elsewhere in the *compiler* widens what an interpretation may return,
-      and no component outside this one decides what the set contains. It always
-      carries every name the closure's laws read; a set missing one is refused
-      before any request is prepared, rather than leaving a law that never fires.
-    }
-
-    AtomDiscipline {
-      The *returned text* is data and is never executed as a program. No file
-      outside the compiled binary widens what is accepted.
-    }
-  }
-
   decisions {
     AcceptedVocabulary {
       The set began as a copy of the compiler's ontology and deliberately does
@@ -48,13 +55,6 @@ component SigilClaimsVocabulary {
       same coupling in a weaker form. Being able to diverge is the point of
       owning the set, and it is what lets the compiler's own vocabulary be
       replaced without touching what an interpretation may return.
-    }
-  }
-
-  cases {
-    AcceptedVocabulary {
-      A relation the compiler defines and this set omits is refused like any
-      other *unknown name*.
     }
   }
 }

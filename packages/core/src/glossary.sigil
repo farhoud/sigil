@@ -15,49 +15,6 @@ component SigilGlossaryEngine {
     source mutation outside core.
   }
 
-  interface {
-    GlossaryInterpretation {
-      GLOSSARY_SCHEMA_VERSION identifies the supported GlossarySchema version
-
-      parseSigilGlossary(source, filePath?) returns validated
-      *WorkspaceGlossary data*
-      or accumulated diagnostics
-    }
-
-    GlossaryModelProjection {
-      GlossaryModelProjection adapts GlossaryModel from SigilGlossaryModel into
-      immutable engine exports.
-
-      exports immutable GlossaryModel entries, contexts, occurrences, projections,
-      and parse results
-    }
-
-    ContextResolutionEngine {
-      ContextResolutionEngine adapts ContextResolution into deterministic engine
-      behavior.
-
-      resolveGlossaryForFile(glossary, filePath) returns the *effective entries*,
-      matched context, and diagnostics
-    }
-
-    TermRecognitionEngine {
-      TermRecognitionEngine adapts TermRecognition into deterministic engine
-      behavior.
-
-      glossaryOccurrencesForDocument(glossary, document) returns ordered
-      *source-ranged occurrences*
-    }
-
-    GlossaryInspection {
-      glossaryProjectionForWorkspace(workspace) returns contexts, *entries*,
-      occurrences, diagnostics, and the exact workspace.workspaceSnapshotIdentity
-
-      glossaryContextForFiles(projection, filePaths) returns the *glossary path*,
-      agent-visible effective entries, resolved contexts, and occurrences relevant to
-      normalized selected files plus scoped diagnostics
-    }
-  }
-
   logic {
     GlossaryInterpretation {
       Parse strict JSON and validate the complete GlossarySchema before returning
@@ -167,6 +124,49 @@ component SigilGlossaryEngine {
 
       An entry excluded from *agent context* remains present in the complete glossary
       projection.
+    }
+  }
+
+  interface {
+    GlossaryInterpretation {
+      GLOSSARY_SCHEMA_VERSION identifies the supported GlossarySchema version
+
+      parseSigilGlossary(source, filePath?) returns validated
+      *WorkspaceGlossary data*
+      or accumulated diagnostics
+    }
+
+    GlossaryModelProjection {
+      GlossaryModelProjection adapts GlossaryModel from SigilGlossaryModel into
+      immutable engine exports.
+
+      exports immutable GlossaryModel entries, contexts, occurrences, projections,
+      and parse results
+    }
+
+    ContextResolutionEngine {
+      ContextResolutionEngine adapts ContextResolution into deterministic engine
+      behavior.
+
+      resolveGlossaryForFile(glossary, filePath) returns the *effective entries*,
+      matched context, and diagnostics
+    }
+
+    TermRecognitionEngine {
+      TermRecognitionEngine adapts TermRecognition into deterministic engine
+      behavior.
+
+      glossaryOccurrencesForDocument(glossary, document) returns ordered
+      *source-ranged occurrences*
+    }
+
+    GlossaryInspection {
+      glossaryProjectionForWorkspace(workspace) returns contexts, *entries*,
+      occurrences, diagnostics, and the exact workspace.workspaceSnapshotIdentity
+
+      glossaryContextForFiles(projection, filePaths) returns the *glossary path*,
+      agent-visible effective entries, resolved contexts, and occurrences relevant to
+      normalized selected files plus scoped diagnostics
     }
   }
 }

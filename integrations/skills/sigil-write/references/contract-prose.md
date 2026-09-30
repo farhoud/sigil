@@ -13,11 +13,12 @@ The rules only see the rows. A promise the model cannot turn into a clean row
 is never checked. Write each Facet so the right row is the obvious reading.
 These rules keep the prose short. They ask for exact words, not more words.
 
-## Every Facet names at least one Tag
+## Ground operational Facets with Tags
 
-Every Facet must reference or define at least one Tag in its own prose. This
-applies to every contract role, including Goal, Decisions, and Cases. It also
-applies to the introduction of an Embedded Facet.
+State, Logic, Constraints, Cases, and Interface Facets should reference or
+define at least one Tag in their own prose. Goal and Decisions Facets may remain
+Tag-free without receiving `SIGIL_UNTAGGED_FACET`; embedded Facets still follow
+the role of the section that contains them.
 
 What counts:
 
@@ -36,9 +37,9 @@ imports from, or a Tag that appears in that Facet's prose. A Facet with no
 Tag can only produce rows about whole Components. Those rows are too coarse to
 find the real problem, or the tool rejects them as ungrounded.
 
-`sigil check` and the editor report each such Facet as a `SIGIL_UNTAGGED_FACET`
-warning.
-Treat that warning as a failure in the authored scope.
+`sigil check` and the editor report an operational Facet without such evidence
+as a `SIGIL_UNTAGGED_FACET` warning. Treat that warning as a failure in the
+authored scope; do not invent Tags solely to silence it in Goal or Decisions.
 
 If a Facet has no concept worth a Tag, it is usually not a separate promise.
 Merge it into the Facet it supports, or cut it.
@@ -109,7 +110,8 @@ For each concept a Facet needs, stop at the first step that works:
 1. **Reuse a local Tag this Component owns.** If this Component already owns
    the concept, write its exact name as a bare reference. A local Tag that
    names another Component's concept is not reuse. It is a synonym; see below.
-2. **Import it from its owner.** If another Component owns the concept, add
+2. **Import it from its owner.** If another Component owns the concept, first
+   confirm that the owner's Interface exposes the Tag, then add
    `@path.sigil from Owner import { Tag }` to the consumer's file and write the
    name as a bare reference. Import from the Component that defines the Tag.
    Sigil has no re-exports, so a Component that only imports it cannot pass it

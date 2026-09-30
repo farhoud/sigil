@@ -7,6 +7,39 @@ component SigilSourceIdentity {
     Capture language-neutral source identity with snapdir walking and *BLAKE3*.
   }
 
+  constraints {
+
+    StructuralBinding {
+      Preparation and per-source Design binding include schema 2, *languageVersion*
+      0.9.0, components and Facets, Tag introductions and groupings, import
+      selections, bare references, links, ranges, and provenance. Changed relevant
+      structure invalidates bindings through existing freshness checks even when
+      semantic assertions appear unchanged.
+    }
+    SourceIdentity {
+      Permission changes preserve semantic identity. *Renames* and duplicate-file
+      additions change selected-scope identity. A file's identity depends on its own
+      normalized path and bytes, never on neighboring source or model data. Disable
+      snapdir symlink following and object-store checksum recovery. Reject explicitly
+      selected symlinks and non-regular files.
+    }
+  }
+
+  cases {
+    FocusedSelection {
+      Selecting four *explicit files* does not read an unrelated large or unreadable
+      tree. Duplicate requested paths yield one manifest row. Internal, vendor,
+      include and exclude rules still apply before content reads. Equivalent
+      file-only and directory selections have equal identity.
+    }
+
+    SourceIdentity {
+      Editing an *imported file* changes only that file's content row. The union
+      identity changes, while the unchanged importer's source identity survives.
+      Retained captured bytes do not change when the live file is edited later.
+    }
+  }
+
   interface {
     SemanticInputs {
       Bind Implementation to only its captured path and exact bytes, FixedOntology
@@ -42,39 +75,6 @@ component SigilSourceIdentity {
       Capture
       exact bounded source bytes and compare their checksum with a fresh snapdir file
       hash. Reject paths crossing symlinks or workspace boundaries.
-    }
-  }
-
-  constraints {
-
-    StructuralBinding {
-      Preparation and per-source Design binding include schema 2, *languageVersion*
-      0.8.0, components and Facets, Tag introductions and groupings, import
-      selections, bare references, links, ranges, and provenance. Changed relevant
-      structure invalidates bindings through existing freshness checks even when
-      semantic assertions appear unchanged.
-    }
-    SourceIdentity {
-      Permission changes preserve semantic identity. *Renames* and duplicate-file
-      additions change selected-scope identity. A file's identity depends on its own
-      normalized path and bytes, never on neighboring source or model data. Disable
-      snapdir symlink following and object-store checksum recovery. Reject explicitly
-      selected symlinks and non-regular files.
-    }
-  }
-
-  cases {
-    FocusedSelection {
-      Selecting four *explicit files* does not read an unrelated large or unreadable
-      tree. Duplicate requested paths yield one manifest row. Internal, vendor,
-      include and exclude rules still apply before content reads. Equivalent
-      file-only and directory selections have equal identity.
-    }
-
-    SourceIdentity {
-      Editing an *imported file* changes only that file's content row. The union
-      identity changes, while the unchanged importer's source identity survives.
-      Retained captured bytes do not change when the live file is edited later.
     }
   }
 }

@@ -9,7 +9,7 @@ import {
 import { assert, assertEquals } from "./assert.ts";
 const configSource = () =>
   JSON.stringify({
-    sigilVersion: "0.8.0",
+    sigilVersion: "0.9.0",
     workspace: { name: "test" },
     files: { include: ["**/*.sigil"] },
   });

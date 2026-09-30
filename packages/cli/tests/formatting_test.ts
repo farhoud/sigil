@@ -26,7 +26,7 @@ Deno.test("formatting validates mixed unchanged providers and width repairs toge
   const provider = component("Provider", "A *search results* has meaning.");
   const fs = new FormattingFileSystem({
     "/work/.sigil/config.json": JSON.stringify({
-      sigilVersion: "0.8.0",
+      sigilVersion: "0.9.0",
       workspace: { name: "format" },
       files: { include: ["**/*.sigil"] },
     }),
@@ -75,7 +75,7 @@ Deno.test("formatting deduplicates overlapping batch targets and repairs both si
   const other = component("Other", "Keep this source untouched.");
   const fs = new FormattingFileSystem({
     "/work/.sigil/config.json": JSON.stringify({
-      sigilVersion: "0.8.0",
+      sigilVersion: "0.9.0",
       workspace: { name: "format" },
       files: { include: ["**/*.sigil"] },
     }),
@@ -142,7 +142,7 @@ Deno.test("formatting deduplicates overlapping batch targets and repairs both si
 // @sigil tests packages/cli/_module.sigil::SigilCli::SourceFormatting constraints,cases
 Deno.test("formatting aborts a batch before any replacement when targets or source are invalid", async () => {
   const config = JSON.stringify({
-    sigilVersion: "0.8.0",
+    sigilVersion: "0.9.0",
     workspace: { name: "format" },
     files: { include: ["**/*.sigil"], exclude: ["excluded/**"] },
   });
@@ -199,7 +199,7 @@ Deno.test("formatting rejects ancestor targets without a discovered workspace", 
     const other = component("Other", "words ".repeat(30) + "end.");
     const fs = new FormattingFileSystem({
       "/work/.sigil/config.json": JSON.stringify({
-        sigilVersion: "0.8.0",
+        sigilVersion: "0.9.0",
         workspace: { name: "format" },
         files: { include: ["**/*.sigil"] },
       }),
@@ -220,7 +220,7 @@ Deno.test("formatting rejects ancestor targets without a discovered workspace", 
 Deno.test("formatting retains ancestor directory selection with an explicit workspace root", async () => {
   const fs = new FormattingFileSystem({
     "/work/nested/.sigil/config.json": JSON.stringify({
-      sigilVersion: "0.8.0",
+      sigilVersion: "0.9.0",
       workspace: { name: "format" },
       files: { include: ["**/*.sigil"] },
     }),

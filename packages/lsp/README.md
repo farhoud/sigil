@@ -1,13 +1,13 @@
 # sigil-lsp
 
 Implemented pre-production language-server package for editor-facing Sigil
-semantics for language 0.8. The artifact version is declared independently in
+semantics for language 0.9. The artifact version is declared independently in
 `deno.json`.
 
 The language server should be the reusable bridge between `sigil-core` and
 concrete editor integrations.
 
-Language 0.8 responsibilities:
+Language 0.9 responsibilities:
 
 - implement Language Server Protocol 3.18 over standard input and output;
 - implement initialize, initialized, shutdown, and exit lifecycle handling;

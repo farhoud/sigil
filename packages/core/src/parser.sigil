@@ -4,27 +4,12 @@
 
 component SigilParser {
   goal {
-    Interpret one Sigil 0.8.0 *source snapshot* into a source-faithful partial
+    Interpret one Sigil 0.9.0 *source snapshot* into a source-faithful partial
     document.
 
     Preserve *useful declarations*, Tags, Facets, attached literal blocks, original
     physical lines, and ranges whenever malformed structure permits deterministic
     recovery.
-  }
-
-  interface {
-    SourceDocumentParsing {
-      SourceDocumentParsing adapts SourceDocument into the parser API.
-
-      parseSigilDocument(filePath, source, options) returns ParseResult
-
-      options.sigilVersion is required and must equal the supported LanguageVersion
-    }
-
-    ParseResultRules {
-      ParseResult contains the recovered SigilDocument and structural diagnostics
-      defined by SourceModel
-    }
   }
 
   logic {
@@ -35,6 +20,10 @@ component SigilParser {
 
       Parse all seven contracts, *flat local grouping Tags*, inline Tag definitions,
       Inline Links, and physical source spans.
+
+      Validate the order of present sections as goal, state, logic, constraints,
+      cases, interface, decisions. Out-of-order sections remain source evidence
+      but produce SIGIL_SECTION_ORDER and do not establish valid component structure.
 
       Parse decisions as *free-form component-section content* without requiring
       grouping Tags or labeled fields.
@@ -117,7 +106,7 @@ component SigilParser {
       Structural recognition follows [the normative
       reference](../../../spec/sigil-reference.md) and
       [grammar](../../../spec/sigil.ebnf); [migration
-      guidance](../../../spec/migrating-to-0.8.md) explains the removed *forms*.
+      guidance](../../../spec/migrating-to-0.9.md) explains the removed *forms*.
 
       Warnings preserve a *usable partial document* and do not make parsing fail.
     }
@@ -235,5 +224,24 @@ component SigilParser {
       Under LanguageVersion, an unsupported version returns an empty partial document
       with SIGIL_UNSUPPORTED_VERSION.
     }
+  }
+
+  interface {
+    SourceDocumentParsing {
+      SourceDocumentParsing adapts SourceDocument into the parser API.
+
+      parseSigilDocument(filePath, source, options) returns ParseResult
+
+      options.sigilVersion is required and must equal the supported LanguageVersion
+    }
+
+    ParseResultRules {
+      ParseResult contains the recovered SigilDocument and structural diagnostics
+      defined by SourceModel
+    }
+    Exposes source order to direct consumers.
+
+    Exposes source snapshot to direct consumers.
+
   }
 }

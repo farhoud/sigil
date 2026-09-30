@@ -19,7 +19,7 @@ import {
 import { isEmbeddedFacet } from "../src/model/source.ts";
 Deno.test("separates the core artifact and language contract versions", () => {
   assertEquals(SIGIL_CORE_VERSION, "0.8.0");
-  assertEquals(SIGIL_VERSION, "0.8.0");
+  assertEquals(SIGIL_VERSION, "0.9.0");
 });
 
 Deno.test("shares supported implementation-source watcher patterns", () => {
@@ -637,12 +637,9 @@ Deno.test("preserves mixed Facets and Embedded Facets in all seven contracts", (
     Last contribution.
   }`;
   const source = `component Mixed {
-${["goal", "interface"].map(contract).join("\n\n")}
-
 ${
-    ["state", "logic", "constraints", "decisions", "cases"].map(contract).join(
-      "\n\n",
-    )
+    ["goal", "state", "logic", "constraints", "cases", "interface", "decisions"]
+      .map(contract).join("\n\n")
   }
 }
 `;

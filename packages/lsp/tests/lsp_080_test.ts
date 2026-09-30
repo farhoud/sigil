@@ -35,7 +35,7 @@ async function setup(providerSource = provider) {
   const fs = new InMemorySigilFileSystem({
     [`${root}/.sigil/config.json`]: JSON.stringify({
       sigilVersion: SIGIL_VERSION,
-      workspace: { name: "lsp-080" },
+      workspace: { name: "lsp-090" },
       files: { include: ["**/*.sigil"] },
     }),
     [providerPath]: providerSource,
@@ -70,7 +70,7 @@ async function lookup(
     }),
   );
 }
-Deno.test("0.8 multiword selections, references and headings navigate to the original inline definition", async () => {
+Deno.test("0.9 multiword selections, references and headings navigate to the original inline definition", async () => {
   const { server } = await setup();
   for (
     const [source, path, occurrence] of [[consumer, consumerPath, 0], [
@@ -92,7 +92,7 @@ Deno.test("0.8 multiword selections, references and headings navigate to the ori
     assertEquals(definition.range.start, position(provider, name));
   }
 });
-Deno.test("0.8 lookup excludes link labels and payload while hover preserves consumer and provider roles", async () => {
+Deno.test("0.9 lookup excludes link labels and payload while hover preserves consumer and provider roles", async () => {
   const { server } = await setup();
   for (const occurrence of [2, 3]) {
     assertEquals(
@@ -110,7 +110,7 @@ Deno.test("0.8 lookup excludes link labels and payload while hover preserves con
   assert(hover.contents.value.includes("Preserve exact content."));
   assert(hover.contents.value.includes("Origin:"));
 });
-Deno.test("0.8 semantic token lengths select exact UTF-16 text and exclude protected content", async () => {
+Deno.test("0.9 semantic token lengths select exact UTF-16 text and exclude protected content", async () => {
   const { server } = await setup();
   const tokens = result(
     await server.handle({
@@ -138,7 +138,7 @@ Deno.test("0.8 semantic token lengths select exact UTF-16 text and exclude prote
   }
   assertEquals(tags, [name, name]);
 });
-Deno.test("0.8 symbols include inline introductions and local groups at captured positions", async () => {
+Deno.test("0.9 symbols include inline introductions and local groups at captured positions", async () => {
   const { server } = await setup();
   const symbols = result(
     await server.handle({
@@ -161,7 +161,7 @@ Deno.test("0.8 symbols include inline introductions and local groups at captured
   }
 });
 
-Deno.test("0.8 provider overlays invalidate references and close restores captured disk", async () => {
+Deno.test("0.9 provider overlays invalidate references and close restores captured disk", async () => {
   const { server } = await setup();
   const uri = pathToFileUri(providerPath);
   await server.handle({
@@ -205,7 +205,7 @@ Deno.test("0.8 provider overlays invalidate references and close restores captur
   assert(await lookup(server, "definition", consumer, name, 1));
 });
 
-Deno.test("0.8 diagnostics preserve related source locations and strict overlay errors", async () => {
+Deno.test("0.9 diagnostics preserve related source locations and strict overlay errors", async () => {
   const { server } = await setup();
   const text = consumer.replace(
     "interface {",
@@ -311,7 +311,7 @@ async function mutableServer(fs: MutableFileSystem) {
   });
   return server;
 }
-Deno.test("0.8 requests use captured sources until a watched provider change", async () => {
+Deno.test("0.9 requests use captured sources until a watched provider change", async () => {
   const fs = new MutableFileSystem(), server = await mutableServer(fs);
   const reads = fs.sourceReads;
   fs.providerText = provider.replaceAll(name, "changed results");
@@ -324,7 +324,7 @@ Deno.test("0.8 requests use captured sources until a watched provider change", a
   });
   assertEquals(await lookup(server, "definition", consumer, name, 1), null);
 });
-Deno.test("0.8 request during a healthy reload does not start another reload", async () => {
+Deno.test("0.9 request during a healthy reload does not start another reload", async () => {
   const fs = new RecoveringFileSystem(), server = await mutableServer(fs);
   fs.delayNext = true;
   const pending = server.handle({
@@ -348,7 +348,7 @@ Deno.test("0.8 request during a healthy reload does not start another reload", a
   fs.released.resolve();
   await pending;
 });
-Deno.test("0.8 late reloads cannot replace newer overlay diagnostics or occurrences", async () => {
+Deno.test("0.9 late reloads cannot replace newer overlay diagnostics or occurrences", async () => {
   const fs = new MutableFileSystem(),
     server = await mutableServer(fs),
     uri = pathToFileUri(consumerPath);
@@ -380,7 +380,7 @@ Deno.test("0.8 late reloads cannot replace newer overlay diagnostics or occurren
   assertEquals(await old, []);
   assert(await lookup(server, "definition", consumer, name, 1));
 });
-Deno.test("0.8 failed reload clears diagnostics and one shared request reload recovers", async () => {
+Deno.test("0.9 failed reload clears diagnostics and one shared request reload recovers", async () => {
   const fs = new RecoveringFileSystem(), server = await mutableServer(fs);
   fs.providerText = provider.replaceAll(name, "changed results");
   await server.handle({
@@ -451,7 +451,7 @@ Deno.test("0.8 failed reload clears diagnostics and one shared request reload re
   });
   assertEquals(fs.reloads, beforePersistentRetry + 1);
 });
-Deno.test("0.8 earliest grouping is the destination without an inline definition across CR sources", async () => {
+Deno.test("0.9 earliest grouping is the destination without an inline definition across CR sources", async () => {
   const fs = new MutableFileSystem();
   fs.providerText = provider.replace(
     "😀 A *café results* carries a response.",
@@ -479,7 +479,7 @@ function selectedSpan(source: string, range: Range): string {
     lines[range.end.line].slice(0, range.end.character),
   ].join("\n");
 }
-Deno.test("0.8 implementation watcher cannot discard a pending language reload", async () => {
+Deno.test("0.9 implementation watcher cannot discard a pending language reload", async () => {
   const fs = new MutableFileSystem(),
     server = await mutableServer(fs),
     uri = pathToFileUri(consumerPath);
@@ -527,7 +527,7 @@ class DelayedOwnershipFileSystem extends MutableFileSystem {
     return '// @sigil implements consumer.sigil::Consumer::"café results" interface\nexport function consume() {}\n';
   }
 }
-Deno.test("0.8 pending ownership hover rejects a changed workspace generation", async () => {
+Deno.test("0.9 pending ownership hover rejects a changed workspace generation", async () => {
   const fs = new DelayedOwnershipFileSystem(), server = await mutableServer(fs);
   await fs.entered.promise;
   const pending = server.handle({
@@ -561,7 +561,7 @@ Deno.test("0.8 pending ownership hover rejects a changed workspace generation", 
   assert(current.contents.value.includes("Provider"));
 });
 
-Deno.test("0.8 provider hover resolves authored links against their source", async () => {
+Deno.test("0.9 provider hover resolves authored links against their source", async () => {
   const linkedProvider = provider.replace(
     "Own vocabulary.",
     'Own [notes](<./notes (v2).md> "Provider notes") and ![image](./image.svg).',

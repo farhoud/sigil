@@ -7,25 +7,6 @@ component SigilDesignInput {
     boundary without precomputing semantic meaning.
   }
 
-  interface {
-    ResolvedDesignInput {
-      Load the workspace through WorkspaceLoading and apply RelationshipResolution.
-      Return frontend schema 2
-      with explicit languageVersion 0.8.0 separate from the frontend artifact
-      version, exact source/context buffers, diagnostics, components, Facets, Tag
-      introductions and grouping occurrences, explicit import selections, bare
-      references, and Inline Links.
-
-      Record config and glossary buffers used during *loading*, including absent
-      optional inputs. Rust validates current bytes and owns their fingerprints. Keep
-      Facets attributed to their physical file, canonical component owner, and
-      contract role. Preserve units even when owner resolution fails, alongside
-      diagnostics. Export this capability from the core language package. Keep no
-      forwarding export or compatibility helper in the removed TypeScript compiler
-      package.
-    }
-  }
-
   constraints {
 
     SourceFidelity {
@@ -59,5 +40,26 @@ component SigilDesignInput {
       A config or source changing after loading cannot change the *captured bundle*.
       Rust rejects publication against mismatching current inputs.
     }
+  }
+
+  interface {
+    ResolvedDesignInput {
+      Load the workspace through WorkspaceLoading and apply RelationshipResolution.
+      Return frontend schema 2
+      with explicit languageVersion 0.9.0 separate from the frontend artifact
+      version, exact source/context buffers, diagnostics, components, Facets, Tag
+      introductions and grouping occurrences, explicit import selections, bare
+      references, and Inline Links.
+
+      Record config and glossary buffers used during *loading*, including absent
+      optional inputs. Rust validates current bytes and owns their fingerprints. Keep
+      Facets attributed to their physical file, canonical component owner, and
+      contract role. Preserve units even when owner resolution fails, alongside
+      diagnostics. Export this capability from the core language package. Keep no
+      forwarding export or compatibility helper in the removed TypeScript compiler
+      package.
+    }
+    Exposes Turtle to direct consumers.
+
   }
 }

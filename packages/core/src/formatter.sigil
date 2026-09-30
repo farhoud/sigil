@@ -16,21 +16,6 @@ component SigilFormatter {
     from filesystem mutation and presentation.
   }
 
-  interface {
-    Formatting {
-      formatSigilDocument(sourceDocument, source, providerContext) returns
-      FormatResult; the context supplies the same *resolved accessible vocabulary*
-      and
-      provider snapshot used to interpret the source.
-
-      FormatResult contains optional formatted source, changed status, and
-      diagnostics
-
-      formatted source is present only when formatting succeeds; changed is false
-      when formatted source is absent
-    }
-  }
-
   logic {
 
     MeaningPreservation {
@@ -110,33 +95,6 @@ component SigilFormatter {
     }
   }
 
-  decisions {
-    Formatting {
-      Decision: Apply DeterministicFormatting by canonically rendering valid Sigil
-      with 79-character prose content width while preserving
-      *structural indentation*,
-      Facets, and literal values.
-
-      Scope: Governs reusable in-memory source formatting; excludes
-      *source selection*,
-      filesystem mutation, semantic repair, and host presentation.
-
-      Trade-offs: *Indivisible long tokens* remain unformatted and produce an
-      explicit
-      diagnostic.
-
-      Design issues addressed: Host-specific formatting would drift, and line-based
-      *semantic identity* previously prevented safe prose wrapping.
-
-      Discarded alternatives: Independent CLI formatting, indentation-inclusive
-      width, structural indentation rewriting, and formatting literal bodies were
-      rejected.
-
-      Consequences: Every host can obtain the same *idempotent canonical source*
-      without reinterpreting language structure.
-    }
-  }
-
   cases {
     Formatting {
       Rewrapping one prose Facet preserves its *normalized prose* and semantic
@@ -162,6 +120,48 @@ component SigilFormatter {
 
       An unformattable indivisible token returns no formatted source, changed false,
       and SIGIL_UNFORMATTABLE_LINE.
+    }
+  }
+
+  interface {
+    Formatting {
+      formatSigilDocument(sourceDocument, source, providerContext) returns
+      FormatResult; the context supplies the same *resolved accessible vocabulary*
+      and
+      provider snapshot used to interpret the source.
+
+      FormatResult contains optional formatted source, changed status, and
+      diagnostics
+
+      formatted source is present only when formatting succeeds; changed is false
+      when formatted source is absent
+    }
+  }
+
+  decisions {
+    Formatting {
+      Decision: Apply DeterministicFormatting by canonically rendering valid Sigil
+      with 79-character prose content width while preserving
+      *structural indentation*,
+      Facets, and literal values.
+
+      Scope: Governs reusable in-memory source formatting; excludes
+      *source selection*,
+      filesystem mutation, semantic repair, and host presentation.
+
+      Trade-offs: *Indivisible long tokens* remain unformatted and produce an
+      explicit
+      diagnostic.
+
+      Design issues addressed: Host-specific formatting would drift, and line-based
+      *semantic identity* previously prevented safe prose wrapping.
+
+      Discarded alternatives: Independent CLI formatting, indentation-inclusive
+      width, structural indentation rewriting, and formatting literal bodies were
+      rejected.
+
+      Consequences: Every host can obtain the same *idempotent canonical source*
+      without reinterpreting language structure.
     }
   }
 }

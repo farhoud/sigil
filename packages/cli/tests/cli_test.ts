@@ -418,14 +418,30 @@ Deno.test("check accepts ungrouped and mixed Interface Facets without warnings",
   }
 });
 
-Deno.test("check warns about each Facet with no Tag in its own prose", async () => {
+Deno.test("check exempts Goal and Decisions while retaining operational Facet warnings", async () => {
   const root = await makeWorkspace("untagged-facets");
   try {
     await Deno.writeTextFile(
       `${root}/contract.sigil`,
       `component Feature {
   goal {
-    Keep each *Record* current.
+    Keep the current record available.
+  }
+
+  state {
+    Track the current record.
+  }
+
+  logic {
+    Calculate the next record.
+  }
+
+  constraints {
+    Preserve record consistency.
+  }
+
+  cases {
+    Handle an unavailable record.
   }
 
   interface {
@@ -433,9 +449,11 @@ Deno.test("check warns about each Facet with no Tag in its own prose", async () 
       read() returns the stored value.
     }
 
-    write() updates Record.
-
     Operations complete synchronously.
+  }
+
+  decisions {
+    Prefer the current record.
   }
 }
 `,
@@ -444,15 +462,74 @@ Deno.test("check warns about each Facet with no Tag in its own prose", async () 
     assertEquals(result.exitCode, EXIT_OK);
     const output = parseJson(result.stdout);
     assertEquals(output.diagnosticCounts.error, 0);
-    // The grouped Facet and the last Facet name no Tag in their own prose.
+    // Goal and Decisions are intentionally untagged; all six operational
+    // Facets above remain advisory warnings, including the grouped Facet.
     const untagged = output.diagnostics.filter((
       d: { code: string },
     ) => d.code === "SIGIL_UNTAGGED_FACET");
-    assertEquals(untagged.length, 2);
-    assertEquals(output.diagnosticCounts.warning, 2);
+    assertEquals(untagged.length, 6);
+    assertEquals(output.diagnosticCounts.warning, 6);
+    const warningLines = untagged.map((
+      d: { sourceLocation?: { line: number } },
+    ) => Number(d.sourceLocation?.line)).sort((a: number, b: number) => a - b);
+    assert(
+      warningLines.length === 6 &&
+        warningLines.every((line: number, index: number) =>
+          line === [7, 11, 15, 19, 24, 27][index]
+        ),
+      `Unexpected warning locations: ${JSON.stringify(warningLines)}`,
+    );
     assert(
       untagged.every((d: { severity: string; stage: string }) =>
         d.severity === "warning" && d.stage === "resolution"
+      ),
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("check exposes the Interface export boundary for imported Tags", async () => {
+  const root = await makeWorkspace("interface-import-boundary");
+  try {
+    await Deno.writeTextFile(
+      `${root}/provider.sigil`,
+      `component Provider {
+  goal {
+    Own a provider.
+  }
+
+  state {
+    A *private state* exists.
+  }
+
+  interface {
+    Provide the provider.
+  }
+}
+`,
+    );
+    await Deno.writeTextFile(
+      `${root}/consumer.sigil`,
+      `@provider.sigil from Provider import { private state }
+
+component Consumer {
+  goal {
+    Use private state.
+  }
+
+  interface {
+    Use private state.
+  }
+}
+`,
+    );
+    const result = await runCli(["check", root, "--format", "json"]);
+    assertEquals(result.exitCode, EXIT_DIAGNOSTICS);
+    const output = parseJson(result.stdout);
+    assert(
+      output.diagnostics.some((d: { code: string }) =>
+        d.code === "SIGIL_UNRESOLVED_IMPORTED_TAG"
       ),
     );
   } finally {

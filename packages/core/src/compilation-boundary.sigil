@@ -12,90 +12,6 @@ component SigilCompilationBoundary {
     facts alone, so every host reaches the same target for the same workspace.
   }
 
-  interface {
-    BoundarySelection {
-      selectCompilationBoundary(resolvedWorkspace, seed, options) returns the
-      requested scope, the *resolved target*, and the selection evidence that relates
-      them.
-
-      seed is exactly workspace, component, file, location, or directory; each
-      identifies *affected semantic evidence* rather than a final target.
-
-      the resolved target is exactly workspace, file, or component.
-
-      options.exactTarget skips boundary inference. It preserves workspace, file,
-      and *component seeds* as targets, resolves a location seed to its containing
-      file, and rejects a directory seed.
-
-      selection reports the *strategy*, the affected, covered, and uncovered semantic
-      units, the deciding tie-break when one applied, and a reason when no boundary
-      was inferred.
-
-      strategy is exactly exact-target, *covering-component*, or workspace-fallback.
-
-      diagnostics reports an *invalid seed* or an *unresolvable seed*; a caller
-      refuses the run
-      rather than treating the *reported workspace target* as a real choice.
-    }
-
-    SeedValidation {
-      A seed is validated against the *loaded workspace* before any scope is derived.
-
-      An empty selector, an absolute path, and a path containing a *parent segment*
-      are
-      invalid.
-
-      A component name that matches no *loaded component*, a file that is not a
-      loaded
-      source, and a directory with no loaded source beneath it are unresolvable.
-
-      An invalid seed or unresolvable seed yields an error diagnostic and no inferred
-      boundary.
-    }
-
-    AffectedScope {
-      A seed resolves to the set of *affected component identities* and affected
-      source
-      files.
-
-      A component seed contributes that component and its declaration file; an
-      *ambiguous name* without a declaration path contributes every component that
-      carries it.
-
-      A *file seed* contributes the file plus every component declared in it.
-
-      A location seed contributes the *innermost component* enclosing that
-      authoritative source position, and otherwise falls back to its file.
-
-      A directory seed contributes every *loaded file* beneath the normalized
-      workspace-relative path, including declarationless files, plus their declared
-      components.
-    }
-
-    BoundaryClosure {
-      A candidate covers the affected scope only when its closure contains every
-      *affected component identity* and every affected file.
-
-      An ordinary _module.sigil component has no *special closure* or ranking
-      privilege.
-
-      A component candidate closes over its own declaration, *directly selected Tag*
-      providers and their required owner context, and actual direct consumer uses.
-    }
-
-    ProximityRanking {
-      Candidates are ordered by the *segment distance* from every affected directory
-      to
-      the candidate directory.
-
-      Each candidate yields one distance vector sorted greatest-to-least, and the
-      *lexicographically smallest vector* wins.
-
-      Equal vectors are separated by normalized *repository-relative path*, then by
-      exact-case component name.
-    }
-  }
-
   logic {
     BoundarySelection {
       Return the workspace immediately for a *workspace seed*, because it is already
@@ -192,6 +108,144 @@ component SigilCompilationBoundary {
     }
   }
 
+  cases {
+    BoundarySelection {
+      A leaf component resolves to the nearest covering component when its
+      compilation *closure*
+      covers every affected identity and file.
+
+      A *component seed* selects itself when it is the smallest complete boundary.
+
+      An *exact-target request* over the same component preserves the component as
+      the
+      final target.
+
+      An exact-target request at a *location seed* inside a component selects its
+      file without inferring a broader boundary.
+
+      An exact-target request over a directory is rejected rather than widened to the
+      workspace.
+    }
+
+    AffectedScope {
+      A location inside an operational contract selects its compilation
+      *owner component* and
+      can
+      then select a broader covering boundary.
+
+      A *multi-contract directory* resolves to one deterministic
+      boundary.
+
+      Two components sharing a name are contributed together when no
+      *declaration path*
+      disambiguates them.
+    }
+
+    ProximityRanking {
+      Two covering components are separated by *distance vector*, then normalized
+      declaration path and exact component name.
+    }
+
+    WorkspaceFallback {
+      A directory holding unrelated contracts with no common covering boundary
+      compiles the workspace and reports the reason.
+    }
+
+    SeedValidation {
+      A misspelled component name is rejected rather than silently compiling the
+      *whole workspace*.
+
+      A directory outside the workspace root and an empty selector are rejected as
+      *invalid paths*.
+
+      An excluded or *unloaded file* is rejected as unresolvable.
+    }
+  }
+
+  interface {
+    BoundarySelection {
+      selectCompilationBoundary(resolvedWorkspace, seed, options) returns the
+      requested scope, the *resolved target*, and the selection evidence that relates
+      them.
+
+      seed is exactly workspace, component, file, location, or directory; each
+      identifies *affected semantic evidence* rather than a final target.
+
+      the resolved target is exactly workspace, file, or component.
+
+      options.exactTarget skips boundary inference. It preserves workspace, file,
+      and *component seeds* as targets, resolves a location seed to its containing
+      file, and rejects a directory seed.
+
+      selection reports the *strategy*, the affected, covered, and uncovered semantic
+      units, the deciding tie-break when one applied, and a reason when no boundary
+      was inferred.
+
+      strategy is exactly exact-target, *covering-component*, or workspace-fallback.
+
+      diagnostics reports an *invalid seed* or an *unresolvable seed*; a caller
+      refuses the run
+      rather than treating the *reported workspace target* as a real choice.
+    }
+
+    SeedValidation {
+      A seed is validated against the *loaded workspace* before any scope is derived.
+
+      An empty selector, an absolute path, and a path containing a *parent segment*
+      are
+      invalid.
+
+      A component name that matches no *loaded component*, a file that is not a
+      loaded
+      source, and a directory with no loaded source beneath it are unresolvable.
+
+      An invalid seed or unresolvable seed yields an error diagnostic and no inferred
+      boundary.
+    }
+
+    AffectedScope {
+      A seed resolves to the set of *affected component identities* and affected
+      source
+      files.
+
+      A component seed contributes that component and its declaration file; an
+      *ambiguous name* without a declaration path contributes every component that
+      carries it.
+
+      A *file seed* contributes the file plus every component declared in it.
+
+      A location seed contributes the *innermost component* enclosing that
+      authoritative source position, and otherwise falls back to its file.
+
+      A directory seed contributes every *loaded file* beneath the normalized
+      workspace-relative path, including declarationless files, plus their declared
+      components.
+    }
+
+    BoundaryClosure {
+      A candidate covers the affected scope only when its closure contains every
+      *affected component identity* and every affected file.
+
+      An ordinary _module.sigil component has no *special closure* or ranking
+      privilege.
+
+      A component candidate closes over its own declaration, *directly selected Tag*
+      providers and their required owner context, and actual direct consumer uses.
+    }
+
+    ProximityRanking {
+      Candidates are ordered by the *segment distance* from every affected directory
+      to
+      the candidate directory.
+
+      Each candidate yields one distance vector sorted greatest-to-least, and the
+      *lexicographically smallest vector* wins.
+
+      Equal vectors are separated by normalized *repository-relative path*, then by
+      exact-case component name.
+    }
+  }
+
   decisions {
     SeedsRatherThanExactTargets {
       Decision: Treat component, file, location, and directory selectors as
@@ -285,60 +339,6 @@ component SigilCompilationBoundary {
       a language server without awaiting retrieval.
 
       Revisit when: Retrieval exposes a *reusable synchronous closure* projection.
-    }
-  }
-
-  cases {
-    BoundarySelection {
-      A leaf component resolves to the nearest covering component when its
-      compilation *closure*
-      covers every affected identity and file.
-
-      A *component seed* selects itself when it is the smallest complete boundary.
-
-      An *exact-target request* over the same component preserves the component as
-      the
-      final target.
-
-      An exact-target request at a *location seed* inside a component selects its
-      file without inferring a broader boundary.
-
-      An exact-target request over a directory is rejected rather than widened to the
-      workspace.
-    }
-
-    AffectedScope {
-      A location inside an operational contract selects its compilation
-      *owner component* and
-      can
-      then select a broader covering boundary.
-
-      A *multi-contract directory* resolves to one deterministic
-      boundary.
-
-      Two components sharing a name are contributed together when no
-      *declaration path*
-      disambiguates them.
-    }
-
-    ProximityRanking {
-      Two covering components are separated by *distance vector*, then normalized
-      declaration path and exact component name.
-    }
-
-    WorkspaceFallback {
-      A directory holding unrelated contracts with no common covering boundary
-      compiles the workspace and reports the reason.
-    }
-
-    SeedValidation {
-      A misspelled component name is rejected rather than silently compiling the
-      *whole workspace*.
-
-      A directory outside the workspace root and an empty selector are rejected as
-      *invalid paths*.
-
-      An excluded or *unloaded file* is rejected as unresolvable.
     }
   }
 }

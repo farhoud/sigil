@@ -8,19 +8,6 @@ component SigilVsCodeE2ETester {
     Code API boundary without depending on a user's *global editor state*.
   }
 
-  interface {
-    ExtensionHostTest {
-      launches the *extension development host* with the Sigil integration and a
-      controlled file-backed workspace
-
-      invokes contributed language, preview, and *compilation* commands through the
-      VS
-      Code command API
-
-      inspects native scope, *named states*, structured output and ranged diagnostics
-    }
-  }
-
   constraints {
     TestRunner {
       uses @vscode/test-electron to launch a separate *VS Code extension host*
@@ -89,6 +76,19 @@ component SigilVsCodeE2ETester {
       unrelated installed extensions and the user's *global compiler executable* do
       not
       determine the command-contract assertions
+    }
+  }
+
+  interface {
+    ExtensionHostTest {
+      launches the *extension development host* with the Sigil integration and a
+      controlled file-backed workspace
+
+      invokes contributed language, preview, and *compilation* commands through the
+      VS
+      Code command API
+
+      inspects native scope, *named states*, structured output and ranged diagnostics
     }
   }
 }

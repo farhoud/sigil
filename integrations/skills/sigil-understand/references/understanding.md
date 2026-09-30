@@ -20,8 +20,9 @@ role even when it refers to imported vocabulary.
 Goal and Interface require content. Other contracts are optional. Rationale does
 not convert a rejected alternative or unaccepted proposal into a commitment.
 A binding technology or architecture choice belongs in Constraints. A case does
-not silently quantify over all inputs. Section order does not override another
-contribution; compatible reuse is additive and contradictions remain visible.
+not silently quantify over all inputs. Present sections follow the canonical
+order `goal`, `state`, `logic`, `constraints`, `cases`, `interface`,
+`decisions`. Compatible reuse is additive and contradictions remain visible.
 
 ## Resolve identity without inventing architecture
 
@@ -34,14 +35,14 @@ spaces, change case, or split a name when explaining or revising it. Consult the
 boundaries, recognition regions, collisions, and overlapping names.
 
 `@path.sigil from Component import { query, search results }` selects exactly
-those Tags from their owner in an explicit workspace-root-relative file. Every
-selected Tag needs an eligible prose reference somewhere in the importing
-source. All components in that source see its imports; another component's
-unimported local Tags are not automatically accessible. All owner contracts can
-supply selected Tags: there is no public/private contract namespace. Imports do
+those Tags from their owner in an explicit workspace-root-relative file. A
+selected Tag must be exposed by a valid provider Interface definition or
+eligible Interface reference, and needs an eligible prose reference somewhere
+in the importing source. All components in that source see its imports; another
+component's unimported local Tags are not automatically accessible. Imports do
 not introduce provider namespaces, re-export identities, transfer Facet
 ownership, or establish a runtime call. `_module.sigil` is an ordinary filename;
-`expand` and directory imports are not 0.8 forms.
+`expand` and directory imports are not 0.9 forms.
 
 Follow relevant provider contributions and Inline Links when their content is
 needed for the meaning in scope. Local Inline Links resolve from the linking
@@ -52,7 +53,7 @@ specific interpretation it leaves uncertain; do not infer the missing policy.
 ## Compact example
 
 These complete sources belong in a temporary workspace for evaluation. They are
-0.8 design examples, not evidence that current tooling accepts them.
+0.9 design examples, not evidence that current tooling accepts them.
 
 `search/service.sigil`:
 
@@ -76,11 +77,11 @@ component SearchPanel {
   goal {
     Help the user find records with query.
   }
-  interface {
-    Display search results for the current search.
-  }
   constraints {
     Only the active request may publish search results.
+  }
+  interface {
+    Display search results for the current search.
   }
 }
 ```

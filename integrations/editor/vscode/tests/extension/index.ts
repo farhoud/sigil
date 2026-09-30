@@ -9,7 +9,7 @@ export async function run(): Promise<void> {
   assert(repository, "SIGIL_REPO_ROOT is required");
   const workspace = process.env.SIGIL_TEST_WORKSPACE ??
     path.join(repository, "examples/slotted");
-  const source = vscode.Uri.file(path.join(workspace, "auth.sigil"));
+  const source = vscode.Uri.file(path.join(workspace, "booking.sigil"));
   const document = await vscode.workspace.openTextDocument(source);
   const editor = await vscode.window.showTextDocument(document);
   assert.equal(document.languageId, "sigil");
@@ -39,7 +39,7 @@ export async function run(): Promise<void> {
   );
 
   const position = document.positionAt(
-    document.getText().indexOf("import { UserProfile") + "import { ".length,
+    document.getText().indexOf("nonexistent local time"),
   );
   editor.selection = new vscode.Selection(position, position);
 
@@ -55,7 +55,7 @@ export async function run(): Promise<void> {
     hovers.some((hover) =>
       hover.contents.some((content) =>
         (typeof content === "string" ? content : content.value).includes(
-          "UserProfile",
+          "Availability",
         )
       )
     ),
@@ -73,8 +73,10 @@ export async function run(): Promise<void> {
   );
   assert(definitions.length > 0, "Expected go-to-definition results");
 
-  const sectionReferenceOffset =
-    document.getText().indexOf("Auth uses UserProfile") + "Auth uses ".length;
+  const sectionReferenceOffset = document.getText().indexOf(
+    "Booking depends on Availability for open time",
+  ) +
+    "Booking depends on Availability for ".length;
   assert.notEqual(
     sectionReferenceOffset,
     -1,
@@ -92,7 +94,7 @@ export async function run(): Promise<void> {
     sectionHovers.some((hover) =>
       hover.contents.some((content) =>
         (typeof content === "string" ? content : content.value).includes(
-          "UserProfile",
+          "Availability",
         )
       )
     ),
@@ -179,9 +181,9 @@ export async function run(): Promise<void> {
     );
     assert.equal(report.version, 2);
     assert.equal(report.world.state, "Loose");
-    assert.deepEqual(report.scope.design.roots, ["auth.sigil"]);
-    assert(report.scope.design.sources.includes("profile.sigil"));
-    assert(report.scope.design.sources.includes("user.sigil"));
+    assert.deepEqual(report.scope.design.roots, ["booking.sigil"]);
+    assert(report.scope.design.sources.includes("availability.sigil"));
+    assert(report.scope.design.sources.includes("rooms.sigil"));
     assert(
       report.diagnostics.items.some((item) =>
         item.code === "DESIGN_UNRESOLVED"
@@ -195,7 +197,7 @@ export async function run(): Promise<void> {
     );
 
     const selection = path.join(fixtureDirectory, "selection.json");
-    await writeFile(selection, JSON.stringify({ paths: ["auth.sigil"] }));
+    await writeFile(selection, JSON.stringify({ paths: ["booking.sigil"] }));
     await compileConfiguration.update(
       "selection",
       selection,

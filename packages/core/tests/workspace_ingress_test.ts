@@ -3,7 +3,7 @@ import { loadSigilWorkspace } from "../src/workspace.ts";
 import { assert, assertEquals } from "./assert.ts";
 
 const config = JSON.stringify({
-  sigilVersion: "0.8.0",
+  sigilVersion: "0.9.0",
   workspace: { name: "test" },
   files: { include: ["**/*.sigil"] },
   tools: {},

@@ -29,26 +29,6 @@ component SigilCore {
     diagnostics without owning host interaction or semantic judgment.
   }
 
-  interface {
-    CorePackage {
-      SigilCore exports the deterministic APIs that implement SourceDocument through
-      SourceDocumentParsing, ConfigurationParsing, DomainModelAssembly,
-      DiagnosticConstruction, FileSystemPort, Formatting, PathOperations,
-      WorkspaceLoading, RelationshipResolution, GraphConstruction,
-      WorkspaceResolution, ContractProjection, GlossaryInterpretation,
-      OwnedImplementationLookup, BoundarySelection, PurposeRetrievalRequest, and
-      ResolvedDesignInput. Their operations and data remain owned by the selected
-      provider components; package exports do not re-export Sigil Tag identities.
-
-      Export structural Design transport through the core package. Parsing and
-      resolution remain language operations; the export never invokes sigilc,
-      reconstructs semantic assertions or presents compiler verdicts.
-
-      hosts consume those *cohesive contracts* without reimplementing source
-      interpretation, workspace rules, relationship resolution, or projections
-    }
-  }
-
   constraints {
 
     CorePackageBoundary {
@@ -115,6 +95,38 @@ component SigilCore {
     }
   }
 
+  cases {
+    DeterministicCore {
+      CLI and LSP resolving the same loaded workspace return the same workspace
+      snapshot identity, resolved components, graph edges, glossary projection, and
+      ordered diagnostics.
+    }
+  }
+
+  interface {
+    CorePackage {
+      SigilCore exports the deterministic APIs that implement SourceDocument through
+      SourceDocumentParsing, ConfigurationParsing, DomainModelAssembly,
+      DiagnosticConstruction, FileSystemPort, Formatting, PathOperations,
+      WorkspaceLoading, RelationshipResolution, GraphConstruction,
+      WorkspaceResolution, ContractProjection, GlossaryInterpretation,
+      OwnedImplementationLookup, BoundarySelection, PurposeRetrievalRequest, and
+      ResolvedDesignInput. Their operations and data remain owned by the selected
+      provider components; package exports do not re-export Sigil Tag identities.
+
+      Export structural Design transport through the core package. Parsing and
+      resolution remain language operations; the export never invokes sigilc,
+      reconstructs semantic assertions or presents compiler verdicts.
+
+      hosts consume those *cohesive contracts* without reimplementing source
+      interpretation, workspace rules, relationship resolution, or projections
+    }
+    Exposes manifest-owned version literal to direct consumers.
+
+    Exposes source interpretation to direct consumers.
+
+  }
+
   decisions {
     DeterministicCore {
       Decision: Centralize reproducible Sigil semantics in one typed shared core and
@@ -137,14 +149,6 @@ component SigilCore {
 
       Revisit when: A required shared semantic fact cannot be represented without
       *host coupling*.
-    }
-  }
-
-  cases {
-    DeterministicCore {
-      CLI and LSP resolving the same loaded workspace return the same workspace
-      snapshot identity, resolved components, graph edges, glossary projection, and
-      ordered diagnostics.
     }
   }
 }

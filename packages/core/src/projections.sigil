@@ -17,37 +17,6 @@ component SigilProjections {
     and *complete component views*.
   }
 
-  interface {
-    ContractProjection {
-      componentContracts(resolvedWorkspace) returns one *ComponentContractView* per
-      resolved component
-
-      ComponentContractView exposes component name, source path, *goal lines*,
-      interface lines, ungrouped interface lines, and interface Tag blocks
-    }
-
-    TagScopeProjection {
-      tagNamespaceFor(resolvedWorkspace, componentName) returns that component's
-      *contextual resolved Tag namespace* or undefined
-    }
-
-    ComponentDesignProjection {
-      componentDesignFor(resolvedWorkspace, componentName) returns the complete
-      *owning component declaration* or undefined.
-    }
-
-    AgentDependencyContext {
-      agentDependencyContextFor(resolvedWorkspace, componentName) returns the
-      *selected complete component*, direct provider interpretation contexts, actual
-      consumer Tag uses, and related source paths, or undefined.
-    }
-
-    AgentDependentContext {
-      agentDependentContextFor(resolvedWorkspace, componentName) returns direct
-      *importing-file context* for the selected component, or undefined
-    }
-  }
-
   logic {
     ContractProjection {
       Preserve *resolved component order*.
@@ -140,43 +109,6 @@ component SigilProjections {
     }
   }
 
-  decisions {
-    AgentDependencyContext {
-      Decision: Automatically include durable decisions from direct dependencies in
-      agent context.
-
-      Scope: Applies to *agent context projection* for direct dependencies and
-      excludes
-      language-level imports, transitive dependencies, and automatic transitive
-      dependency traversal.
-
-      Trade-offs: Uses *additional context* and may include irrelevant rationale in
-      exchange for reducing missed architectural intent and extra discovery calls.
-
-      Revisit when: Typical dependency decision sets become too large or evidence
-      shows that automatic rationale *reduces agent accuracy*.
-    }
-
-    AgentDependentContext {
-      Decision: Derive dependent context from resolved selected-Tag provider graph
-      *edges* as file-level importing context.
-
-      Scope: Applies to *optional agent context* for selected components and excludes
-      resolver changes, graph generation changes, source reparsing, and inferred
-      component-level dependency claims.
-
-      Trade-offs: File-level context may include components that do not actually
-      depend on the selected component, but avoids unsupported semantic inference and
-      preserves deterministic structural behavior.
-
-      Consequences: Consumers must treat declared components in *importing files* as
-      contextual contracts only, not proven dependents.
-
-      Revisit when: Sigil represents *component-level import ownership* rather than
-      file-level import declarations.
-    }
-  }
-
   cases {
     ContractProjection {
       A *resolved component projects* its goal/interface contract with declaration
@@ -224,6 +156,80 @@ component SigilProjections {
       *empty dependent context*.
 
       Import cycles do not make the selected component its own dependent.
+    }
+  }
+
+  interface {
+    ContractProjection {
+      componentContracts(resolvedWorkspace) returns one *ComponentContractView* per
+      resolved component
+
+      ComponentContractView exposes component name, source path, *goal lines*,
+      interface lines, ungrouped interface lines, and interface Tag blocks
+    }
+
+    TagScopeProjection {
+      tagNamespaceFor(resolvedWorkspace, componentName) returns that component's
+      *contextual resolved Tag namespace* or undefined
+    }
+
+    ComponentDesignProjection {
+      componentDesignFor(resolvedWorkspace, componentName) returns the complete
+      *owning component declaration* or undefined.
+    }
+
+    AgentDependencyContext {
+      agentDependencyContextFor(resolvedWorkspace, componentName) returns the
+      *selected complete component*, direct provider interpretation contexts, actual
+      consumer Tag uses, and related source paths, or undefined.
+    }
+
+    AgentDependentContext {
+      agentDependentContextFor(resolvedWorkspace, componentName) returns direct
+      *importing-file context* for the selected component, or undefined
+    }
+    Exposes complete declaration to direct consumers.
+
+    Exposes direct importing files to direct consumers.
+
+    Exposes resolved workspace to direct consumers.
+
+  }
+
+  decisions {
+    AgentDependencyContext {
+      Decision: Automatically include durable decisions from direct dependencies in
+      agent context.
+
+      Scope: Applies to *agent context projection* for direct dependencies and
+      excludes
+      language-level imports, transitive dependencies, and automatic transitive
+      dependency traversal.
+
+      Trade-offs: Uses *additional context* and may include irrelevant rationale in
+      exchange for reducing missed architectural intent and extra discovery calls.
+
+      Revisit when: Typical dependency decision sets become too large or evidence
+      shows that automatic rationale *reduces agent accuracy*.
+    }
+
+    AgentDependentContext {
+      Decision: Derive dependent context from resolved selected-Tag provider graph
+      *edges* as file-level importing context.
+
+      Scope: Applies to *optional agent context* for selected components and excludes
+      resolver changes, graph generation changes, source reparsing, and inferred
+      component-level dependency claims.
+
+      Trade-offs: File-level context may include components that do not actually
+      depend on the selected component, but avoids unsupported semantic inference and
+      preserves deterministic structural behavior.
+
+      Consequences: Consumers must treat declared components in *importing files* as
+      contextual contracts only, not proven dependents.
+
+      Revisit when: Sigil represents *component-level import ownership* rather than
+      file-level import declarations.
     }
   }
 }

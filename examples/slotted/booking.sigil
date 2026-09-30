@@ -23,42 +23,6 @@ component Booking {
     ever overlapping.
   }
 
-  interface {
-    request lifecycle {
-      A renter submits a booking request for a room with a room-local start
-      and end in the room timezone. Booking resolves them to a *requested range*
-      and records it as Pending or rejects it with a *rejection reason*.
-
-      The room owner approves or declines a Pending booking request on the room.
-
-      A renter withdraws their own Pending booking request.
-
-      The room owner or the renter cancels a Confirmed booking request before
-      its requested range starts.
-
-      Booking provides a *range change*, which moves a renter's own Pending
-      booking request to a new requested range.
-    }
-
-    Booking provides the *availability workflow*, which applies a weekly window
-    or blackout change and its sweep in one room lock.
-
-    Booking provides the *archive workflow*, which archives a room with the
-    archive sweep, or unarchives it, in one room lock.
-
-    Booking provides the *timezone workflow*, which checks for a Pending or
-    Confirmed booking request whose start is after the clock and changes the
-    room timezone within one room lock, refusing the change when one exists.
-
-    Booking provides the actor's own booking request list and the inbox of
-    booking request items on rooms where the actor is the room owner; every
-    item in either list carries its status, any *decline cause*, and its
-    derived expired and outside availability flags.
-
-    Booking provides each booking request on a room that overlaps a range, with
-    its status, its renter, and its expired and outside availability flags.
-  }
-
   state {
     A booking request is *Pending*, *Confirmed*, *Declined*, *Withdrawn* or
     *Cancelled*.
@@ -200,20 +164,6 @@ component Booking {
     booking request status.
   }
 
-  decisions {
-    Owner approval over instant booking exercises the full booking request
-    lifecycle for both the renter and the room owner.
-
-    Only Confirmed booking request records block, so a Pending booking request
-    cannot hold a slot; approval clears overlapping Pending ones.
-
-    Expired and outside availability are derived so removing a blackout clears
-    the flag with no background job.
-
-    The room timezone is locked while future items exist so no booking request
-    ever moves in time.
-  }
-
   cases {
     A Confirmed booking request covers 09:00 to 10:00; a request for 10:00 to
     11:00 is accepted as Pending.
@@ -255,5 +205,59 @@ component Booking {
 
     The room owner tries to change the room timezone while a Confirmed
     booking request is next week; the timezone workflow refuses it.
+  }
+
+  interface {
+    request lifecycle {
+      A renter submits a booking request for a room with a room-local start
+      and end in the room timezone. Booking resolves them to a *requested range*
+      and records it as Pending or rejects it with a *rejection reason*.
+
+      The room owner approves or declines a Pending booking request on the room.
+
+      A renter withdraws their own Pending booking request.
+
+      The room owner or the renter cancels a Confirmed booking request before
+      its requested range starts.
+
+      Booking provides a *range change*, which moves a renter's own Pending
+      booking request to a new requested range.
+    }
+
+    Booking provides the *availability workflow*, which applies a weekly window
+    or blackout change and its sweep in one room lock.
+
+    Booking provides the *archive workflow*, which archives a room with the
+    archive sweep, or unarchives it, in one room lock.
+
+    Booking provides the *timezone workflow*, which checks for a Pending or
+    Confirmed booking request whose start is after the clock and changes the
+    room timezone within one room lock, refusing the change when one exists.
+
+    Booking provides the actor's own booking request list and the inbox of
+    booking request items on rooms where the actor is the room owner; every
+    item in either list carries its status, any *decline cause*, and its
+    derived expired and outside availability flags.
+
+    Booking provides each booking request on a room that overlaps a range, with
+    its status, its renter, and its expired and outside availability flags.
+
+    Booking applies the request limits to submitted booking request ranges.
+
+    Booking enforces the no-overlap rule for Confirmed booking requests.
+  }
+
+  decisions {
+    Owner approval over instant booking exercises the full booking request
+    lifecycle for both the renter and the room owner.
+
+    Only Confirmed booking request records block, so a Pending booking request
+    cannot hold a slot; approval clears overlapping Pending ones.
+
+    Expired and outside availability are derived so removing a blackout clears
+    the flag with no background job.
+
+    The room timezone is locked while future items exist so no booking request
+    ever moves in time.
   }
 }

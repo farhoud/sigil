@@ -3,7 +3,7 @@ import { assert, assertEquals } from "./assert.ts";
 import { isEmbeddedFacet } from "../src/model/source.ts";
 
 const parse = (source: string | Uint8Array) =>
-  parseSigilDocument("fixture.sigil", source, { sigilVersion: "0.8.0" });
+  parseSigilDocument("fixture.sigil", source, { sigilVersion: "0.9.0" });
 const component = (body: string) =>
   `component Example {\ngoal {\nA responsibility.\n}\ninterface {\n${body}\n}\n}\n`;
 
@@ -127,7 +127,7 @@ Deno.test("link lookahead preserves unprotected trailing braces and later compon
 });
 
 // @sigil tests packages/core/src/parser.sigil::SigilParser::SourceDocumentParsing interface
-Deno.test("C01: parses minimal 0.8 source with byte ranges and optional final newline", () => {
+Deno.test("C01: parses minimal 0.9 source with byte ranges and optional final newline", () => {
   for (const ending of ["\n", "\r\n", "\r"]) {
     for (const final of [true, false]) {
       const lines = [
@@ -142,7 +142,7 @@ Deno.test("C01: parses minimal 0.8 source with byte ranges and optional final ne
       ];
       const source = lines.join(ending) + (final ? ending : "");
       const parsed = parseSigilDocument("minimal.sigil", source, {
-        sigilVersion: "0.8.0",
+        sigilVersion: "0.9.0",
       });
       assertEquals(parsed.diagnostics, []);
       assertEquals(parsed.document.components.length, 1);
@@ -265,6 +265,21 @@ Deno.test("duplicate sections remain separate with related conflict locations", 
       .length,
     2,
   );
+});
+
+Deno.test("present sections must follow the canonical contract order", () => {
+  const valid = parse(
+    `component Example {\n  goal {\n    Goal.\n  }\n  state {\n    State.\n  }\n  logic {\n    Logic.\n  }\n  constraints {\n    Constraints.\n  }\n  cases {\n    Cases.\n  }\n  interface {\n    Interface.\n  }\n  decisions {\n    Decisions.\n  }\n}\n`,
+  );
+  assertEquals(valid.diagnostics, []);
+
+  const invalid = parse(
+    `component Example {\n  goal {\n    Goal.\n  }\n  interface {\n    Interface.\n  }\n  state {\n    State.\n  }\n}\n`,
+  );
+  assertEquals(invalid.diagnostics.map((d) => d.code), [
+    "SIGIL_SECTION_ORDER",
+  ]);
+  assertEquals(invalid.document.valid, false);
 });
 
 Deno.test("empty and nested groups keep invalid evidence without becoming local Tags", () => {

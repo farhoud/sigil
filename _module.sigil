@@ -17,58 +17,6 @@ component Sigil {
     and explicit human approval.
   }
 
-  interface {
-    ComponentContractOverview {
-      ComponentContractOverview adapts ComponentContract for the root boundary.
-
-      lets *humans* and coding agents share durable public contracts and operational
-      rationale for coherent software parts
-    }
-
-    WorkspaceBoundarySelection {
-      WorkspaceBoundarySelection adapts WorkspaceBoundary for root tool selection.
-
-      lets tools select a *configured workspace* and discover its included Sigil
-      sources consistently
-    }
-
-    TagSelectionGuarantee {
-      TagSelectionGuarantee exposes the TagIdentity contract at the root boundary.
-
-      keeps every *component-owned Tag selectable* through an explicit declaring
-      file,
-      provider component, and exact Tag name
-    }
-
-    ToolchainSurfaces {
-      provides *non-interactive command-line automation*, editor-neutral language
-      intelligence, and a VS Code authoring surface
-
-      CliInvocation, LspPackage, and ExtensionPackage provide the command-line,
-      language-server, and VS Code surfaces through their owning components
-
-      keeps *command-line* and language-server operations from modifying .sigil
-      source,
-      except for explicitly requested CLI source formatting
-    }
-
-    SkillWorkflowIntegration {
-      SkillWorkflowIntegration integrates SkillWorkflow into the host-neutral root
-      workflow.
-
-      provides a *host-neutral agent workflow* for design clarification, semantic
-      review, explicit approval, and Sigil-guided implementation
-    }
-
-    SemanticCompilation {
-      Use CliInvocation for authored-language operations and DesignExport for
-      structural export. Invoke SigilSemanticCompiler through standalone sigilc for
-      deterministic preparation, ingestion, freshness, catalog and semantic gates.
-      External workers interpret captured source; models do not supply verdicts. Keep
-      source editing and orchestration outside both compiler binaries.
-    }
-  }
-
   state {
     ReleaseMaturity {
       *Sigil artifacts* are pre-production.
@@ -106,12 +54,12 @@ component Sigil {
   constraints {
 
       Bind current *designs* to [the reference](spec/sigil-reference.md),
-      [grammar](spec/sigil.ebnf), and [migration guide](spec/migrating-to-0.8.md).
-      These designs specify intended 0.8 behavior pending implementation and do not
+      [grammar](spec/sigil.ebnf), and [migration guide](spec/migrating-to-0.9.md).
+      These designs specify intended 0.9 behavior pending implementation and do not
       claim legacy compiler validation or current implementation conformance.
 
       Retain [the historical skill](integrations/skills/sigil/SKILL.md) as frozen 0.7
-      material outside *active 0.8 discovery* and compatibility. The current
+      material outside *active 0.9 discovery* and compatibility. The current
       [understanding](integrations/skills/sigil-understand/SKILL.md),
       [writing](integrations/skills/sigil-write/SKILL.md), and
       [evaluation](integrations/skills/sigil-evaluate/SKILL.md) siblings own current
@@ -186,19 +134,6 @@ component Sigil {
     }
   }
 
-  decisions {
-    SemanticCompilation {
-      Decision: Keep language interpretation in the existing frontend and put
-      deterministic semantic compilation in one Rust binary. Scope: Governs compiler,
-      CLI, CI and editor boundaries; external workers own model calls and independent
-      reconstruction, and external workflows own edits. Trade-offs: Callers pass a
-      captured structural bundle explicitly; native sigilc does not parse the
-      authored Sigil language or invoke its frontend. Consequences: Delete the
-      TypeScript compiler and adapter packages rather than preserve compatibility
-      dispatch or duplicate semantic laws.
-    }
-  }
-
   cases {
     DeterministicSemantics {
       CLI and LSP consumers resolving the same configured workspace receive semantics
@@ -224,6 +159,73 @@ component Sigil {
       editor
       consumes native named states and diagnostics directly. A scoped green result
       never authorizes deployment or proves full delivery.
+    }
+  }
+
+  interface {
+    ComponentContractOverview {
+      ComponentContractOverview adapts ComponentContract for the root boundary.
+
+      lets *humans* and coding agents share durable public contracts and operational
+      rationale for coherent software parts
+    }
+
+    WorkspaceBoundarySelection {
+      WorkspaceBoundarySelection adapts WorkspaceBoundary for root tool selection.
+
+      lets tools select a *configured workspace* and discover its included Sigil
+      sources consistently
+    }
+
+    TagSelectionGuarantee {
+      TagSelectionGuarantee exposes the TagIdentity contract at the root boundary.
+
+      keeps every *component-owned Tag selectable* through an explicit declaring
+      file,
+      provider component, and exact Tag name
+    }
+
+    ToolchainSurfaces {
+      provides *non-interactive command-line automation*, editor-neutral language
+      intelligence, and a VS Code authoring surface
+
+      CliInvocation, LspPackage, and ExtensionPackage provide the command-line,
+      language-server, and VS Code surfaces through their owning components
+
+      keeps *command-line* and language-server operations from modifying .sigil
+      source,
+      except for explicitly requested CLI source formatting
+    }
+
+    SkillWorkflowIntegration {
+      SkillWorkflowIntegration integrates SkillWorkflow into the host-neutral root
+      workflow.
+
+      provides a *host-neutral agent workflow* for design clarification, semantic
+      review, explicit approval, and Sigil-guided implementation
+    }
+
+    SemanticCompilation {
+      Use CliInvocation for authored-language operations and DesignExport for
+      structural export. Invoke SigilSemanticCompiler through standalone sigilc for
+      deterministic preparation, ingestion, freshness, catalog and semantic gates.
+      External workers interpret captured source; models do not supply verdicts. Keep
+      source editing and orchestration outside both compiler binaries.
+    }
+    Exposes ArtifactVersionOwnership to direct consumers.
+
+  }
+
+  decisions {
+    SemanticCompilation {
+      Decision: Keep language interpretation in the existing frontend and put
+      deterministic semantic compilation in one Rust binary. Scope: Governs compiler,
+      CLI, CI and editor boundaries; external workers own model calls and independent
+      reconstruction, and external workflows own edits. Trade-offs: Callers pass a
+      captured structural bundle explicitly; native sigilc does not parse the
+      authored Sigil language or invoke its frontend. Consequences: Delete the
+      TypeScript compiler and adapter packages rather than preserve compatibility
+      dispatch or duplicate semantic laws.
     }
   }
 }

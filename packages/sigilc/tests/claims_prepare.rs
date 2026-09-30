@@ -263,10 +263,10 @@ fn logic_input(bodies: &[(&str, &[&str])]) -> sigilc::frontend::DesignInput {
     units.reverse();
     sigilc::frontend::DesignInput::parse(
         &serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion": "0.8.0", "frontendVersion": "test",
+            "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
             "sources": [{"path": path, "text": text}],
             "context": [
-                {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.8.0\"}"},
+                {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.9.0\"}"},
                 {"path": ".sigil/local.json", "text": null},
                 {"path": ".sigil/glossary.json", "text": null}
             ],

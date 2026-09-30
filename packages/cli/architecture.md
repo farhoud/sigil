@@ -268,7 +268,7 @@ Each command should have:
 
 Commands should keep option behavior boring and explicit.
 
-Commands remain non-interactive for language 0.8.
+Commands remain non-interactive for language 0.9.
 
 Explicit init, fmt and skill installation own their existing write boundaries.
 
@@ -356,7 +356,7 @@ Required scenarios:
 Tests should snapshot JSON shapes only after the output contract is
 intentionally stable.
 
-## Language 0.8 source boundary
+## Language 0.9 source boundary
 
 Disk Sigil and config ingress uses original bytes and strict decoding. Core owns
 byte ranges, Tag resolution, Facet relationships and provider projections. Text

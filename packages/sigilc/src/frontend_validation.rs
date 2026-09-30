@@ -8,7 +8,7 @@ pub(crate) fn validate(input: &DesignInput) -> Result<(), String> {
         "unsupported frontend schema version",
     )?;
     ensure(
-        input.language_version == "0.8.0",
+        input.language_version == "0.9.0",
         "unsupported frontend language version",
     )?;
     ensure(

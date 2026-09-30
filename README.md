@@ -52,16 +52,17 @@ VS Code extension releases are currently available as manually installable
 publishing remains deferred.
 
 
-The [language guide](spec/sigil-language.md) teaches the 0.8.0 language;
+The [language guide](spec/sigil-language.md) teaches the 0.9.0 language;
 the [normative reference](spec/sigil-reference.md) and [EBNF grammar](spec/sigil.ebnf)
 define its rules:
 inline `*Tags*`, unchanged Concept Tag grouping syntax, and explicit imports
 such as `@search/records.sigil from RecordSearch import { query, search results }`.
 All seven contracts belong directly to components; `expand` and language-level
-public/private distinctions are removed. Tags introduced in any contract may
-be imported. This checkout implements 0.8.0; released artifacts have independent
+public/private distinctions are removed. A provider exports a Tag only when its
+Interface provides valid evidence; imports never re-export. This checkout
+implements 0.9.0; released artifacts have independent
 versions and must be checked before installation. See the
-[Tag migration guide](spec/migrating-to-0.8.md).
+[Tag migration guide](spec/migrating-to-0.9.md).
 
 ## Seven Words
 
@@ -69,12 +70,12 @@ Sigil's authored language revolves around seven contract kinds:
 
 ```text
 goal
-interface
 state
 logic
 constraints
-decisions
 cases
+interface
+decisions
 ```
 
 They answer different questions:
@@ -114,21 +115,6 @@ It is the human-authored surface from which the Semantic World is compiled.
 component SearchPublication {
   goal {
     Keep displayed Results aligned with the active uncancelled request.
-  }
-
-  interface {
-    publish(ResponseId, IncomingResults) returns Published or Ignored.
-
-    Admission {
-      Eligibility is the Boolean decision controlling whether publish may
-      replace Results.
-    }
-
-    Publication {
-      Published means IncomingResults became the current Results.
-
-      Ignored means the current Results remain unchanged.
-    }
   }
 
   state {
@@ -186,6 +172,21 @@ component SearchPublication {
     Publication {
       An active uncancelled response publishes its IncomingResults and
       returns Published.
+    }
+  }
+
+  interface {
+    publish(ResponseId, IncomingResults) returns Published or Ignored.
+
+    Admission {
+      Eligibility is the Boolean decision controlling whether publish may
+      replace Results.
+    }
+
+    Publication {
+      Published means IncomingResults became the current Results.
+
+      Ignored means the current Results remain unchanged.
     }
   }
 }
@@ -672,7 +673,7 @@ The Sigil platform architecture is drafted in
 Rejected historical architecture exploration for generated Receipts, evidence,
 and anchors is recorded in
 [ADR-011](spec/decisions/adr-011-generated-rationale-evidence-and-review-records.md),
-but those capabilities are outside the active 0.8 workspace.
+but those capabilities are outside the active 0.9 workspace.
 
 Project-specific terms, statuses, reserved names, and abbreviations are defined
 in the [Sigil glossary](spec/glossary.md).
@@ -684,7 +685,7 @@ Open design questions are tracked in
 
 Legacy skill sources remain retained but excluded from active discovery.
 The root [.sigil/config.json](./.sigil/config.json) defines this repository as a
-Sigil 0.8.0 workspace and excludes the independent example projects. The root
+Sigil 0.9.0 workspace and excludes the independent example projects. The root
 [_module.sigil](./_module.sigil) is an ordinary source containing the
 high-level project summary for this configured boundary.
 
@@ -741,7 +742,7 @@ repository.
 
 ## Coding-Agent Skills
 
-The bundle provides four Sigil 0.8 design entry points and one egglog language skill:
+The bundle provides four Sigil 0.9 design entry points and one egglog language skill:
 
 | Skill | Use it to |
 | --- | --- |
@@ -751,7 +752,7 @@ The bundle provides four Sigil 0.8 design entry points and one egglog language s
 | [sigil-write](integrations/skills/sigil-write/SKILL.md) | Write compact contracts and apply supported corrections through independent delegated review. |
 | [sigil-egglog](integrations/skills/sigil-egglog/SKILL.md) | Teach egglog/datalog for claims data-only rows and `.egg` law programs. |
 
-The four design skills start at artifact version 0.1.0 and share the bundled 0.8.0 normative
+The four design skills start at artifact version 0.1.0 and share the bundled 0.9.0 normative
 reference and grammar. `sigil-egglog` starts at 0.1.0 with no design-skill dependency. Install the complete catalog with `sigil skill install`
 (or `--project`); writer and evaluator require their sibling reference files.
 `sigil-compute` requires its declared siblings `sigil-understand` and
@@ -793,7 +794,7 @@ The existing `sigil` skill remains at its own artifact version, with its existin
 compiler compatibility metadata. Its 0.7 workflow lives in
 [integrations/skills/sigil/SKILL.md](integrations/skills/sigil/SKILL.md), with
 host adapters supplied separately. Its frozen compiler requirements are incompatible
-with the current 0.8 tools; `sigil skill list` reports that explicitly.
+with the current 0.9 tools; `sigil skill list` reports that explicitly.
 
 The skill teaches coding-agent hosts to:
 
@@ -840,11 +841,11 @@ provides authoring explanations and examples.
 
 ## Current Status
 
-The core, CLI, LSP and VS Code integration implement Sigil language 0.8.0.
+The core, CLI, LSP and VS Code integration implement Sigil language 0.9.0.
 Native structural transport and reports use schema 2. These are local,
 pre-production changes; this migration does not publish a release. Artifact
 versions and legacy requirements are listed in [COMPATIBILITY.md](COMPATIBILITY.md).
-See the [migration guide](spec/migrating-to-0.8.md),
+See the [migration guide](spec/migrating-to-0.9.md),
 [configuration](spec/sigil-config.md), and
 [verification evidence](docs/verification/sigil-080/).
 
@@ -859,7 +860,7 @@ Independent interpretation remains external to deterministic tooling. Native
 states describe the supplied projections and compiler laws; successful language
 checks, fixed-Turtle protocol tests and design reviews make different claims.
 The retained 0.7 skill is historical and excluded from active workspace discovery.
-The 0.8 understanding, writing and evaluation skills provide the current design
+The 0.9 understanding, writing and evaluation skills provide the current design
 workflow without requiring compiler-based proof.
 
 Editor integrations other than VS Code, stricter body semantics, and additional
@@ -871,4 +872,4 @@ active or deferred Sigil components.
 records the rejected proposal for deterministic shared packages, attributed
 host-assisted interpretation, a `sigil-indexer`, and generated review records
 without adding inline Sigil syntax. Its indexer and anchor contracts are not
-part of the active 0.8 workspace.
+part of the active 0.9 workspace.

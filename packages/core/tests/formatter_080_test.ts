@@ -10,7 +10,7 @@ function resolve(files: Record<string, string>): SigilResolution {
     path,
     source,
     document:
-      parseSigilDocument(path, source, { sigilVersion: "0.8.0" }).document,
+      parseSigilDocument(path, source, { sigilVersion: "0.9.0" }).document,
   }));
   return resolveSigilRelationships({
     root: ".",
@@ -22,7 +22,7 @@ function resolve(files: Record<string, string>): SigilResolution {
 }
 const format = (source: string, context?: SigilResolution) =>
   formatSigilDocument(
-    parseSigilDocument("c.sigil", source, { sigilVersion: "0.8.0" }).document,
+    parseSigilDocument("c.sigil", source, { sigilVersion: "0.9.0" }).document,
     source,
     context,
   );
@@ -113,7 +113,7 @@ Deno.test("formatting keeps complete links and payload bytes intact", () => {
   assert(result.formattedSource.includes(payload));
   assertEquals(
     parseSigilDocument("c.sigil", result.formattedSource, {
-      sigilVersion: "0.8.0",
+      sigilVersion: "0.9.0",
     }).diagnostics,
     [],
   );
@@ -136,7 +136,7 @@ Deno.test("formatting rejects structural recovery, broken names, collisions and 
   if (result.formattedSource) {
     assertEquals(
       parseSigilDocument("c.sigil", result.formattedSource, {
-        sigilVersion: "0.8.0",
+        sigilVersion: "0.9.0",
       }).document.components[0].sections[1].groups,
       [],
     );

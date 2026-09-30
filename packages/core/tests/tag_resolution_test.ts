@@ -5,12 +5,18 @@ import { isTagWordCharacter } from "../src/tag-matching.ts";
 import { assert, assertEquals } from "./assert.ts";
 
 const config = JSON.stringify({
-  sigilVersion: "0.8.0",
+  sigilVersion: "0.9.0",
   workspace: { name: "test" },
   files: { include: ["**/*.sigil"] },
 });
-const component = (name: string, prose: string, rest = "") =>
-  `component ${name} {\ngoal {\nOwn a responsibility.\n}\ninterface {\n${prose}\n}\n${rest}\n}\n`;
+const component = (name: string, prose: string, rest = "") => {
+  const section = /^(state|logic|constraints|cases|decisions)\s*\{/.exec(
+    rest.trim(),
+  )?.[1];
+  return section
+    ? `component ${name} {\ngoal {\nOwn a responsibility.\n}\n${rest}\ninterface {\n${prose}\n}\n}\n`
+    : `component ${name} {\ngoal {\nOwn a responsibility.\n}\ninterface {\n${prose}\n${rest}\n}\n}\n`;
+};
 const provider = (name = "Provider", tags = ["query", "submit"]) =>
   component(name, tags.map((n) => `A *${n}* has meaning.`).join("\n\n"));
 const importing = (path: string, owner: string, names: string) =>
@@ -29,7 +35,7 @@ Deno.test("reference word characters stay pinned to Unicode 15.1", () => {
   for (
     const character of ["A", "é", "́", "٣", "‿", "\u200c", "\u200d", "\u{2ebf0}"]
   ) assert(isTagWordCharacter(character));
-  // U+1C89 became a letter in Unicode 16.0; host Unicode upgrades must not change 0.8.
+  // U+1C89 became a letter in Unicode 16.0; host Unicode upgrades must not change 0.9.
   for (const character of ["-", ".", "😀", "\u1c89", "\u{2ee5e}"]) {
     assert(!isTagWordCharacter(character));
   }
@@ -287,13 +293,20 @@ Deno.test("all contracts and embedded introductions use imports; protected text 
       "decisions",
     ]
   ) {
-    const body = section === "goal"
-      ? `component C {\ngoal {\nUse query.\n}\ninterface {\nOffer an interaction.\n}\n}`
-      : component(
-        "C",
-        section === "interface" ? "Use query." : "Offer an interaction.",
-        section === "interface" ? "" : `${section} {\nUse query.\n}`,
-      );
+    const body = `component C {
+goal {
+${section === "goal" ? "Use query." : "Offer an interaction."}
+}
+${
+      ["state", "logic", "constraints", "cases"].includes(section)
+        ? `${section} {\nUse query.\n}`
+        : ""
+    }
+interface {
+${section === "interface" ? "Use query." : "Offer an interaction."}
+}
+${section === "decisions" ? "decisions {\nUse query.\n}" : ""}
+}`;
     const r = await resolve({
       "p.sigil": provider(),
       "c.sigil": importing("p.sigil", "Provider", "query") + body,
@@ -320,4 +333,129 @@ Deno.test("all contracts and embedded introductions use imports; protected text 
       component("C", "An example.\n```text\nquery"),
   });
   assertEquals(codes(incomplete), ["SIGIL_UNCLOSED_LITERAL_BLOCK"]);
+});
+
+Deno.test("only Tags evidenced by the provider Interface are directly importable", async () => {
+  const outsideInterface = await resolve({
+    "provider.sigil": component(
+      "Provider",
+      "Offer an interaction.",
+      "state {\nA *query* exists.\n}",
+    ),
+    "consumer.sigil": importing("provider.sigil", "Provider", "query") +
+      component("Consumer", "Use query."),
+  });
+  assertEquals(codes(outsideInterface), ["SIGIL_UNRESOLVED_IMPORTED_TAG"]);
+  assertEquals(outsideInterface.imports[0].names[0].status, "unresolved");
+  assertEquals(
+    outsideInterface.components.find((c) => c.name === "Consumer")!.references,
+    [],
+  );
+
+  const interfaceReference = await resolve({
+    "provider.sigil": component(
+      "Provider",
+      "Use query.",
+      "state {\nA *query* exists.\n}",
+    ),
+    "consumer.sigil": importing("provider.sigil", "Provider", "query") +
+      component("Consumer", "Use query."),
+  });
+  assertEquals(codes(interfaceReference), []);
+  assertEquals(interfaceReference.imports[0].names[0].status, "resolved");
+  assertEquals(
+    interfaceReference.components.find((c) => c.name === "Consumer")!
+      .references.map((reference) =>
+        reference.tagIdentity?.owner.componentName
+      ),
+    ["Provider"],
+  );
+});
+
+Deno.test("Interface grouping and inline definitions expose provider-owned Tags", async () => {
+  const r = await resolve({
+    "group.sigil": component("Grouped", "query {\nOffer query.\n}"),
+    "inline.sigil": component("Inline", "An inline *submit* interaction."),
+    "consumer.sigil": importing("group.sigil", "Grouped", "query") +
+      importing("inline.sigil", "Inline", "submit") +
+      component("Consumer", "Use query and submit."),
+  });
+  assertEquals(codes(r), []);
+  assertEquals(
+    r.imports.flatMap((item) => item.names).map((name) => name.status),
+    [
+      "resolved",
+      "resolved",
+    ],
+  );
+});
+
+Deno.test("Interface evidence does not re-export an imported Tag", async () => {
+  const r = await resolve({
+    "provider.sigil": component(
+      "Provider",
+      "Offer query.",
+      "state {\nA *query* exists.\n}",
+    ),
+    "middle.sigil": importing("provider.sigil", "Provider", "query") +
+      component("Middle", "Use query."),
+    "direct.sigil": importing("provider.sigil", "Provider", "query") +
+      component("Direct", "Use query."),
+    "transitive.sigil": importing("middle.sigil", "Middle", "query") +
+      component("Transitive", "Use query."),
+  });
+  assertEquals(
+    r.imports.flatMap((item) => item.names).map((name) => name.status),
+    ["resolved", "resolved", "unresolved"],
+  );
+  assertEquals(codes(r), ["SIGIL_UNRESOLVED_IMPORTED_TAG"]);
+});
+
+Deno.test("Interface prose uses longest-match semantics before exporting local Tags", async () => {
+  const r = await resolve({
+    "provider.sigil": "@status.sigil from Status import { order status }\n" +
+      "component Provider {\n" +
+      "goal {\nOwn a responsibility.\n}\n" +
+      "state {\nAn *order* exists.\n}\n" +
+      "interface {\nThe order status is reported.\n}\n" +
+      "}\n",
+    "status.sigil": component(
+      "Status",
+      "An *order status* describes an order.",
+    ),
+    "consumer.sigil": importing("provider.sigil", "Provider", "order") +
+      component("Consumer", "Use order."),
+  });
+  assertEquals(codes(r), ["SIGIL_UNRESOLVED_IMPORTED_TAG"]);
+  assertEquals(
+    r.imports.find((item) => item.sourceFile === "consumer.sigil")?.names[0]
+      .status,
+    "unresolved",
+  );
+});
+
+Deno.test("imported Tags remain usable across the canonical contract sections", async () => {
+  const sections = [
+    "goal",
+    "state",
+    "logic",
+    "constraints",
+    "cases",
+    "interface",
+    "decisions",
+  ];
+  const consumer = `component Consumer {\n${
+    sections.map((section) => `${section} {\nUse query.\n}`).join("\n")
+  }\n}\n`;
+  const r = await resolve({
+    "provider.sigil": provider(),
+    "consumer.sigil": importing("provider.sigil", "Provider", "query") +
+      consumer,
+  });
+  assertEquals(codes(r), []);
+  assertEquals(
+    r.components.find((component) => component.name === "Consumer")!.references
+      .map((reference) => reference.sectionName),
+    sections,
+  );
 });

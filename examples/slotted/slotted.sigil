@@ -23,27 +23,6 @@ component Slotted {
     arithmetic and a concurrency invariant.
   }
 
-  interface {
-    Identity owns sign-up, sign-in and the session gate that resolves each
-    request to an actor.
-
-    Rooms owns each room, its owner, its timezone, archiving, and the
-    room lock that serializes changes to one room.
-
-    Availability owns weekly windows, blackouts and open time, and defines
-    the meaning of the slot grid and the clock.
-
-    Booking owns every booking request, its lifecycle, the no-overlap rule,
-    and the availability workflow, archive workflow and timezone workflow.
-
-    Calendar owns the room calendar, a read-only projection of open time and
-    booking request state for one viewer.
-
-    The *app layer* is the set of pages and Server Actions; it offers every
-    screen of the room-booking app and calls modules only through their
-    *public entry*.
-  }
-
   state {
     Each module is one *module boundary* with a public entry, private
     internals, and, for Rooms and Availability, a *transaction entry* that
@@ -128,6 +107,40 @@ component Slotted {
     }
   }
 
+  cases {
+    A page imports a Rooms transaction entry directly; lint fails and CI
+    rejects the change because only Booking may import it.
+
+    The room owner approves two overlapping booking request records from two
+    tabs at once; the room lock serializes them, exactly one becomes Confirmed
+    and the other is no longer Pending, with the exclusion constraint as the
+    backstop.
+
+    A booking request is approved; the Server Action refreshes the page and
+    the room calendar shows the Confirmed block.
+  }
+
+  interface {
+    Identity owns sign-up, sign-in and the session gate that resolves each
+    request to an actor.
+
+    Rooms owns each room, its owner, its timezone, archiving, and the
+    room lock that serializes changes to one room.
+
+    Availability owns weekly windows, blackouts and open time, and defines
+    the meaning of the slot grid and the clock.
+
+    Booking owns every booking request, its lifecycle, the no-overlap rule,
+    and the availability workflow, archive workflow and timezone workflow.
+
+    Calendar owns the room calendar, a read-only projection of open time and
+    booking request state for one viewer.
+
+    The *app layer* is the set of pages and Server Actions; it offers every
+    screen of the room-booking app and calls modules only through their
+    *public entry*.
+  }
+
   decisions {
     architecture {
       A modular monolith keeps the room-booking app in one deployable while the
@@ -153,18 +166,5 @@ component Slotted {
       yet support 7, and the shared kernel keeps the Temporal polyfill until the
       runtime moves to Node 26.
     }
-  }
-
-  cases {
-    A page imports a Rooms transaction entry directly; lint fails and CI
-    rejects the change because only Booking may import it.
-
-    The room owner approves two overlapping booking request records from two
-    tabs at once; the room lock serializes them, exactly one becomes Confirmed
-    and the other is no longer Pending, with the exclusion constraint as the
-    backstop.
-
-    A booking request is approved; the Server Action refreshes the page and
-    the room calendar shows the Confirmed block.
   }
 }

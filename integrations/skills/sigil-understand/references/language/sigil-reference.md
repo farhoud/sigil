@@ -1,6 +1,6 @@
 # Sigil Language Reference
 
-**Language version:** 0.8.0. **Status:** Implemented in this checkout; publication separate.
+**Language version:** 0.9.0. **Status:** Implemented in this checkout; publication separate.
 
 This is the normative definition of Sigil's source model, syntax, ownership,
 name resolution, interpretation boundaries, validity, and required diagnostics.
@@ -12,8 +12,8 @@ between them is a specification defect, not permission to choose either result.
 Guide examples and style advice do not add requirements.
 
 The current parser, resolver, formatter, editor integration and active `.sigil`
-contracts target 0.8.0. Historical 0.7 skill sources remain excluded. This document
-does not publish a release. See [Migrating to 0.8](https://github.com/farhoud/sigil/blob/28ff9851a50032c2f6be9140c48a23d9d8f8a9c8/spec/migrating-to-0.8.md).
+contracts target 0.9.0. Historical 0.7 and 0.8 sources remain excluded. This document
+does not publish a release. See [Migrating to 0.9](migrating-to-0.9.md).
 
 ## Contents
 
@@ -269,7 +269,7 @@ one cannot silently alter a name's internal spaces or tabs.
 
 The only top-level forms are Tag imports and components. A source may contain
 multiple components, imports only, or no forms. `expand`, namespace imports,
-directory imports, exports, and re-exports are not 0.8 forms.
+directory imports, exports, and re-exports are not 0.9 forms.
 
 A component has one declaration and owns all its contracts. Its name matches
 `[A-Za-z][A-Za-z0-9_]*`, is case-sensitive, and must be unique in the configured
@@ -288,8 +288,9 @@ or inside a grouping block. Missing, empty, or whitespace-only required sections
 are invalid. The other five sections are optional and may be empty. A grouping
 heading alone does not supply a Facet.
 
-Section order has no overriding effect. Goal, Interface, State, Logic,
-Constraints, Decisions, Cases is the recommended presentation order.
+When present, sections must appear exactly in this order: Goal, State, Logic,
+Constraints, Cases, Interface, Decisions. Any other ordering is structurally
+invalid; omitted optional sections do not create a gap in the sequence.
 
 ### Contract roles (contract.role)
 
@@ -542,11 +543,13 @@ Attaching a payload must not change recognition in unchanged introductory prose.
 
 ### Facet Tags (tag.facet)
 
-Every Facet should reference or define at least one Tag in its own eligible
-prose. A resolved bare reference or a valid inline definition counts. A grouping
-heading, a fenced payload, a complete link, and a component mention do not.
-A Facet without one is valid but receives the advisory `SIGIL_UNTAGGED_FACET`
-warning. Skip this check for sources whose recovery is incomplete.
+Every operational Facet in State, Logic, Constraints, Cases, or Interface should
+reference or define at least one Tag in its own eligible prose. A resolved bare
+reference or a valid inline definition counts. A grouping heading, a fenced
+payload, a complete link, and a component mention do not. An operational Facet
+without one is valid but receives the advisory `SIGIL_UNTAGGED_FACET` warning.
+Goal and Decisions Facets are exempt from this absence warning. Skip this check
+for sources whose recovery is incomplete.
 
 ## Workspaces and imports
 
@@ -556,7 +559,7 @@ Sigil sources are selected by a strict JSON `.sigil/config.json` at the workspac
 root. The config selects language version and file discovery; its detailed
 contract is [workspace configuration](sigil-config.md), with the
 [configuration schema](sigil-config.schema.json). These artifacts define the
-implemented 0.8 workspace version and its discovery rules.
+implemented 0.9 workspace version and its discovery rules.
 
 The workspace root is the directory containing `.sigil`, whose `config.json`
 controls it. A project is a coherent app, service, library, package, or system
@@ -597,12 +600,18 @@ its own declarations. Missing sources, missing or ambiguous components, and
 unknown or ambiguous selected Tags are resolution errors. Failures must not
 erase independent successful selections.
 
-Every component-owned Tag can be selected, regardless of its introducing
-contract. Contract roles do not create language-level public/private visibility.
+A component-owned Tag is directly selectable only when that same component's
+`interface` contains a valid inline definition, a valid grouping heading, or a
+resolved eligible-prose reference to that Tag. A Tag introduced or used only
+outside `interface` is not importable from the component. Interface evidence is
+an export boundary, not a new ownership or re-export mechanism.
+
 Only selected provider identities enter the importing source's accessible
-vocabulary. All components in that source see those imports; local Tags remain
-local to their component. Other components' local Tags in the same file are not
-implicitly accessible.
+vocabulary. All components in that source see those imports in every contract
+section; local Tags remain local to their component. Other components' local Tags
+in the same file are not implicitly accessible. An imported Tag used in a
+consumer Interface remains owned and directly importable only from its original
+provider.
 
 Imports and bare reuse do not create re-exports. Select a Tag from its owner.
 Selecting the same originating identity twice in one source is a duplicate-import
@@ -698,8 +707,8 @@ do not require a particular indentation style for otherwise valid sources.
 
 ### Diagnostic records (diagnostic.record)
 
-The catalog below defines 0.8 diagnostic codes, not claims about codes currently
-implemented in 0.7. Each record must carry a code, stage, severity, message,
+The catalog below defines 0.9 diagnostic codes, not claims about codes currently
+implemented in 0.7 or historical 0.8 tooling. Each record must carry a code, stage, severity, message,
 source location when available, and related conflicting locations where required.
 Exact English wording and UI presentation are implementation choices.
 
@@ -732,6 +741,7 @@ attach all other occurrences as related locations; this does not select a winner
 | `SIGIL_MISSING_GOAL` | Goal is absent or contains no Facet. | Component name if absent, section header if empty. |
 | `SIGIL_MISSING_INTERFACE` | Interface is absent or contains no Facet. | Component name if absent, section header if empty. |
 | `SIGIL_DUPLICATE_SECTION` | A contract section occurs more than once in a component. | Conflicting headers; retain each section separately without merging. |
+| `SIGIL_SECTION_ORDER` | Present sections do not follow `goal`, `state`, `logic`, `constraints`, `cases`, `interface`, `decisions`. | Out-of-order section header and related preceding header; retain the sections without accepting the component structure. |
 | `SIGIL_DUPLICATE_COMPONENT` | Component names collide in the workspace. | Conflicting names; retain declarations without choosing an owner. |
 | `SIGIL_EMPTY_TAG_GROUP` | A grouping block contains no Facet. | Grouping header; retain the empty group. |
 | `SIGIL_NESTED_TAG_GROUP` | A grouping block occurs within another grouping block. | Inner header, related outer header; retain the invalid nesting without flattening it. |
@@ -755,7 +765,7 @@ attach all other occurrences as related locations; this does not select a winner
 | `SIGIL_NESTED_CONFIG` | A nested config conflicts with included workspace/member boundaries. | Nested config, related parent boundary; do not merge workspaces. |
 | `SIGIL_UNRESOLVED_IMPORT_PATH` | An import path escapes the workspace or does not select an included readable `.sigil` source. | Import path; retain other independent imports. |
 | `SIGIL_UNRESOLVED_IMPORTED_COMPONENT` | The selected source does not supply an unambiguous named component. | Provider name, related declarations when ambiguous. |
-| `SIGIL_UNRESOLVED_IMPORTED_TAG` | The provider does not own an unambiguous selected Tag. | Selected name, related invalid/ambiguous definition locations when present. |
+| `SIGIL_UNRESOLVED_IMPORTED_TAG` | The provider does not own an unambiguous selected Tag evidenced by its Interface. | Selected name, related invalid/ambiguous definition locations when present. |
 | `SIGIL_DUPLICATE_TAG_DEFINITION` | More than one inline definition has the same exact name in a component. | Conflicting definitions; the name remains unresolved, including for headings. |
 | `SIGIL_DUPLICATE_TAG_IMPORT` | A source selects the same originating Tag more than once. | Conflicting selections; neither occurrence silently wins. |
 | `SIGIL_TAG_NAME_COLLISION` | Different imported identities, or a local and imported identity, share an accessible name. | Conflicting introductions/selections; affected references remain unresolved. |
@@ -784,7 +794,7 @@ interpretation result relative to that task.
 
 | Code | Condition | Required result |
 | --- | --- | --- |
-| `SIGIL_UNTAGGED_FACET` | A Facet has no resolved Tag reference or valid inline definition in its own eligible prose. | Warning at the Facet's prose; the source remains valid. |
+| `SIGIL_UNTAGGED_FACET` | An operational Facet has no resolved Tag reference or valid inline definition in its own eligible prose. | Warning at the Facet's prose; Goal and Decisions are exempt and the source remains valid. |
 
 ### Recovery and suppression (diagnostic.recovery)
 
@@ -850,17 +860,17 @@ component Vocabulary {
     Demonstrate local identity.
   }
 
+  logic {
+    query {
+      Reject an empty query.
+    }
+  }
+
   interface {
     A *query* contains search text.
 
     query {
       Accept a query.
-    }
-  }
-
-  logic {
-    query {
-      Reject an empty query.
     }
   }
 }
@@ -944,7 +954,8 @@ Use the complete provider and consumer sources in the guide's
 | Wrap an ordinary paragraph without splitting or creating a Tag reference | One Facet with unchanged references. |
 | Group header containing one paragraph | One Facet, not two. |
 | Group with no Facets | `SIGIL_EMPTY_TAG_GROUP`. |
-| Facet whose only Tag is its group heading | `SIGIL_UNTAGGED_FACET` warning; the source stays valid. |
+| Facet whose only Tag is its group heading in an operational section | `SIGIL_UNTAGGED_FACET` warning; Goal and Decisions are exempt. |
+| Interface before State in a component | `SIGIL_SECTION_ORDER`; present sections must use the canonical order. |
 | Group inside another group | `SIGIL_NESTED_TAG_GROUP`. |
 | Second Logic section in a component | `SIGIL_DUPLICATE_SECTION`; sections are not merged. |
 | Goal containing only whitespace | `SIGIL_MISSING_GOAL`. |
@@ -959,7 +970,7 @@ Use the complete provider and consumer sources in the guide's
 
 ### Scope of a conformance claim
 
-A complete 0.8 language implementation must satisfy the grammar, lexical and
+A complete 0.9 language implementation must satisfy the grammar, lexical and
 structural conditions, exact name and import rules, provenance requirements,
 and diagnostic conditions above. A syntax-only parser can claim syntax support,
 but not workspace resolution or semantic interpretation. It must label checks

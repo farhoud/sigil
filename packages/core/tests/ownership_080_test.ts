@@ -7,12 +7,21 @@ import {
 } from "../src/implementation-ownership.ts";
 import { assert, assertEquals } from "./assert.ts";
 const config = JSON.stringify({
-  sigilVersion: "0.8.0",
+  sigilVersion: "0.9.0",
   workspace: { name: "test" },
   files: { include: ["**/*.sigil"] },
 });
-const component = (name: string, body: string, rest = "") =>
-  `component ${name} {\ngoal {\nOwn a responsibility.\n}\ninterface {\n${body}\n}\n${rest}\n}`;
+const component = (name: string, body: string, rest = "") => {
+  const blocks = [...rest.matchAll(
+    /(state|logic|constraints|cases|decisions)\s*\{[\s\S]*?\n\}/g,
+  )].map((match) => ({ name: match[1], text: match[0] }));
+  const before = blocks.filter((block) => block.name !== "decisions").map((
+    block,
+  ) => block.text).join("\n");
+  const decisions = blocks.find((block) => block.name === "decisions")?.text ??
+    "";
+  return `component ${name} {\ngoal {\nOwn a responsibility.\n}\n${before}\ninterface {\n${body}\n}\n${decisions}\n}`;
+};
 async function fixture(files: Record<string, string>) {
   return resolveSigilWorkspace(
     await loadSigilWorkspace(
@@ -48,8 +57,8 @@ Deno.test("quoted exact Tag selectors retain provider origin and only consumer-o
   assertEquals(owned.tag?.identity?.owner.componentName, "P");
   assertEquals(owned.facets.map((f) => [f.ownerName, f.sectionName]), [[
     "C",
-    "interface",
-  ], ["C", "constraints"]]);
+    "constraints",
+  ], ["C", "interface"]]);
   assertEquals(owned.targets.map((t) => t.symbolIdentity), ["entry"]);
   assertEquals(owned.targets[0].location, { line: 3, column: 17 });
   assertEquals(owned.targets[0].annotationRange.start, { line: 1, column: 1 });

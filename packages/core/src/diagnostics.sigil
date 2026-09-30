@@ -12,27 +12,10 @@ component SigilDiagnostics {
     enrichment failures.
   }
 
-  interface {
-    DiagnosticConstruction {
-      diagnostic(code, message, options?) returns a *SigilDiagnostic*
-
-        severity *default value* is error when omitted
-
-      options may provide severity, stage, file path, *exact source range*, and
-      related
-      source locations with their captured identity
-    }
-
-    DiagnosticCode {
-      diagnostic codes are stable identifiers that consumers may interpret without
-      parsing *messages*
-    }
-  }
-
   constraints {
 
     NormativeDiagnostics {
-      The 0.8 [diagnostic
+      The 0.9 [diagnostic
       catalog](../../../spec/sigil-reference.md#diagnostics-and-recovery) owns
       *language codes*, stages, severity, suppression, related locations, ordering,
       and
@@ -62,8 +45,12 @@ component SigilDiagnostics {
       SIGIL_UNUSED_TAG_IMPORT is an error for one *resolved imported name* without
       qualifying local use.
 
-      SIGIL_UNTAGGED_FACET is a warning DiagnosticCode; a Facet without a Tag in its
-      own prose stays valid.
+      SIGIL_UNTAGGED_FACET is a warning DiagnosticCode; an operational Facet without
+      a Tag in its own prose stays valid. Goal and Decisions are exempt from this
+      absence warning.
+
+      SIGIL_SECTION_ORDER is an error when present sections do not follow the
+      canonical contract order.
 
       Removed *expand syntax* receives the normative structural diagnostic; it is
       never
@@ -87,30 +74,6 @@ component SigilDiagnostics {
 
       SIGIL_UNFORMATTABLE_LINE is an error when one *indivisible prose token* exceeds
       the 79-character content width.
-    }
-  }
-
-  decisions {
-    DiagnosticConstruction {
-      Decision: Permit hosts to convert a host failure into a structured diagnostic
-      only when it occurs during *optional enrichment* and a meaningful primary
-      result
-      remains available.
-
-      Scope: Governs diagnostic construction by core consumers after successful
-      primary processing; required core filesystem, runtime, workspace-loading, and
-      *resolution failures* continue to propagate.
-
-      Trade-offs: Callers retain useful partial results but must inspect diagnostics
-      to determine whether optional enrichment is incomplete.
-
-      Discarded alternatives: Converting every
-      *host failure hides required-operation*
-      failure boundaries, while propagating optional enrichment failures discards
-      meaningful primary results.
-
-      Consequences: Hosts may report optional enrichment incompleteness without
-      changing *required core failure semantics*.
     }
   }
 
@@ -165,6 +128,49 @@ component SigilDiagnostics {
 
       A filesystem permission failure during optional host enrichment can produce a
       diagnostic while preserving the primary result.
+    }
+  }
+
+  interface {
+    DiagnosticConstruction {
+      diagnostic(code, message, options?) returns a *SigilDiagnostic*
+
+        severity *default value* is error when omitted
+
+      options may provide severity, stage, file path, *exact source range*, and
+      related
+      source locations with their captured identity
+    }
+
+    DiagnosticCode {
+      diagnostic codes are stable identifiers that consumers may interpret without
+      parsing *messages*
+    }
+    Exposes error diagnostic to direct consumers.
+
+  }
+
+  decisions {
+    DiagnosticConstruction {
+      Decision: Permit hosts to convert a host failure into a structured diagnostic
+      only when it occurs during *optional enrichment* and a meaningful primary
+      result
+      remains available.
+
+      Scope: Governs diagnostic construction by core consumers after successful
+      primary processing; required core filesystem, runtime, workspace-loading, and
+      *resolution failures* continue to propagate.
+
+      Trade-offs: Callers retain useful partial results but must inspect diagnostics
+      to determine whether optional enrichment is incomplete.
+
+      Discarded alternatives: Converting every
+      *host failure hides required-operation*
+      failure boundaries, while propagating optional enrichment failures discards
+      meaningful primary results.
+
+      Consequences: Hosts may report optional enrichment incompleteness without
+      changing *required core failure semantics*.
     }
   }
 }

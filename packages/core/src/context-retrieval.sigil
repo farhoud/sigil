@@ -21,200 +21,6 @@ component SigilContextRetrieval {
     evaluator judgment, and selected-workspace mutation.
   }
 
-  interface {
-
-    RetrievalProtocol {
-      The current *raw schema identity* is sigil-purpose-retrieval/v2 with retrieval
-      policy version 2. Its fingerprint uses that same raw schema identity. The
-      independently versioned agent schema is sigil-retrieval-projection/v2. These
-      current contracts add no v1 compatibility interpretation.
-    }
-    EvidenceBudget {
-      An optional maxEvidenceBytes bounds how much evidence text one retrieval
-      returns, counted as encoded *UTF-8 bytes*.
-
-      Evidence is kept in its *existing deterministic order*, which places the
-      selected
-      contract before dependencies, importers, and cycle members, so the closest
-      evidence is kept and the furthest is withheld. Optional selection stops at the
-      first unit that does not fit rather than packing later smaller units ahead of
-      closer evidence.
-
-      The *complete selected component contract* is always kept, whatever the budget.
-
-      A withheld unit is summarized rather than itemized: the result reports the
-      budget, the included and *withheld byte totals*, the withheld count, and the
-      withheld counts by evidence kind.
-
-      *Inclusion reasons* are reported only for evidence the result still contains.
-
-      Omitting the budget returns the *complete closure* unchanged.
-    }
-
-    PurposeRetrievalRequest {
-      retrieve(resolvedWorkspace, target, purpose, glossaryEvidence,
-      implementationEvidence) returns one PurposeRetrievalResult
-
-      target is either ComponentRetrievalTarget containing requested component name
-      and requested workspace-relative declaration path or FileRetrievalTarget
-      containing one requested workspace-relative Sigil path; retrieval normalizes
-      and validates these *untrusted Unicode-scalar request values* against the
-      loaded
-      workspace
-
-      requested component name is compared as its
-      *exact case-sensitive Unicode scalar*
-      sequence; retrieval performs no trimming, case folding, or Unicode
-      normalization, and an empty or nonmatching name is not found
-
-      *purpose* is semantic, architecture, or implementation
-
-      glossaryEvidence is a nullable complete workspace GlossaryProjection from
-      GlossaryInspection; after graph and Sigil evidence selection, retrieval uses
-      that same provider to obtain one GlossaryContextProjection scoped to the
-      normalized selected Sigil evidence paths
-
-      implementationEvidence is nullable for semantic and architecture purpose and
-      otherwise is the immutable ImplementationEvidenceInput owned by
-      SigilImplementationOwnership; implementation purpose with absent evidence
-      returns the same unavailable-discovery failure result
-
-      supplied glossaryEvidence must carry the *exact resolvedWorkspace*
-      workspaceSnapshotIdentity for every purpose; supplied implementationEvidence
-      must carry it for implementation purpose and is ignored for other purposes
-    }
-
-    PurposeRetrievalResult {
-      uses the immutable PurposeRetrievalResult, SelectedRetrievalGraph,
-      RetrievalNode, RetrievalEdge, EvidenceUnit, InclusionReason, ExcludedRelation,
-      and AggregatedRetrievalContext shapes owned by SigilRetrievalModel
-      RetrievalModel
-
-      every stable identity is a lowercase kind prefix, colon, and SHA-256 digest of
-      one RFC 8785 canonical identity object: node uses kind, normalized path,
-      component name, range, and available location; edge uses relation, endpoint
-      identities, and normalized origin path and range; evidence uses EvidenceKind,
-      normalized path, component, section, range, and available location, with
-      diagnostic evidence additionally using the complete DiagnosticModel record,
-      including stage, severity, code, message, and all related-location evidence;
-      inclusion reason uses rule, seed identity, selected identity, and ordered edge
-      identities; exclusion uses rule and edge identity
-
-      *identity objects* omit absent optional fields rather than encoding null
-    }
-
-    RetrievalProjectionDerivation {
-      projectRetrieval(result) returns one RetrievalProjection owned by
-      SigilRetrievalModel under RetrievalProjection without changing result.
-
-      projection uses raw selected graph, *ordered evidence*, inclusion reasons, and
-      diagnostics only as deterministic inputs; it does not reload the workspace,
-      traverse unselected graph edges, or read implementation files.
-
-      projection groups ordinary Facets by exact consumer component identity and
-      authored local grouping identity only. Annotation Tag scope is separate
-      metadata and never creates a *local grouping declaration*.
-
-      selected-contract contributes to the selected component; dependency-contract
-      and dependency-decision contribute to a dependency; importer-contract and
-      cycle-contract contribute to their matching role; Ordinary summaries have no
-      automatically selected module-context role.
-
-      ownership-projection becomes a consumer-owned OwnershipLink with optional exact
-      accessible Tag scope and separate originating Tag identity. Preserve imported
-      and *inline-only Tag scopes* without converting them into whole-component
-      claims
-      or local groupings. Links remain advisory and never embed implementation-source
-      text or prove alignment.
-
-      glossary-definition evidence becomes one projection glossary entry using that
-      unit's canonical term and definition. It does not create a
-      RetrievedComponent.
-
-      tag-origin evidence does not create a *selected RetrievedComponent*.
-
-      Projection links derive from *selected graph edges* and preserve exact target
-      component identity and available origin location.
-    }
-
-    RetrievalDiagnosticVocabulary {
-      Every retrieval-owned diagnostic has severity error and one
-      *exact code-message*
-      pair.
-
-      SIGIL_RETRIEVAL_TARGET_PATH_INVALID uses message "The
-      *requested retrieval path*
-      is not a valid contained workspace-relative path."
-
-      SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND uses message "The
-      *requested component name*
-      does not identify a loaded component."
-
-      SIGIL_RETRIEVAL_COMPONENT_IDENTITY_MISMATCH uses message "The requested
-      *component name* and declaration path do not identify the same loaded
-      component."
-
-      SIGIL_RETRIEVAL_FILE_NOT_FOUND uses message "The *requested Sigil file* is not
-      loaded in the selected workspace."
-
-      SIGIL_RETRIEVAL_FILE_EMPTY uses message "The requested Sigil file represents no
-      component."
-
-      SIGIL_RETRIEVAL_IMPLEMENTATION_DISCOVERY_UNAVAILABLE uses *message*
-      "Implementation-source discovery is unavailable for this retrieval."
-
-      SIGIL_RETRIEVAL_IDENTITY_COLLISION uses message "Distinct retrieval items
-      produced the same stable identity."
-
-      SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH uses message "Applicable auxiliary
-      evidence belongs to a *different workspace* snapshot."
-    }
-
-    RetrievalFailure {
-      an empty, malformed, absolute, NUL-containing, or workspace-escaping requested
-      path, or any path rejected by shared *workspace-relative normalization* and
-      containment rules, returns SIGIL_RETRIEVAL_TARGET_PATH_INVALID before any
-      component or file lookup
-
-      an unknown unknown component SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND, a component
-      name and declaration-path mismatch returns
-      SIGIL_RETRIEVAL_COMPONENT_IDENTITY_MISMATCH, an unknown file returns
-      SIGIL_RETRIEVAL_FILE_NOT_FOUND, and a file selecting no component returns
-      SIGIL_RETRIEVAL_FILE_EMPTY
-
-      each invalid target returns its one *distinguishing error diagnostic*, empty
-      selected graph, evidence, reasons, exclusions, and AggregatedRetrievalContext,
-      and a valid fingerprint over that failure result
-
-      unavailable or absent implementation discovery returns
-      SIGIL_RETRIEVAL_IMPLEMENTATION_DISCOVERY_UNAVAILABLE for implementation purpose
-      and prevents complete implementation context; semantic and architecture purpose
-      ignore implementation discovery state, sources, and diagnostics. Implementation
-      purpose retains the complete architecture graph, evidence, reasons, exclusions,
-      and AggregatedRetrievalContext, adds no *owned implementation source*, includes
-      that discovery error, and returns a valid fingerprint; consumers must not treat
-      that result as complete implementation context.
-
-      a supplied applicable auxiliary input whose workspaceSnapshotIdentity differs
-      from resolvedWorkspace returns SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH with
-      *empty graph*, evidence, reasons, exclusions, and context plus a valid failure
-      fingerprint
-
-      SIGIL_RETRIEVAL_IDENTITY_COLLISION returns its error diagnostic, empty graph,
-      evidence, reasons, exclusions, and AggregatedRetrievalContext, plus a valid
-      fingerprint over that complete failure result
-
-      failure precedence is target path and identity validation, then applicable
-      evidence snapshot matching, item identity collision, then implementation
-      discovery availability. Target failure stops before item construction. An item
-      identity collision supersedes unavailable implementation discovery and every
-      non-target diagnostic; its result contains only
-      *SIGIL_RETRIEVAL_IDENTITY_COLLISION*, empty collections and context, and its
-      valid failure fingerprint. Unavailable discovery retains architecture context
-      only when target validation and item identity construction succeed.
-    }
-  }
-
   logic {
     RetrievalTargetResolution {
       Normalize and validate the *requested path* first. On failure, return only
@@ -748,6 +554,335 @@ component SigilContextRetrieval {
     }
   }
 
+  cases {
+    PurposeRetrievalRequest {
+      Repeating a request over identical complete inputs returns a structurally
+      identical PurposeRetrievalResult, AggregatedRetrievalContext, and fingerprint.
+
+      An unrelated component and *edge change* neither selected membership nor the
+      fingerprint.
+
+      Adding an *applicable direct import* changes the selected graph, evidence,
+      context, explanation, and fingerprint.
+
+      A file containing two component declarations selects each exact identity once
+      and retains all seven contracts under their respective owners.
+    }
+
+    SemanticPurposeSelection {
+      A seed with one directly used Tag selection includes the *provider*
+      goal/interface, decisions as rationale, and complete provider interpretation
+      context without transferring its obligations or importing unselected names.
+
+      An imported Tag used in a *seed operational contract* contributes the actual
+      consumer-owned direct dependency and the complete provider interpretation
+      context.
+
+      A glossary term contributes one definition when an agentContext true,
+      source-ranged occurrence returned by SigilGlossaryEngine overlaps eligible
+      recovered prose in a *selected Facet*. A spelling found only in inline code, a
+      URL, a fenced content, a diagnostic, generated context, or implementation
+      source contributes no definition.
+    }
+
+    ArchitecturePurposeSelection {
+      Reaching one component in an *import cycle* includes the complete strongly
+      connected group without expanding outward from newly added cycle members.
+
+      An explicitly selected ordinary summary and
+      does not import any unnamed namespace or transitive dependency.
+
+      A direct provider complete declaration supplies selected-Tag interpretation
+      context; a *selected cycle member* retains every owned contract. Neither
+      creates
+      a separate expansion or automatic summary relationship.
+    }
+
+    ImplementationPurposeSelection {
+      Complete discovery includes a source file carrying an *ownership target* for a
+      selected component.
+
+      An unannotated nearby test is excluded even when its name resembles the
+      *selected component*.
+
+      Unavailable discovery returns an error diagnostic and no usable implementation
+      context, while complete discovery with no sources is a valid empty result.
+    }
+
+    RetrievalFailure {
+      An empty requested path returns only SIGIL_RETRIEVAL_TARGET_PATH_INVALID with
+      empty graph, evidence, reasons, exclusions, and context plus a reproducible
+      failure fingerprint. Its RetrievalTargetIdentity has rejected pathStatus and
+      preserves the exact empty requested path.
+
+      A malformed requested path returns that same *path-invalid result*.
+
+      An absolute requested path returns that same path-invalid result.
+
+      A requested path containing NUL returns that same path-invalid result.
+
+      A requested path that normalizes outside the workspace returns that same
+      path-invalid result.
+
+      An invalid requested path paired with an *unknown component* or file still
+      returns only SIGIL_RETRIEVAL_TARGET_PATH_INVALID; lookup, item construction,
+      collision detection, and implementation discovery diagnostics do not run.
+
+      An unknown or identity-mismatched component and a file selecting no component
+      each return an *error-bearing*, empty, reproducibly fingerprinted result.
+
+      A normalized Sigil path absent from the loaded workspace returns only
+      SIGIL_RETRIEVAL_FILE_NOT_FOUND with the same empty failure shape.
+
+      An empty, whitespace-padded, differently cased, or differently Unicode-
+      normalized component-name request does not match an otherwise similar loaded
+      component and returns only *SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND*.
+
+      A valid target with glossary evidence from another workspace snapshot returns
+      only *SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH* and the empty failure shape.
+
+      For implementation purpose, a valid target with implementation evidence from
+      another snapshot returns that same *mismatch result* before discovery
+      diagnostics
+      or item construction. The identical implementation evidence is ignored for
+      semantic and architecture purpose and does not alter their result.
+
+      Two distinct canonical item identity objects forced to the same kind-prefixed
+      identity collision, empty graph, evidence,
+      reasons, exclusions, and AggregatedRetrievalContext, and a reproducible failure
+      fingerprint; repeated identical canonical objects are deduplicated instead.
+
+      For implementation purpose with unavailable discovery and a constructed item
+      collision, the collision result supersedes the *discovery result* and contains
+      only SIGIL_RETRIEVAL_IDENTITY_COLLISION with empty collections and context.
+    }
+
+    RetrievalDiagnostics {
+      A workspace diagnostic attached only to an *unselected Sigil path* is excluded.
+
+      A source-less glossary diagnostic, a diagnostic attached to a
+      *selected workspace source*
+      path, and a glossary declaration diagnostic overlapping a selected effective
+      term remain in the scoped glossary context and retrieval fingerprint.
+
+      An *implementation-source discovery diagnostic* appears for implementation
+      purpose and is absent from otherwise equivalent semantic and architecture
+      results.
+    }
+
+    NullGlossaryEvidence {
+      Otherwise identical requests with null glossary evidence and with a supplied
+      projection that scopes to no effective term, occurrence, or diagnostic return
+      structurally identical results and fingerprints because *unused input presence*
+      is not serialized.
+    }
+
+    ExclusionFrontier {
+      For semantic purpose, a selected seed-to-dependency edge uses
+      select-direct-dependency. An outgoing dependency edge from that selected direct
+      dependency is recorded once as exclude-transitive-dependency, while relations
+      *incident* only to that excluded endpoint are not inspected.
+
+      For architecture purpose, transitive-dependency and cycle-frontier exclusions
+      can coexist. Their order is source node, target node, canonical relation order,
+      canonical excluding-rule order, *then exclusion identity*.
+    }
+  }
+
+  interface {
+
+    RetrievalProtocol {
+      The current *raw schema identity* is sigil-purpose-retrieval/v2 with retrieval
+      policy version 2. Its fingerprint uses that same raw schema identity. The
+      independently versioned agent schema is sigil-retrieval-projection/v2. These
+      current contracts add no v1 compatibility interpretation.
+    }
+    EvidenceBudget {
+      An optional maxEvidenceBytes bounds how much evidence text one retrieval
+      returns, counted as encoded *UTF-8 bytes*.
+
+      Evidence is kept in its *existing deterministic order*, which places the
+      selected
+      contract before dependencies, importers, and cycle members, so the closest
+      evidence is kept and the furthest is withheld. Optional selection stops at the
+      first unit that does not fit rather than packing later smaller units ahead of
+      closer evidence.
+
+      The *complete selected component contract* is always kept, whatever the budget.
+
+      A withheld unit is summarized rather than itemized: the result reports the
+      budget, the included and *withheld byte totals*, the withheld count, and the
+      withheld counts by evidence kind.
+
+      *Inclusion reasons* are reported only for evidence the result still contains.
+
+      Omitting the budget returns the *complete closure* unchanged.
+    }
+
+    PurposeRetrievalRequest {
+      retrieve(resolvedWorkspace, target, purpose, glossaryEvidence,
+      implementationEvidence) returns one PurposeRetrievalResult
+
+      target is either ComponentRetrievalTarget containing requested component name
+      and requested workspace-relative declaration path or FileRetrievalTarget
+      containing one requested workspace-relative Sigil path; retrieval normalizes
+      and validates these *untrusted Unicode-scalar request values* against the
+      loaded
+      workspace
+
+      requested component name is compared as its
+      *exact case-sensitive Unicode scalar*
+      sequence; retrieval performs no trimming, case folding, or Unicode
+      normalization, and an empty or nonmatching name is not found
+
+      *purpose* is semantic, architecture, or implementation
+
+      glossaryEvidence is a nullable complete workspace GlossaryProjection from
+      GlossaryInspection; after graph and Sigil evidence selection, retrieval uses
+      that same provider to obtain one GlossaryContextProjection scoped to the
+      normalized selected Sigil evidence paths
+
+      implementationEvidence is nullable for semantic and architecture purpose and
+      otherwise is the immutable ImplementationEvidenceInput owned by
+      SigilImplementationOwnership; implementation purpose with absent evidence
+      returns the same unavailable-discovery failure result
+
+      supplied glossaryEvidence must carry the *exact resolvedWorkspace*
+      workspaceSnapshotIdentity for every purpose; supplied implementationEvidence
+      must carry it for implementation purpose and is ignored for other purposes
+    }
+
+    PurposeRetrievalResult {
+      uses the immutable PurposeRetrievalResult, SelectedRetrievalGraph,
+      RetrievalNode, RetrievalEdge, EvidenceUnit, InclusionReason, ExcludedRelation,
+      and AggregatedRetrievalContext shapes owned by SigilRetrievalModel
+      RetrievalModel
+
+      every stable identity is a lowercase kind prefix, colon, and SHA-256 digest of
+      one RFC 8785 canonical identity object: node uses kind, normalized path,
+      component name, range, and available location; edge uses relation, endpoint
+      identities, and normalized origin path and range; evidence uses EvidenceKind,
+      normalized path, component, section, range, and available location, with
+      diagnostic evidence additionally using the complete DiagnosticModel record,
+      including stage, severity, code, message, and all related-location evidence;
+      inclusion reason uses rule, seed identity, selected identity, and ordered edge
+      identities; exclusion uses rule and edge identity
+
+      *identity objects* omit absent optional fields rather than encoding null
+    }
+
+    RetrievalProjectionDerivation {
+      projectRetrieval(result) returns one RetrievalProjection owned by
+      SigilRetrievalModel under RetrievalProjection without changing result.
+
+      projection uses raw selected graph, *ordered evidence*, inclusion reasons, and
+      diagnostics only as deterministic inputs; it does not reload the workspace,
+      traverse unselected graph edges, or read implementation files.
+
+      projection groups ordinary Facets by exact consumer component identity and
+      authored local grouping identity only. Annotation Tag scope is separate
+      metadata and never creates a *local grouping declaration*.
+
+      selected-contract contributes to the selected component; dependency-contract
+      and dependency-decision contribute to a dependency; importer-contract and
+      cycle-contract contribute to their matching role; Ordinary summaries have no
+      automatically selected module-context role.
+
+      ownership-projection becomes a consumer-owned OwnershipLink with optional exact
+      accessible Tag scope and separate originating Tag identity. Preserve imported
+      and *inline-only Tag scopes* without converting them into whole-component
+      claims
+      or local groupings. Links remain advisory and never embed implementation-source
+      text or prove alignment.
+
+      glossary-definition evidence becomes one projection glossary entry using that
+      unit's canonical term and definition. It does not create a
+      RetrievedComponent.
+
+      tag-origin evidence does not create a *selected RetrievedComponent*.
+
+      Projection links derive from *selected graph edges* and preserve exact target
+      component identity and available origin location.
+    }
+
+    RetrievalDiagnosticVocabulary {
+      Every retrieval-owned diagnostic has severity error and one
+      *exact code-message*
+      pair.
+
+      SIGIL_RETRIEVAL_TARGET_PATH_INVALID uses message "The
+      *requested retrieval path*
+      is not a valid contained workspace-relative path."
+
+      SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND uses message "The
+      *requested component name*
+      does not identify a loaded component."
+
+      SIGIL_RETRIEVAL_COMPONENT_IDENTITY_MISMATCH uses message "The requested
+      *component name* and declaration path do not identify the same loaded
+      component."
+
+      SIGIL_RETRIEVAL_FILE_NOT_FOUND uses message "The *requested Sigil file* is not
+      loaded in the selected workspace."
+
+      SIGIL_RETRIEVAL_FILE_EMPTY uses message "The requested Sigil file represents no
+      component."
+
+      SIGIL_RETRIEVAL_IMPLEMENTATION_DISCOVERY_UNAVAILABLE uses *message*
+      "Implementation-source discovery is unavailable for this retrieval."
+
+      SIGIL_RETRIEVAL_IDENTITY_COLLISION uses message "Distinct retrieval items
+      produced the same stable identity."
+
+      SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH uses message "Applicable auxiliary
+      evidence belongs to a *different workspace* snapshot."
+    }
+
+    RetrievalFailure {
+      an empty, malformed, absolute, NUL-containing, or workspace-escaping requested
+      path, or any path rejected by shared *workspace-relative normalization* and
+      containment rules, returns SIGIL_RETRIEVAL_TARGET_PATH_INVALID before any
+      component or file lookup
+
+      an unknown unknown component SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND, a component
+      name and declaration-path mismatch returns
+      SIGIL_RETRIEVAL_COMPONENT_IDENTITY_MISMATCH, an unknown file returns
+      SIGIL_RETRIEVAL_FILE_NOT_FOUND, and a file selecting no component returns
+      SIGIL_RETRIEVAL_FILE_EMPTY
+
+      each invalid target returns its one *distinguishing error diagnostic*, empty
+      selected graph, evidence, reasons, exclusions, and AggregatedRetrievalContext,
+      and a valid fingerprint over that failure result
+
+      unavailable or absent implementation discovery returns
+      SIGIL_RETRIEVAL_IMPLEMENTATION_DISCOVERY_UNAVAILABLE for implementation purpose
+      and prevents complete implementation context; semantic and architecture purpose
+      ignore implementation discovery state, sources, and diagnostics. Implementation
+      purpose retains the complete architecture graph, evidence, reasons, exclusions,
+      and AggregatedRetrievalContext, adds no *owned implementation source*, includes
+      that discovery error, and returns a valid fingerprint; consumers must not treat
+      that result as complete implementation context.
+
+      a supplied applicable auxiliary input whose workspaceSnapshotIdentity differs
+      from resolvedWorkspace returns SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH with
+      *empty graph*, evidence, reasons, exclusions, and context plus a valid failure
+      fingerprint
+
+      SIGIL_RETRIEVAL_IDENTITY_COLLISION returns its error diagnostic, empty graph,
+      evidence, reasons, exclusions, and AggregatedRetrievalContext, plus a valid
+      fingerprint over that complete failure result
+
+      failure precedence is target path and identity validation, then applicable
+      evidence snapshot matching, item identity collision, then implementation
+      discovery availability. Target failure stops before item construction. An item
+      identity collision supersedes unavailable implementation discovery and every
+      non-target diagnostic; its result contains only
+      *SIGIL_RETRIEVAL_IDENTITY_COLLISION*, empty collections and context, and its
+      valid failure fingerprint. Unavailable discovery retains architecture context
+      only when target validation and item identity construction succeed.
+    }
+  }
+
   decisions {
     SnapshotBoundAuxiliaryEvidence {
       Decision: Compare applicable glossary and *implementation evidence snapshot*
@@ -1007,141 +1142,6 @@ component SigilContextRetrieval {
       Consequences: Every combined failure has one *deterministic shape* and
       consumers
       distinguish unusable identity from incomplete implementation enrichment.
-    }
-  }
-
-  cases {
-    PurposeRetrievalRequest {
-      Repeating a request over identical complete inputs returns a structurally
-      identical PurposeRetrievalResult, AggregatedRetrievalContext, and fingerprint.
-
-      An unrelated component and *edge change* neither selected membership nor the
-      fingerprint.
-
-      Adding an *applicable direct import* changes the selected graph, evidence,
-      context, explanation, and fingerprint.
-
-      A file containing two component declarations selects each exact identity once
-      and retains all seven contracts under their respective owners.
-    }
-
-    SemanticPurposeSelection {
-      A seed with one directly used Tag selection includes the *provider*
-      goal/interface, decisions as rationale, and complete provider interpretation
-      context without transferring its obligations or importing unselected names.
-
-      An imported Tag used in a *seed operational contract* contributes the actual
-      consumer-owned direct dependency and the complete provider interpretation
-      context.
-
-      A glossary term contributes one definition when an agentContext true,
-      source-ranged occurrence returned by SigilGlossaryEngine overlaps eligible
-      recovered prose in a *selected Facet*. A spelling found only in inline code, a
-      URL, a fenced content, a diagnostic, generated context, or implementation
-      source contributes no definition.
-    }
-
-    ArchitecturePurposeSelection {
-      Reaching one component in an *import cycle* includes the complete strongly
-      connected group without expanding outward from newly added cycle members.
-
-      An explicitly selected ordinary summary and
-      does not import any unnamed namespace or transitive dependency.
-
-      A direct provider complete declaration supplies selected-Tag interpretation
-      context; a *selected cycle member* retains every owned contract. Neither
-      creates
-      a separate expansion or automatic summary relationship.
-    }
-
-    ImplementationPurposeSelection {
-      Complete discovery includes a source file carrying an *ownership target* for a
-      selected component.
-
-      An unannotated nearby test is excluded even when its name resembles the
-      *selected component*.
-
-      Unavailable discovery returns an error diagnostic and no usable implementation
-      context, while complete discovery with no sources is a valid empty result.
-    }
-
-    RetrievalFailure {
-      An empty requested path returns only SIGIL_RETRIEVAL_TARGET_PATH_INVALID with
-      empty graph, evidence, reasons, exclusions, and context plus a reproducible
-      failure fingerprint. Its RetrievalTargetIdentity has rejected pathStatus and
-      preserves the exact empty requested path.
-
-      A malformed requested path returns that same *path-invalid result*.
-
-      An absolute requested path returns that same path-invalid result.
-
-      A requested path containing NUL returns that same path-invalid result.
-
-      A requested path that normalizes outside the workspace returns that same
-      path-invalid result.
-
-      An invalid requested path paired with an *unknown component* or file still
-      returns only SIGIL_RETRIEVAL_TARGET_PATH_INVALID; lookup, item construction,
-      collision detection, and implementation discovery diagnostics do not run.
-
-      An unknown or identity-mismatched component and a file selecting no component
-      each return an *error-bearing*, empty, reproducibly fingerprinted result.
-
-      A normalized Sigil path absent from the loaded workspace returns only
-      SIGIL_RETRIEVAL_FILE_NOT_FOUND with the same empty failure shape.
-
-      An empty, whitespace-padded, differently cased, or differently Unicode-
-      normalized component-name request does not match an otherwise similar loaded
-      component and returns only *SIGIL_RETRIEVAL_COMPONENT_NOT_FOUND*.
-
-      A valid target with glossary evidence from another workspace snapshot returns
-      only *SIGIL_RETRIEVAL_EVIDENCE_SNAPSHOT_MISMATCH* and the empty failure shape.
-
-      For implementation purpose, a valid target with implementation evidence from
-      another snapshot returns that same *mismatch result* before discovery
-      diagnostics
-      or item construction. The identical implementation evidence is ignored for
-      semantic and architecture purpose and does not alter their result.
-
-      Two distinct canonical item identity objects forced to the same kind-prefixed
-      identity collision, empty graph, evidence,
-      reasons, exclusions, and AggregatedRetrievalContext, and a reproducible failure
-      fingerprint; repeated identical canonical objects are deduplicated instead.
-
-      For implementation purpose with unavailable discovery and a constructed item
-      collision, the collision result supersedes the *discovery result* and contains
-      only SIGIL_RETRIEVAL_IDENTITY_COLLISION with empty collections and context.
-    }
-
-    RetrievalDiagnostics {
-      A workspace diagnostic attached only to an *unselected Sigil path* is excluded.
-
-      A source-less glossary diagnostic, a diagnostic attached to a
-      *selected workspace source*
-      path, and a glossary declaration diagnostic overlapping a selected effective
-      term remain in the scoped glossary context and retrieval fingerprint.
-
-      An *implementation-source discovery diagnostic* appears for implementation
-      purpose and is absent from otherwise equivalent semantic and architecture
-      results.
-    }
-
-    NullGlossaryEvidence {
-      Otherwise identical requests with null glossary evidence and with a supplied
-      projection that scopes to no effective term, occurrence, or diagnostic return
-      structurally identical results and fingerprints because *unused input presence*
-      is not serialized.
-    }
-
-    ExclusionFrontier {
-      For semantic purpose, a selected seed-to-dependency edge uses
-      select-direct-dependency. An outgoing dependency edge from that selected direct
-      dependency is recorded once as exclude-transitive-dependency, while relations
-      *incident* only to that excluded endpoint are not inspected.
-
-      For architecture purpose, transitive-dependency and cycle-frontier exclusions
-      can coexist. Their order is source node, target node, canonical relation order,
-      canonical excluding-rule order, *then exclusion identity*.
     }
   }
 }

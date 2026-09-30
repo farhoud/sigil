@@ -161,7 +161,7 @@ own task:
 | `deno task test:lsp`              | `@qoherent/sigil-lsp` — lifecycle, diagnostics, symbols, hover, semantic tokens                |
 | `deno task test:vscode`           | Extension type-check and unit tests. No VS Code launch.                                        |
 | `deno task test:vscode:extension` | Extension integration tests. Launches VS Code.                                                 |
-| `deno task test:skill` | Offline metadata, dependencies, links and 0.8 reference reproduction via [`scripts/validate-skill.ts`](scripts/validate-skill.ts) |
+| `deno task test:skill` | Offline metadata, dependencies, links and 0.9 reference reproduction via [`scripts/validate-skill.ts`](scripts/validate-skill.ts) |
 | `deno task test:skill:native` | Preserved legacy metadata and native command examples via [`scripts/validate-native-skill.ts`](scripts/validate-native-skill.ts) |
 | `deno task check:vscode`          | Extension type-check alone                                                                     |
 
@@ -198,7 +198,7 @@ orchestration stay outside the toolchain.
 | `packages/cli/`               | The `sigil` command: authored inspection, structural Design export and skill installation | Uses core language APIs; never invokes sigilc or models. Also owns skill installation. |
 | `packages/sigilc/` | Native scope, source identity, prepared inputs, disposable worlds, catalogs and fixed semantic gates | Rust; no model runtime or language-specific Implementation adapter. |
 | `packages/lsp/`               | The editor-neutral language server over core                                                                           | LSP 3.18 on stdio.                                                                                                                                                     |
-| `integrations/skills/` | Four source-based 0.8 design skills, the `sigil-egglog` language skill, plus the legacy `sigil` 0.7 native workflow | Shared language pack and evaluator-owned review contract; models execute in the host. |
+| `integrations/skills/` | Four source-based 0.9 design skills, the `sigil-egglog` language skill, plus the legacy `sigil` 0.7 native workflow | Shared language pack and evaluator-owned review contract; models execute in the host. |
 | `integrations/editor/vscode/` | The VS Code extension: syntax, bundled LSP startup, semantic tokens, component preview                                 | The only Node.js code in the repository.                                                                                                                               |
 | `examples/`                   | `promise` and `slotted`, each an independently configured workspace                                                    | Design-pressure fixtures, excluded from the root workspace. Not products.                                                                                              |
 | `scripts/`                    | Release build and skill validation                                                                                     |                                                                                                                                                                        |
@@ -365,13 +365,13 @@ verification.
 Four version lines move independently, and [COMPATIBILITY.md](COMPATIBILITY.md) is
 the authority on how they relate:
 
-- **Sigil language and `.sigil/config.json` schema** — currently 0.8.0, owned by
+- **Sigil language and `.sigil/config.json` schema** — currently 0.9.0, owned by
   the single literal in [`spec/language.sigil`](spec/language.sigil).
 - **Package artifacts** — independently versioned, owned by each package manifest
   (`core` 0.8.0, `cli` 0.9.0, and `lsp` 0.8.0).
 - **VS Code extension** — owned by its `package.json`.
 - **Agent skills** — each owns `VERSION` and `compatibility.json` in its
-  `integrations/skills/<name>/` directory. New 0.8 design skills declare language
+  `integrations/skills/<name>/` directory. New 0.9 design skills declare language
   and sibling requirements independently from the legacy native skill.
 
 Do not bump a version as a side effect of another change, and do not duplicate a

@@ -10,6 +10,22 @@ component SigilProjectionStore {
     *out-of-order reconstruction* as current.
   }
 
+  constraints {
+
+    IncompatibleArtifacts {
+      Retain existing projections and prepared bindings on disk. The schema/language
+      and Tag-vocabulary fingerprint changes make incompatible artifacts stale or
+      incompatible through existing checks; never translate, erase, or accept them
+      as
+      current. External producers prepare and ingest compatible projections again.
+
+      Compile consumes current stored projections; *preparation*, ingestion, workers,
+      and scheduling remain external to the editor compilation command. A missing
+      compatible projection preserves the existing Loose/unavailable behavior, and
+      frontend language errors never produce a completed semantic verdict.
+    }
+  }
+
   interface {
     DisposableCleanup {
       Clean only generated worlds while holding the same *exclusive writer lock*.
@@ -102,21 +118,6 @@ component SigilProjectionStore {
       separately. Refuse path traversal, symlinked artifact paths and malformed index
       metadata. A busy writer lock is an operational failure, never a semantic
       result.
-    }
-  }
-  constraints {
-
-    IncompatibleArtifacts {
-      Retain existing projections and prepared bindings on disk. The schema/language
-      and Tag-vocabulary fingerprint changes make incompatible artifacts stale or
-      incompatible through existing checks; never translate, erase, or accept them
-      as
-      current. External producers prepare and ingest compatible projections again.
-
-      Compile consumes current stored projections; *preparation*, ingestion, workers,
-      and scheduling remain external to the editor compilation command. A missing
-      compatible projection preserves the existing Loose/unavailable behavior, and
-      frontend language errors never produce a completed semantic verdict.
     }
   }
 }

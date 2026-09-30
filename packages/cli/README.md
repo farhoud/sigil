@@ -10,7 +10,7 @@ main human UI.
 
 Package docs:
 
-- [spec.md](spec.md): language 0.8 CLI requirements, command behavior, output
+- [spec.md](spec.md): language 0.9 CLI requirements, command behavior, output
   contracts, and acceptance scenarios.
 - [architecture.md](architecture.md): command architecture, module boundaries,
   dependency rules, and implementation guidelines.
@@ -110,7 +110,7 @@ The skill catalog reports each skill's declared compatibility. The retained
 `sigil` skill targets language 0.7 with frozen CLI `^0.8.0`, core `^0.7.0` and
 native `^0.1.0` requirements. It is incompatible with the new language
 toolchain. Installing skill documentation does not run or certify its runtime
-workflow. Use `sigil-understand`, `sigil-write` and `sigil-evaluate` for 0.8
+workflow. Use `sigil-understand`, `sigil-write` and `sigil-evaluate` for 0.9
 designs.
 
 Use the native compiler directly:

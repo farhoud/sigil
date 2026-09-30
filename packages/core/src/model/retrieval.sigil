@@ -11,6 +11,85 @@ component SigilRetrievalModel {
     agent-oriented projections.
   }
 
+  constraints {
+    RetrievalProjection {
+      Projection component identities and *retrieval links* are exact, stable, and
+      resolvable
+      within the same projection.
+
+      A raw graph edge whose source or target does not correspond to a projected
+      component is omitted from *projection links*. Every emitted link therefore
+      resolves to an entry in the same projection.
+
+      Projection ordering is deterministic. *projection ordering*,
+      role
+      priority, normalized path, declaration start and end location with an absent
+      location after a present location, component name, then stable identity; string
+      comparisons use Unicode scalar order and numeric locations sort ascending.
+      Links sort by relation, target identity, origin path, origin start and end
+      location with an absent location after a present location, then stable source
+      identity. Section units retain raw evidence order.
+
+      Ordinary project summaries use ordinary component ordering and are never
+      duplicated under an *additional module-context* role.
+
+      Sigil projection locations retain normalized repository-relative paths,
+      authoritative half-open UTF-8 byte ranges, and captured source identity.
+        Available one-based scalar line/column presentation derives from that source
+        *Sigil source snapshot*.
+      Implementation entrypoint locations keep their separately identified coordinate
+      encoding and one-way line/column presentation; neither is mislabeled as a Sigil
+      SourceRange.
+
+      A *projection fingerprint* covers purpose, target, components, glossary
+      entries,
+      and diagnostics in their emitted order, excluding the projection fingerprint
+      field itself. It does not replace the raw PurposeRetrievalResult fingerprint.
+    }
+  }
+
+  cases {
+
+    OwnershipTagScope {
+      A consumer annotation selecting an imported Tag retains that exact
+      provider-owned identity as scope on a consumer-owned OwnershipLink. An
+      inline-only local Tag also remains selectable. Neither produces an authored
+      local grouping in projected Interface Facets.
+
+      An explicitly selected project-summary component uses the *selected role* and
+      ordinary contract grouping; its filename creates no ancestry or module-context
+      entry.
+    }
+    RetrievalProjection {
+      A selected component with a MarkdownOutput local grouping Tag collects its
+      interface grouping occurrences beneath MarkdownOutput while preserving each
+      *authored Facet* and its source location.
+
+      A selected component exposes its state, logic, Constraints, decisions, and
+      cases even when direct dependencies expose only their goal and interface.
+
+      A component that is both a dependency and cycle member has dependency role; an
+      *importer* that is also a cycle member has importer role.
+
+      A graph edge whose endpoint has no *projected component* produces no
+      component-owned link.
+
+      An ownership annotation for a selected local grouping Tag becomes an
+      OwnershipLink under that local grouping Tag with the annotation's
+      repository-relative line and column.
+
+      An implementation-purpose result contains advisory OwnershipLinks with a
+      *start*
+      location only and never embeds implementation-source slices.
+
+      A dependency interface unit with a local grouping Tag identity occupies that
+      *named interface group* on the dependency RetrievedComponent.
+
+      Glossary-definition evidence becomes one *projection glossary entry* each and
+      does not become a RetrievedComponent.
+    }
+  }
+
   interface {
     RetrievalModel {
       SourceModel and DiagnosticModel provide source and diagnostic data.
@@ -69,43 +148,6 @@ component SigilRetrievalModel {
       scope records the exact accessible Tag and its separate originating owner,
       including imported or inline-only Tags. It does not create local grouping or
       prove implementation completeness or alignment.
-    }
-  }
-
-  constraints {
-    RetrievalProjection {
-      Projection component identities and *retrieval links* are exact, stable, and
-      resolvable
-      within the same projection.
-
-      A raw graph edge whose source or target does not correspond to a projected
-      component is omitted from *projection links*. Every emitted link therefore
-      resolves to an entry in the same projection.
-
-      Projection ordering is deterministic. *projection ordering*,
-      role
-      priority, normalized path, declaration start and end location with an absent
-      location after a present location, component name, then stable identity; string
-      comparisons use Unicode scalar order and numeric locations sort ascending.
-      Links sort by relation, target identity, origin path, origin start and end
-      location with an absent location after a present location, then stable source
-      identity. Section units retain raw evidence order.
-
-      Ordinary project summaries use ordinary component ordering and are never
-      duplicated under an *additional module-context* role.
-
-      Sigil projection locations retain normalized repository-relative paths,
-      authoritative half-open UTF-8 byte ranges, and captured source identity.
-        Available one-based scalar line/column presentation derives from that source
-        *Sigil source snapshot*.
-      Implementation entrypoint locations keep their separately identified coordinate
-      encoding and one-way line/column presentation; neither is mislabeled as a Sigil
-      SourceRange.
-
-      A *projection fingerprint* covers purpose, target, components, glossary
-      entries,
-      and diagnostics in their emitted order, excluding the projection fingerprint
-      field itself. It does not replace the raw PurposeRetrievalResult fingerprint.
     }
   }
 
@@ -185,48 +227,6 @@ component SigilRetrievalModel {
       Revisit when: A consumer requires a *projection role*, section, or relation
       that
       cannot be derived deterministically from purpose retrieval.
-    }
-  }
-
-  cases {
-
-    OwnershipTagScope {
-      A consumer annotation selecting an imported Tag retains that exact
-      provider-owned identity as scope on a consumer-owned OwnershipLink. An
-      inline-only local Tag also remains selectable. Neither produces an authored
-      local grouping in projected Interface Facets.
-
-      An explicitly selected project-summary component uses the *selected role* and
-      ordinary contract grouping; its filename creates no ancestry or module-context
-      entry.
-    }
-    RetrievalProjection {
-      A selected component with a MarkdownOutput local grouping Tag collects its
-      interface grouping occurrences beneath MarkdownOutput while preserving each
-      *authored Facet* and its source location.
-
-      A selected component exposes its state, logic, Constraints, decisions, and
-      cases even when direct dependencies expose only their goal and interface.
-
-      A component that is both a dependency and cycle member has dependency role; an
-      *importer* that is also a cycle member has importer role.
-
-      A graph edge whose endpoint has no *projected component* produces no
-      component-owned link.
-
-      An ownership annotation for a selected local grouping Tag becomes an
-      OwnershipLink under that local grouping Tag with the annotation's
-      repository-relative line and column.
-
-      An implementation-purpose result contains advisory OwnershipLinks with a
-      *start*
-      location only and never embeds implementation-source slices.
-
-      A dependency interface unit with a local grouping Tag identity occupies that
-      *named interface group* on the dependency RetrievedComponent.
-
-      Glossary-definition evidence becomes one *projection glossary entry* each and
-      does not become a RetrievedComponent.
     }
   }
 }

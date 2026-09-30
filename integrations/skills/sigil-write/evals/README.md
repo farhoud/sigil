@@ -1,4 +1,4 @@
-# Evaluate the Sigil 0.8 design skills
+# Evaluate the Sigil 0.9 design skills
 
 Package validation and observed agent behavior answer different questions. Run
 both before claiming the foundation works. These instructions use ordinary host

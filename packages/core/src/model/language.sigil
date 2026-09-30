@@ -12,9 +12,12 @@ component SigilLanguageModel {
       SourceRange define immutable source-position primitives shared across
       *domains*.
 
-      Language version 0.8.0 is explicit and distinct from *host artifact versions*
+      Language version 0.9.0 is explicit and distinct from *host artifact versions*
       and frontend artifact versions. The only declaration forms are Tag imports and
       components.
+
+      Present component sections use the canonical order goal, state, logic,
+      constraints, cases, interface, decisions.
 
       SourceRange uses half-open original UTF-8 byte offsets. SourceLocation may
       supply one-based *line* and Unicode-scalar *column* values; host UTF-16

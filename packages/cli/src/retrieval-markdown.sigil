@@ -10,63 +10,6 @@ component SigilRetrievalMarkdown {
     *direct relationships* without reconstructing flat evidence.
   }
 
-  interface {
-    RetrievalMarkdownProjection {
-      SigilRetrievalModel RetrievalProjection provides the sole presentation input.
-
-      renderRetrieveMarkdown(projection) returns one *Markdown document* without
-      changing the projection, raw PurposeRetrievalResult, or either fingerprint.
-
-      The sole document title is the projection purpose value, one space, and the
-      word retrieval. Each selected-role RetrievedComponent then renders in
-      projection order. Its heading is the component name. Its repository-relative
-      declaration path follows as a Source line whose text is Source, colon, space,
-      then the path. Zero selected-role components omit that block and still render
-      *related groups*, Diagnostics, and Glossary when present.
-
-      Each selected component renders Goal, Interface, State, Logic, Constraints,
-      Decisions, Cases, Ownership, and Links in that order when each section has
-      content. Each Goal, State, Logic, Constraints, Decisions, and Cases Facet is
-      one list entry whose content is that unit's semantic text. Each Interface Facet
-      is one list entry of that unit's semantic text under Interface or under its Tag
-      heading.
-
-      Interface content renders under a Tag heading only when the projection carries
-      an authored local grouping identity. Ungrouped Facets remain directly under
-      Interface, including when they contain *inline Tag definitions* or
-      *Tag references*.
-
-      Related components render after selected components in role order:
-      Dependencies, Importers, then Cycle members. Each present role has one group
-      heading; a *missing role* emits no heading. Explicit summaries follow these
-      ordinary roles.
-
-      Each related component heading is its name, followed by its repository-relative
-      Source line and stable Identity line. It renders Goal and Interface with
-      *emphasis* labels when those sections contain Facets. Each Facet is one list
-      entry; Interface uses the same authored local grouping rule as a selected
-      component.
-
-      OwnershipLinks without Tag scope render in the consumer component Ownership
-      section. A Tag-scoped link renders under a matching authored Interface grouping
-      when present; otherwise it renders in Ownership with explicit Tag and
-      originating-owner labels. Never fabricate an Interface group, duplicate a link,
-      or erase its Tag scope. Each advisory implements, uses, or tests link retains
-      the existing one-way path/line/column Markdown link, optional symbol, and
-      selected sections. That implementation link promises neither completeness nor
-      current alignment. Omit Ownership when no link is assigned there.
-
-      Projection diagnostics render after related groups and before Glossary. Each
-      diagnostic is one list entry using the *stable human text* of severity, code,
-      and
-      message without path or range. An empty diagnostic collection emits no heading.
-
-      Glossary terms from the projection render last as one Glossary list. Each term
-      is one list *entry* whose text is the term in strong emphasis, space, em dash,
-      space, then the definition. A missing glossary emits no heading.
-    }
-  }
-
   constraints {
 
     OwnershipLinkEncoding {
@@ -121,6 +64,102 @@ component SigilRetrievalMarkdown {
       underscore, left square bracket, and right square bracket by prefixing a
       backslash. After that encoding is parsed, semantic text, locations, component
       identity, and link targets are unchanged.
+    }
+  }
+
+  cases {
+    RetrievalMarkdownProjection {
+      A selected component with MarkdownOutput renders its owned operational Facets
+      under MarkdownOutput while preserving their *contract roles* and never creating
+      an expansion heading.
+
+      An unscoped ownership link renders once in the selected Ownership section. A
+      Tag-scoped link renders once under an existing matching Interface group or in
+      Ownership with ScopeSelection and origin. Ownership never renders
+      implementation source text or invents a local Tag declaration.
+
+      A selected component with no State, Logic, Constraints, Decisions, Cases, or
+      component-owned OwnershipLinks omits those headings while retaining Goal,
+      Interface, and present related groups.
+
+      Two selected-role components each receive their own name, path, and selected
+      sections before related groups. A diagnostics-only projection still emits the
+      purpose title and Diagnostics.
+
+      A dependency whose interface units carry RetrievalProjection renders those
+      units under that Tag heading and does not join them into one paragraph.
+
+      An ordinary project summary renders once through its explicit selected or
+      related component role; its filename does not create another *presentation*
+      category.
+
+      An empty Importers, Cycle members, Diagnostics, or *Glossary collection* emits
+      no
+      group heading.
+
+      A selected-declaration link does not appear under *Links*.
+
+      An imported or inline-only Tag with an OwnershipLink and no authored Interface
+      grouping renders in the *consumer Ownership section* with explicit Tag scope
+      and
+      origin; it creates no Interface heading or local grouping.
+    }
+  }
+
+  interface {
+    RetrievalMarkdownProjection {
+      SigilRetrievalModel RetrievalProjection provides the sole presentation input.
+
+      renderRetrieveMarkdown(projection) returns one *Markdown document* without
+      changing the projection, raw PurposeRetrievalResult, or either fingerprint.
+
+      The sole document title is the projection purpose value, one space, and the
+      word retrieval. Each selected-role RetrievedComponent then renders in
+      projection order. Its heading is the component name. Its repository-relative
+      declaration path follows as a Source line whose text is Source, colon, space,
+      then the path. Zero selected-role components omit that block and still render
+      *related groups*, Diagnostics, and Glossary when present.
+
+      Each selected component renders Goal, Interface, State, Logic, Constraints,
+      Decisions, Cases, Ownership, and Links in that order when each section has
+      content. Each Goal, State, Logic, Constraints, Decisions, and Cases Facet is
+      one list entry whose content is that unit's semantic text. Each Interface Facet
+      is one list entry of that unit's semantic text under Interface or under its Tag
+      heading.
+
+      Interface content renders under a Tag heading only when the projection carries
+      an authored local grouping identity. Ungrouped Facets remain directly under
+      Interface, including when they contain *inline Tag definitions* or
+      *Tag references*.
+
+      Related components render after selected components in role order:
+      Dependencies, Importers, then Cycle members. Each present role has one group
+      heading; a *missing role* emits no heading. Explicit summaries follow these
+      ordinary roles.
+
+      Each related component heading is its name, followed by its repository-relative
+      Source line and stable Identity line. It renders Goal and Interface with
+      *emphasis* labels when those sections contain Facets. Each Facet is one list
+      entry; Interface uses the same authored local grouping rule as a selected
+      component.
+
+      OwnershipLinks without Tag scope render in the consumer component Ownership
+      section. A Tag-scoped link renders under a matching authored Interface grouping
+      when present; otherwise it renders in Ownership with explicit Tag and
+      originating-owner labels. Never fabricate an Interface group, duplicate a link,
+      or erase its Tag scope. Each advisory implements, uses, or tests link retains
+      the existing one-way path/line/column Markdown link, optional symbol, and
+      selected sections. That implementation link promises neither completeness nor
+      current alignment. Omit Ownership when no link is assigned there.
+
+      Projection diagnostics render after related groups and before Glossary. Each
+      diagnostic is one list entry using the *stable human text* of severity, code,
+      and
+      message without path or range. An empty diagnostic collection emits no heading.
+
+      Glossary terms from the projection render last as one Glossary list. Each term
+      is one list *entry* whose text is the term in strong emphasis, space, em dash,
+      space, then the definition. A missing glossary emits no heading.
     }
   }
 
@@ -196,45 +235,6 @@ component SigilRetrievalMarkdown {
       Markdown would otherwise drop failures that context Markdown reports.
 
       Consequences: Glossary remains last. *Empty retrievals* do not grow a heading.
-    }
-  }
-
-  cases {
-    RetrievalMarkdownProjection {
-      A selected component with MarkdownOutput renders its owned operational Facets
-      under MarkdownOutput while preserving their *contract roles* and never creating
-      an expansion heading.
-
-      An unscoped ownership link renders once in the selected Ownership section. A
-      Tag-scoped link renders once under an existing matching Interface group or in
-      Ownership with ScopeSelection and origin. Ownership never renders
-      implementation source text or invents a local Tag declaration.
-
-      A selected component with no State, Logic, Constraints, Decisions, Cases, or
-      component-owned OwnershipLinks omits those headings while retaining Goal,
-      Interface, and present related groups.
-
-      Two selected-role components each receive their own name, path, and selected
-      sections before related groups. A diagnostics-only projection still emits the
-      purpose title and Diagnostics.
-
-      A dependency whose interface units carry RetrievalProjection renders those
-      units under that Tag heading and does not join them into one paragraph.
-
-      An ordinary project summary renders once through its explicit selected or
-      related component role; its filename does not create another *presentation*
-      category.
-
-      An empty Importers, Cycle members, Diagnostics, or *Glossary collection* emits
-      no
-      group heading.
-
-      A selected-declaration link does not appear under *Links*.
-
-      An imported or inline-only Tag with an OwnershipLink and no authored Interface
-      grouping renders in the *consumer Ownership section* with explicit Tag scope
-      and
-      origin; it creates no Interface heading or local grouping.
     }
   }
 }

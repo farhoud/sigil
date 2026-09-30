@@ -1,4 +1,5 @@
 import { join, resolve } from "node:path";
+import { SIGIL_VERSION } from "../packages/core/src/model/language.ts";
 import {
   deepStrictEqual as assertEquals,
   ok as assert,
@@ -30,7 +31,7 @@ export async function validateNativeProtocol(
   await Deno.writeTextFile(frontendPath, exportText);
   const frontend = JSON.parse(exportText);
   assertEquals(frontend.schemaVersion, 2);
-  assertEquals(frontend.languageVersion, "0.8.0");
+  assertEquals(frontend.languageVersion, SIGIL_VERSION);
   assert(
     frontend.introductions.length && frontend.references.length &&
       frontend.links.length,
@@ -182,7 +183,7 @@ export async function validateNativeProtocol(
   const tagRoot = join(scratch, "Tag import probe");
   await Deno.mkdir(join(tagRoot, ".sigil"), { recursive: true });
   const config = {
-    sigilVersion: "0.8.0",
+    sigilVersion: SIGIL_VERSION,
     workspace: { name: "tag-probe", members: [] },
     files: { include: ["**/*.sigil"], exclude: [] },
   };

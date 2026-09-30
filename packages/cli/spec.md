@@ -1,8 +1,8 @@
 # sigil-cli Requirements
 
-**Status:** Language 0.8 migration **Last updated:** 2026-09-15
+**Status:** Language 0.9 migration **Last updated:** 2026-09-30
 
-This document defines the 0.8 product requirements for `sigil-cli`.
+This document defines the 0.9 product requirements for `sigil-cli`.
 
 `sigil-cli` is the command-line interface over `sigil-core`. It exists for
 agents, CI, scripts, debugging, and review/documentation workflows. It is not
@@ -16,9 +16,9 @@ extract information from Sigil workspaces.
 It should make the shared `sigil-core` model usable from a terminal without
 reinterpreting Sigil independently.
 
-## 2. Version 0.8 Scope
+## 2. Version 0.9 Scope
 
-Version 0.8 must provide commands to:
+Version 0.9 must provide commands to:
 
 - parse one Sigil file;
 - check a file or workspace for diagnostics;
@@ -30,12 +30,12 @@ Version 0.8 must provide commands to:
 - surface Tag diagnostics and owner-qualified Tag namespaces.
 - export the complete structural Design bundle for direct native `sigilc` use.
 
-Version 0.8 should favor predictable, machine-readable behavior over rich
+Version 0.9 should favor predictable, machine-readable behavior over rich
 terminal UI.
 
 ## 3. Out Of Scope
 
-Version 0.8 must not implement:
+Version 0.9 must not implement:
 
 - editor UI;
 - LSP transport;
@@ -155,7 +155,7 @@ toolchain.
 
 ### `sigil export design [path]`
 
-Emit raw schema-2 Design JSON for language 0.8.0 without a command envelope.
+Emit raw schema-2 Design JSON for language 0.9.0 without a command envelope.
 Preserve original source bytes through strict UTF-8 capture and byte-ranged
 structural records. Representable language errors stay in the bundle and exit 1.
 Malformed UTF-8 emits no bundle; diagnostics go to stderr and exit 1. Runtime
@@ -258,13 +258,13 @@ Required output data:
 - selected provider Tag edges and actual reference uses;
 - diagnostics.
 
-The command should not generate diagrams in version 0.8.
+The command should not generate diagrams in version 0.9.
 
 ### `sigil context`
 
 Produces deterministic agent-oriented context data from resolved Sigil.
 
-Version 0.8 should use graph and exact-match signals only.
+Version 0.9 should use graph and exact-match signals only.
 
 Supported selectors:
 
@@ -287,7 +287,7 @@ Required output data:
 The scoped glossary context excludes accepted vocabulary that does not occur in
 the selected component or file and its direct provider context.
 
-Version 0.8 must not implement embeddings, opaque ranking, or full semantic
+Version 0.9 must not implement embeddings, opaque ranking, or full semantic
 search.
 
 ### `sigil render [path]`
@@ -365,7 +365,7 @@ models/operators invoke sigilc directly for preparation, ingestion and gates.
 
 ## 10. Acceptance Scenarios
 
-Version 0.8 is acceptable when tests or scripted checks demonstrate that
+Version 0.9 is acceptable when tests or scripted checks demonstrate that
 `sigil-cli` can:
 
 - parse `examples/promise/promise.sigil` and emit JSON;

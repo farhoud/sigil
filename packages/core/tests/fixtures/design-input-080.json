@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
-  "languageVersion": "0.8.0",
+  "languageVersion": "0.9.0",
   "frontendVersion": "0.8.0",
   "sources": [
     {
       "path": "base.sigil",
-      "text": "﻿component Base {\r\ngoal {\r\nOwn provider vocabulary.\r\n}\r\ninterface {\r\nA *value* and *result* exist.\r\n}\r\nconstraints {\r\nvalue {\r\nPreserve value and result.\r\n}\r\n}\r\n}\r\n"
+      "text": "﻿component Base {\r\ngoal {\r\nOwn provider vocabulary.\r\n}\r\nconstraints {\r\nvalue {\r\nPreserve value and result.\r\n}\r\n}\r\ninterface {\r\nA *value* and *result* exist.\r\n}\r\n}\r\n"
     },
     {
       "path": "consumer.sigil",
@@ -15,7 +15,7 @@
   "context": [
     {
       "path": ".sigil/config.json",
-      "text": "{\"sigilVersion\":\"0.8.0\",\"workspace\":{\"name\":\"fixture\"},\"files\":{\"include\":[\"**/*.sigil\"]}}"
+      "text": "{\"sigilVersion\":\"0.9.0\",\"workspace\":{\"name\":\"fixture\"},\"files\":{\"include\":[\"**/*.sigil\"]}}"
     },
     {
       "path": ".sigil/glossary.json",
@@ -106,12 +106,12 @@
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
       "range": {
-        "start": 85,
-        "end": 93
+        "start": 143,
+        "end": 151
       },
       "nameRange": {
-        "start": 86,
-        "end": 92
+        "start": 144,
+        "end": 150
       },
       "identityResolved": true,
       "valid": true,
@@ -125,11 +125,11 @@
       "owner": "urn:sigil:component:base.sigil:Base",
       "range": {
         "start": 73,
-        "end": 80
+        "end": 82
       },
       "nameRange": {
-        "start": 74,
-        "end": 79
+        "start": 73,
+        "end": 78
       },
       "identityResolved": true,
       "valid": true,
@@ -159,21 +159,21 @@
       "id": "facet:base.sigil:129",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
-      "section": "constraints",
+      "section": "interface",
       "range": {
         "start": 129,
-        "end": 157
+        "end": 160
       },
       "proseRange": {
         "start": 129,
-        "end": 157
+        "end": 160
       },
-      "grouping": "group:base.sigil:120",
-      "introductions": [],
-      "references": [
-        "reference:base.sigil:138",
-        "reference:base.sigil:148"
+      "grouping": null,
+      "introductions": [
+        "definition:base.sigil:143",
+        "definition:base.sigil:131"
       ],
+      "references": [],
       "links": [],
       "payload": null,
       "valid": true,
@@ -201,24 +201,24 @@
       "complete": true
     },
     {
-      "id": "facet:base.sigil:71",
+      "id": "facet:base.sigil:82",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
-      "section": "interface",
+      "section": "constraints",
       "range": {
-        "start": 71,
-        "end": 102
+        "start": 82,
+        "end": 110
       },
       "proseRange": {
-        "start": 71,
-        "end": 102
+        "start": 82,
+        "end": 110
       },
-      "grouping": null,
-      "introductions": [
-        "definition:base.sigil:85",
-        "definition:base.sigil:73"
+      "grouping": "group:base.sigil:73",
+      "introductions": [],
+      "references": [
+        "reference:base.sigil:91",
+        "reference:base.sigil:101"
       ],
-      "references": [],
       "links": [],
       "payload": null,
       "valid": true,
@@ -301,27 +301,27 @@
   ],
   "groups": [
     {
-      "id": "group:base.sigil:120",
+      "id": "group:base.sigil:73",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
       "name": "value",
       "tag": "urn:sigil:component:base.sigil:Base:tag:value",
       "section": "constraints",
       "range": {
-        "start": 120,
-        "end": 160
+        "start": 73,
+        "end": 113
       },
       "nameRange": {
-        "start": 120,
-        "end": 125
+        "start": 73,
+        "end": 78
       },
       "headerRange": {
-        "start": 120,
-        "end": 129
+        "start": 73,
+        "end": 82
       },
       "bodyRange": {
-        "start": 129,
-        "end": 157
+        "start": 82,
+        "end": 110
       },
       "valid": true,
       "complete": true
@@ -329,49 +329,49 @@
   ],
   "introductions": [
     {
-      "id": "definition:base.sigil:73",
+      "id": "definition:base.sigil:131",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
       "name": "value",
       "kind": "inline",
       "tag": "urn:sigil:component:base.sigil:Base:tag:value",
       "section": "interface",
-      "facet": "facet:base.sigil:71",
+      "facet": "facet:base.sigil:129",
       "group": null,
       "range": {
-        "start": 73,
-        "end": 80
+        "start": 131,
+        "end": 138
       },
       "nameRange": {
-        "start": 74,
-        "end": 79
+        "start": 132,
+        "end": 137
       },
       "valid": true,
       "complete": true
     },
     {
-      "id": "definition:base.sigil:85",
+      "id": "definition:base.sigil:143",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
       "name": "result",
       "kind": "inline",
       "tag": "urn:sigil:component:base.sigil:Base:tag:result",
       "section": "interface",
-      "facet": "facet:base.sigil:71",
+      "facet": "facet:base.sigil:129",
       "group": null,
       "range": {
-        "start": 85,
-        "end": 93
+        "start": 143,
+        "end": 151
       },
       "nameRange": {
-        "start": 86,
-        "end": 92
+        "start": 144,
+        "end": 150
       },
       "valid": true,
       "complete": true
     },
     {
-      "id": "group:base.sigil:120",
+      "id": "group:base.sigil:73",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
       "name": "value",
@@ -379,14 +379,14 @@
       "tag": "urn:sigil:component:base.sigil:Base:tag:value",
       "section": "constraints",
       "facet": null,
-      "group": "group:base.sigil:120",
+      "group": "group:base.sigil:73",
       "range": {
-        "start": 120,
-        "end": 129
+        "start": 73,
+        "end": 82
       },
       "nameRange": {
-        "start": 120,
-        "end": 125
+        "start": 73,
+        "end": 78
       },
       "valid": true,
       "complete": true
@@ -394,29 +394,29 @@
   ],
   "references": [
     {
-      "id": "reference:base.sigil:138",
+      "id": "reference:base.sigil:101",
       "source": "base.sigil",
       "owner": "urn:sigil:component:base.sigil:Base",
-      "facet": "facet:base.sigil:129",
-      "name": "value",
-      "tag": "urn:sigil:component:base.sigil:Base:tag:value",
-      "status": "resolved",
-      "range": {
-        "start": 138,
-        "end": 143
-      }
-    },
-    {
-      "id": "reference:base.sigil:148",
-      "source": "base.sigil",
-      "owner": "urn:sigil:component:base.sigil:Base",
-      "facet": "facet:base.sigil:129",
+      "facet": "facet:base.sigil:82",
       "name": "result",
       "tag": "urn:sigil:component:base.sigil:Base:tag:result",
       "status": "resolved",
       "range": {
-        "start": 148,
-        "end": 154
+        "start": 101,
+        "end": 107
+      }
+    },
+    {
+      "id": "reference:base.sigil:91",
+      "source": "base.sigil",
+      "owner": "urn:sigil:component:base.sigil:Base",
+      "facet": "facet:base.sigil:82",
+      "name": "value",
+      "tag": "urn:sigil:component:base.sigil:Base:tag:value",
+      "status": "resolved",
+      "range": {
+        "start": 91,
+        "end": 96
       }
     },
     {

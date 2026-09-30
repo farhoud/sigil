@@ -18,112 +18,6 @@ component SigilLsp {
     agent-host behavior.
   }
 
-  interface {
-    LspPackage {
-      provides *importable server APIs* and an executable standard-input/output
-      entrypoint declared by packages/lsp/deno.json
-    }
-
-    ProtocolSession {
-      implements *Language Server Protocol* 3.18 over JSON-RPC standard input and
-      standard output
-
-      supports initialize, initialized, *shutdown*, and exit lifecycle messages
-
-      supports client responses to *server-initiated capability-registration*
-      requests
-
-      uses *UTF-16 positions*
-
-      rejects requests received before *initialization*
-    }
-
-    DocumentSynchronization {
-      supports textDocument/didOpen, textDocument/didChange, and
-      textDocument/didClose with *full-document synchronization*
-
-      *open-document content* takes precedence over the *filesystem snapshot* until
-      close
-
-      after initialized, *requests client-side* workspace/didChangeWatchedFiles
-      registration when the client advertises dynamic registration
-
-      accepts workspace/didChangeWatchedFiles notifications delivered for the
-      *registered workspace* watch
-    }
-
-    DiagnosticPublishing {
-      publishes structural and workspace diagnostics, including each UntaggedFacet
-      warning, through textDocument/publishDiagnostics
-    }
-
-    LanguageFeatures {
-      supports hierarchical document symbols for components, all seven sections,
-      *local grouping Tags*, and inline Tag definitions
-
-      supports definition navigation for explicit Tag selections, local Tag
-      introductions, and resolver-confirmed bare references
-
-      supports hover for *complete component contracts* and contextual Tag
-      occurrences
-
-      component hover presents every owned implementation target linked to the
-      selected component
-
-      Tag hover presents owned implementation targets for the *consumer component*
-      and
-      hovered Tag use/section, retaining its separate originating Tag identity
-
-      owned implementation targets appear in the *final hover section* after
-      contract,
-      complete-design, and glossary content
-
-      each owned implementation target displays its *selected Sigil occurrence*
-      sections
-
-      supports full-document semantic tokens for *resolved component names*
-
-      every hover renders resolver-confirmed Tag references in displayed
-      *Sigil Facet*
-      prose as inline links to their originating declarations
-    }
-
-    TagLanguageFeatures {
-      supports document symbols, definition, hover, diagnostics, and semantic
-      highlighting for *resolved Tag identities*
-
-      hover on a reused Tag presents its *complete provider interpretation* context
-      alongside the actual consumer-owned Facets and contract roles
-
-      when a Tag declaration or reference spelling matches an effective reviewed
-      *glossary term* or alias in the hovered file's glossary context, hover presents
-      the Tag content together with the canonical term, definition, scope, and
-      matched alias
-    }
-
-    GlossaryLanguageFeatures {
-      supports hover, definition navigation, and semantic highlighting for resolved
-      *glossary occurrences*
-    }
-
-    DocumentRendering {
-      renders a resolved Sigil document to *Markdown* through a standard workspace
-      executeCommand
-    }
-
-    WorkspaceSupport {
-      operates on *file-backed workspaces* selected from workspaceFolders, rootUri,
-      or
-      the current directory
-
-      WorkspaceBoundary and ConfigFile govern the selected workspace
-    }
-
-    ReadOnlyLanguageService {
-      *language-server operations* do not modify .sigil source
-    }
-  }
-
   state {
     ProtocolSession {
       *Server lifecycle* is uninitialized, running, shutdown-requested, or exited.
@@ -421,131 +315,6 @@ component SigilLsp {
     }
   }
 
-  decisions {
-    ProtocolSession {
-      Decision: Use Language Server Protocol 3.18 over JSON-RPC standard input and
-      output with UTF-16 positions and full-document synchronization.
-
-      Scope: Governs protocol transport, lifecycle, position encoding, and document
-      synchronization; excludes *editor-specific user* interfaces.
-
-      Trade-offs: Full-document synchronization is simpler and deterministic but may
-      *transfer more text* than incremental synchronization.
-
-      Consequences: Editors can reuse standard lifecycle, diagnostics, navigation,
-      hover, and semantic-token behavior.
-
-      Revisit when: Large-document evidence requires incremental synchronization or a
-      *supported non-stdio host* becomes necessary.
-    }
-
-    HoverSourcePathPresentation {
-      Decision: Render component and complete-design source paths in hover Markdown
-      relative to the resolved Sigil workspace root, while keeping absolute
-      normalized paths and *file URIs* for file access, diagnostics, definition, and
-      protocol locations.
-
-      Scope: Governs human-facing hover and the reused VS Code component preview;
-      excludes stored core paths, graph and JSON output, diagnostic URIs, and
-      definition targets.
-
-      Design issues addressed: Absolute paths are machine-specific and can leak local
-      directory or user names in *screenshots* and copied hover content.
-
-      Consequences: Hover and the VS Code preview show workspace-relative POSIX
-        paths; *LSP navigation* and file access are unchanged.
-    }
-
-    DocumentRendering {
-      Decision: Expose *whole-document Markdown* rendering through a standard
-      workspace
-      executeCommand that reuses the hover contract projection, rather than a bespoke
-      request or a duplicate renderer.
-
-      Scope: Governs how editors obtain a rendered Sigil document; excludes hover,
-      navigation, and diagnostics.
-
-      Design issues addressed: Editors need a *whole-file* rendered view without
-      depending on the CLI or duplicating core semantics.
-
-      Consequences: The server advertises an executeCommand capability; rendered
-      output stays consistent with the *hover contract projection*.
-
-      Revisit when: A richer rendered representation than the *hover projection*
-      becomes necessary.
-    }
-
-    LanguageFeatures {
-      Decision: Surface implementation-comment-linked targets in component hover and
-      section-filtered targets in Tag-occurrence hover as clickable Markdown links
-      labeled with their *selected occurrence sections* in a final Owned
-      implementations section.
-
-      Scope: Governs ownership-link content, occurrence filtering, and placement in
-      SigilLsp hover; cache lifecycle is governed by OwnershipHoverCache.
-
-      Trade-offs: Placing Markdown *hover links* last keeps contract, provider, and
-      glossary content
-      together but may require scrolling in large hovers; section labels expose
-      contract relevance directly but omit the implementation artifact kind from
-      hover.
-
-      Consequences: Users can navigate from components and *exact Tag section*
-      occurrences to explicitly linked implementation artifacts.
-
-      Revisit when: Hover content requires collapsible or separately requested
-      *implementation details*.
-    }
-
-    OwnershipHoverCache {
-      Decision: Reuse the process-local ownership source snapshot across resolved
-      workspace generations for the same root while keeping memoized component, Tag,
-      and optional section projections generation-specific.
-
-      Scope: Governs ownership source snapshot loading, reuse, and invalidation for
-      SigilLsp; excludes persistence and shared core ownership-query semantics.
-
-      Trade-offs: Sigil document reloads avoid implementation rescans, while the
-      first hover may still await an unfinished initial load and supported
-      implementation changes require a *refreshed snapshot*.
-
-      Discarded alternatives: Replacing the *ownership-source snapshot* on every
-      Sigil reload repeats
-      workspace I/O; scanning on every hover causes the reported latency; time-based
-      expiration permits stale links and periodically repeats the scan.
-
-      Consequences: Opening, editing, or closing SourceDocument rebuilds semantic
-      projections without rereading unchanged implementation sources.
-
-      Revisit when: Large-workspace evidence requires incremental
-      *per-file indexing*.
-    }
-
-    OwnershipSourceWatching {
-      Decision: Dynamically register shared *supported implementation-source watcher*
-      patterns after initialized and validate received paths with the shared core
-      predicate before invalidating ownership state.
-
-      Scope: Governs SigilLsp acquisition and filtering of ownership-source file
-      changes; excludes *client implementation* and server-side filesystem watching.
-
-      Assumptions: A registration-capable client that accepts the request delivers
-      *matching external filesystem events*, with renames represented by delete and
-      create events.
-
-      Trade-offs: Precise watcher patterns reduce unrelated traffic, while
-      *predicate validation* preserves correctness even when *client notifications*
-      cover broader changes.
-
-      Consequences: Unrelated workspace changes preserve this cache state; supported
-      source changes refresh the ownership source snapshot and next ownership hover.
-
-      Revisit when: The protocol provides an *incremental ownership-index update* or
-      reliable freshness is required from clients without dynamic-registration
-      support.
-    }
-  }
-
   cases {
     DocumentSynchronization {
       Opening or changing malformed in-memory SourceDocument publishes ranged
@@ -674,6 +443,243 @@ component SigilLsp {
 
     ProtocolSession {
       Shutdown followed by protocol exit succeeds.
+    }
+  }
+
+  interface {
+    LspPackage {
+      provides *importable server APIs* and an executable standard-input/output
+      entrypoint declared by packages/lsp/deno.json
+    }
+
+    ProtocolSession {
+      implements *Language Server Protocol* 3.18 over JSON-RPC standard input and
+      standard output
+
+      supports initialize, initialized, *shutdown*, and exit lifecycle messages
+
+      supports client responses to *server-initiated capability-registration*
+      requests
+
+      uses *UTF-16 positions*
+
+      rejects requests received before *initialization*
+    }
+
+    DocumentSynchronization {
+      supports textDocument/didOpen, textDocument/didChange, and
+      textDocument/didClose with *full-document synchronization*
+
+      *open-document content* takes precedence over the *filesystem snapshot* until
+      close
+
+      after initialized, *requests client-side* workspace/didChangeWatchedFiles
+      registration when the client advertises dynamic registration
+
+      accepts workspace/didChangeWatchedFiles notifications delivered for the
+      *registered workspace* watch
+    }
+
+    DiagnosticPublishing {
+      publishes structural and workspace diagnostics, including each UntaggedFacet
+      warning, through textDocument/publishDiagnostics
+    }
+
+    LanguageFeatures {
+      supports hierarchical document symbols for components, all seven sections,
+      *local grouping Tags*, and inline Tag definitions
+
+      supports definition navigation for explicit Tag selections, local Tag
+      introductions, and resolver-confirmed bare references
+
+      supports hover for *complete component contracts* and contextual Tag
+      occurrences
+
+      component hover presents every owned implementation target linked to the
+      selected component
+
+      Tag hover presents owned implementation targets for the *consumer component*
+      and
+      hovered Tag use/section, retaining its separate originating Tag identity
+
+      owned implementation targets appear in the *final hover section* after
+      contract,
+      complete-design, and glossary content
+
+      each owned implementation target displays its *selected Sigil occurrence*
+      sections
+
+      supports full-document semantic tokens for *resolved component names*
+
+      every hover renders resolver-confirmed Tag references in displayed
+      *Sigil Facet*
+      prose as inline links to their originating declarations
+    }
+
+    TagLanguageFeatures {
+      supports document symbols, definition, hover, diagnostics, and semantic
+      highlighting for *resolved Tag identities*
+
+      hover on a reused Tag presents its *complete provider interpretation* context
+      alongside the actual consumer-owned Facets and contract roles
+
+      when a Tag declaration or reference spelling matches an effective reviewed
+      *glossary term* or alias in the hovered file's glossary context, hover presents
+      the Tag content together with the canonical term, definition, scope, and
+      matched alias
+    }
+
+    GlossaryLanguageFeatures {
+      supports hover, definition navigation, and semantic highlighting for resolved
+      *glossary occurrences*
+    }
+
+    DocumentRendering {
+      renders a resolved Sigil document to *Markdown* through a standard workspace
+      executeCommand
+    }
+
+    WorkspaceSupport {
+      operates on *file-backed workspaces* selected from workspaceFolders, rootUri,
+      or
+      the current directory
+
+      WorkspaceBoundary and ConfigFile govern the selected workspace
+    }
+
+    ReadOnlyLanguageService {
+      *language-server operations* do not modify .sigil source
+    }
+    Exposes OwnershipSourceWatching to direct consumers.
+
+    Exposes file URIs to direct consumers.
+
+    Exposes server to direct consumers.
+
+  }
+
+  decisions {
+    ProtocolSession {
+      Decision: Use Language Server Protocol 3.18 over JSON-RPC standard input and
+      output with UTF-16 positions and full-document synchronization.
+
+      Scope: Governs protocol transport, lifecycle, position encoding, and document
+      synchronization; excludes *editor-specific user* interfaces.
+
+      Trade-offs: Full-document synchronization is simpler and deterministic but may
+      *transfer more text* than incremental synchronization.
+
+      Consequences: Editors can reuse standard lifecycle, diagnostics, navigation,
+      hover, and semantic-token behavior.
+
+      Revisit when: Large-document evidence requires incremental synchronization or a
+      *supported non-stdio host* becomes necessary.
+    }
+
+    HoverSourcePathPresentation {
+      Decision: Render component and complete-design source paths in hover Markdown
+      relative to the resolved Sigil workspace root, while keeping absolute
+      normalized paths and *file URIs* for file access, diagnostics, definition, and
+      protocol locations.
+
+      Scope: Governs human-facing hover and the reused VS Code component preview;
+      excludes stored core paths, graph and JSON output, diagnostic URIs, and
+      definition targets.
+
+      Design issues addressed: Absolute paths are machine-specific and can leak local
+      directory or user names in *screenshots* and copied hover content.
+
+      Consequences: Hover and the VS Code preview show workspace-relative POSIX
+        paths; *LSP navigation* and file access are unchanged.
+    }
+
+    DocumentRendering {
+      Decision: Expose *whole-document Markdown* rendering through a standard
+      workspace
+      executeCommand that reuses the hover contract projection, rather than a bespoke
+      request or a duplicate renderer.
+
+      Scope: Governs how editors obtain a rendered Sigil document; excludes hover,
+      navigation, and diagnostics.
+
+      Design issues addressed: Editors need a *whole-file* rendered view without
+      depending on the CLI or duplicating core semantics.
+
+      Consequences: The server advertises an executeCommand capability; rendered
+      output stays consistent with the *hover contract projection*.
+
+      Revisit when: A richer rendered representation than the *hover projection*
+      becomes necessary.
+    }
+
+    LanguageFeatures {
+      Decision: Surface implementation-comment-linked targets in component hover and
+      section-filtered targets in Tag-occurrence hover as clickable Markdown links
+      labeled with their *selected occurrence sections* in a final Owned
+      implementations section.
+
+      Scope: Governs ownership-link content, occurrence filtering, and placement in
+      SigilLsp hover; cache lifecycle is governed by OwnershipHoverCache.
+
+      Trade-offs: Placing Markdown *hover links* last keeps contract, provider, and
+      glossary content
+      together but may require scrolling in large hovers; section labels expose
+      contract relevance directly but omit the implementation artifact kind from
+      hover.
+
+      Consequences: Users can navigate from components and *exact Tag section*
+      occurrences to explicitly linked implementation artifacts.
+
+      Revisit when: Hover content requires collapsible or separately requested
+      *implementation details*.
+    }
+
+    OwnershipHoverCache {
+      Decision: Reuse the process-local ownership source snapshot across resolved
+      workspace generations for the same root while keeping memoized component, Tag,
+      and optional section projections generation-specific.
+
+      Scope: Governs ownership source snapshot loading, reuse, and invalidation for
+      SigilLsp; excludes persistence and shared core ownership-query semantics.
+
+      Trade-offs: Sigil document reloads avoid implementation rescans, while the
+      first hover may still await an unfinished initial load and supported
+      implementation changes require a *refreshed snapshot*.
+
+      Discarded alternatives: Replacing the *ownership-source snapshot* on every
+      Sigil reload repeats
+      workspace I/O; scanning on every hover causes the reported latency; time-based
+      expiration permits stale links and periodically repeats the scan.
+
+      Consequences: Opening, editing, or closing SourceDocument rebuilds semantic
+      projections without rereading unchanged implementation sources.
+
+      Revisit when: Large-workspace evidence requires incremental
+      *per-file indexing*.
+    }
+
+    OwnershipSourceWatching {
+      Decision: Dynamically register shared *supported implementation-source watcher*
+      patterns after initialized and validate received paths with the shared core
+      predicate before invalidating ownership state.
+
+      Scope: Governs SigilLsp acquisition and filtering of ownership-source file
+      changes; excludes *client implementation* and server-side filesystem watching.
+
+      Assumptions: A registration-capable client that accepts the request delivers
+      *matching external filesystem events*, with renames represented by delete and
+      create events.
+
+      Trade-offs: Precise watcher patterns reduce unrelated traffic, while
+      *predicate validation* preserves correctness even when *client notifications*
+      cover broader changes.
+
+      Consequences: Unrelated workspace changes preserve this cache state; supported
+      source changes refresh the ownership source snapshot and next ownership hover.
+
+      Revisit when: The protocol provides an *incremental ownership-index update* or
+      reliable freshness is required from clients without dynamic-registration
+      support.
     }
   }
 }

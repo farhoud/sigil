@@ -5,7 +5,7 @@ import { assertEquals } from "./assert.ts";
 
 const config = (exclude: string[] = [], members: string[] = []) =>
   JSON.stringify({
-    sigilVersion: "0.8.0",
+    sigilVersion: "0.9.0",
     workspace: { name: "test", members },
     files: { include: ["**/*.sigil"], exclude },
   });
@@ -97,10 +97,10 @@ Deno.test("explicit workspace roots require their own config and unsupported ver
   assertEquals(missing.diagnostics.map((d) => d.code), [
     "SIGIL_CONFIG_NOT_FOUND",
   ]);
-  for (const version of ["0.7.0", "0.9.0"]) {
+  for (const version of ["0.7.0", "0.8.0"]) {
     const workspace = await loadSigilWorkspace(
       new InMemorySigilFileSystem({
-        ".sigil/config.json": config().replace("0.8.0", version),
+        ".sigil/config.json": config().replace("0.9.0", version),
         "c.sigil": source,
       }),
       { startPath: "." },

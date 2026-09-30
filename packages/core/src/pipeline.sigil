@@ -18,25 +18,6 @@ component SigilWorkspaceResolutionPipeline {
     from the individual resolver, graph, and glossary owners.
   }
 
-  interface {
-    WorkspaceResolution {
-      resolveSigilWorkspace(workspace) accepts one *already loaded SigilWorkspace*
-      and
-      returns one ResolvedSigilWorkspace containing relationship data, graph data,
-      glossary data, and merged diagnostics
-
-      Malformed loaded documents and glossary data remain represented by partial
-      results and diagnostics when the underlying stages can recover.
-
-      The operation performs no host filesystem access or configuration discovery;
-      required dependency and runtime failures propagate to the caller.
-
-      Each call is stateless and completes one *pipeline operation* without retaining
-      a
-      lifecycle or session.
-    }
-  }
-
   logic {
     WorkspaceResolutionPipeline {
       Consume the loaded WorkspaceModel through RelationshipResolution to obtain
@@ -79,6 +60,25 @@ component SigilWorkspaceResolutionPipeline {
       graph, and glossary projections.
 
       Resolution and glossary diagnostics are combined without *duplicate records*.
+    }
+  }
+
+  interface {
+    WorkspaceResolution {
+      resolveSigilWorkspace(workspace) accepts one *already loaded SigilWorkspace*
+      and
+      returns one ResolvedSigilWorkspace containing relationship data, graph data,
+      glossary data, and merged diagnostics
+
+      Malformed loaded documents and glossary data remain represented by partial
+      results and diagnostics when the underlying stages can recover.
+
+      The operation performs no host filesystem access or configuration discovery;
+      required dependency and runtime failures propagate to the caller.
+
+      Each call is stateless and completes one *pipeline operation* without retaining
+      a
+      lifecycle or session.
     }
   }
 }

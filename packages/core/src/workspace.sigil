@@ -16,39 +16,6 @@ component SigilWorkspaceLoader {
     source selection before relationship resolution.
   }
 
-  interface {
-    WorkspaceDiscovery {
-      discoverSigilWorkspace(filesystem, options) returns *WorkspaceDiscoveryResult*
-
-      options identifies a *start path* and may provide an explicit root or current
-      directory
-
-      WorkspaceDiscoveryResult exposes the selected root, ConfigFile path, parsed
-      configuration, and diagnostics
-    }
-
-    WorkspaceLoading {
-      loadSigilWorkspace(filesystem: FileSystemPort, options) returns SigilWorkspace
-
-      SigilWorkspace adds declared member roots, *loaded partial source documents*,
-      and
-      accumulated diagnostics
-    }
-
-    WorkspaceSnapshotIdentity {
-      each loaded SigilWorkspace exposes one 64-character lowercase
-      *workspaceSnapshotIdentity*
-    }
-
-    GlossaryInterpretationLoading {
-      GlossaryInterpretationLoading adapts GlossaryInterpretation into the workspace
-      loading surface.
-
-      loadSigilWorkspace reads and validates optional GlossaryFile into
-      SigilWorkspace
-    }
-  }
-
   logic {
 
     SourceIngress {
@@ -168,6 +135,86 @@ component SigilWorkspaceLoader {
     }
   }
 
+  cases {
+    LocalToolConfigurationLoading {
+      A valid local tools.compile override is available to *native tooling* while the
+      same workspace retains its ConfigFile-defined sources and members.
+
+      A malformed local configuration prevents a *clean workspace load* and preserves
+      both configuration files unchanged.
+    }
+
+    WorkspaceSnapshotIdentity {
+      Loading *identical selected source records* from two absolute roots produces
+      the
+      same workspaceSnapshotIdentity.
+
+      Changing one *loaded Sigil source byte* is computationally expected to produce
+      a
+      different workspaceSnapshotIdentity.
+    }
+
+    WorkspaceDiscovery {
+      An excluded *nested workspace* resolves independently.
+
+      A nested workspace still included by a configured parent returns
+      *SIGIL_NESTED_CONFIG* and loads no source.
+
+      An explicit root without a direct ConfigFile returns SIGIL_CONFIG_NOT_FOUND.
+    }
+
+    WorkspaceLoading {
+      A path excluded by SourceSelection is not loaded even when an include pattern
+      matches.
+
+      A host filesystem access failure rejects workspace loading.
+    }
+
+    GlossaryInterpretationLoading {
+      A workspace without GlossaryFile loads normally.
+
+      A malformed GlossaryFile contributes diagnostics while loaded Sigil documents
+      remain available.
+    }
+  }
+
+  interface {
+    WorkspaceDiscovery {
+      discoverSigilWorkspace(filesystem, options) returns *WorkspaceDiscoveryResult*
+
+      options identifies a *start path* and may provide an explicit root or current
+      directory
+
+      WorkspaceDiscoveryResult exposes the selected root, ConfigFile path, parsed
+      configuration, and diagnostics
+    }
+
+    WorkspaceLoading {
+      loadSigilWorkspace(filesystem: FileSystemPort, options) returns SigilWorkspace
+
+      SigilWorkspace adds declared member roots, *loaded partial source documents*,
+      and
+      accumulated diagnostics
+    }
+
+    WorkspaceSnapshotIdentity {
+      each loaded SigilWorkspace exposes one 64-character lowercase
+      *workspaceSnapshotIdentity*
+    }
+
+    GlossaryInterpretationLoading {
+      GlossaryInterpretationLoading adapts GlossaryInterpretation into the workspace
+      loading surface.
+
+      loadSigilWorkspace reads and validates optional GlossaryFile into
+      SigilWorkspace
+    }
+    Exposes ModuleIndexFile to direct consumers.
+
+    Exposes RecoverableResults to direct consumers.
+
+  }
+
   decisions {
     DeveloperLocalToolOverrides {
       Decision: Keep workspace and language authority in tracked ConfigFile while
@@ -225,49 +272,6 @@ component SigilWorkspaceLoader {
 
       Revisit when: Workspace loading supports non-text semantic inputs or the
       *canonicalization* or digest standard changes.
-    }
-  }
-
-  cases {
-    LocalToolConfigurationLoading {
-      A valid local tools.compile override is available to *native tooling* while the
-      same workspace retains its ConfigFile-defined sources and members.
-
-      A malformed local configuration prevents a *clean workspace load* and preserves
-      both configuration files unchanged.
-    }
-
-    WorkspaceSnapshotIdentity {
-      Loading *identical selected source records* from two absolute roots produces
-      the
-      same workspaceSnapshotIdentity.
-
-      Changing one *loaded Sigil source byte* is computationally expected to produce
-      a
-      different workspaceSnapshotIdentity.
-    }
-
-    WorkspaceDiscovery {
-      An excluded *nested workspace* resolves independently.
-
-      A nested workspace still included by a configured parent returns
-      *SIGIL_NESTED_CONFIG* and loads no source.
-
-      An explicit root without a direct ConfigFile returns SIGIL_CONFIG_NOT_FOUND.
-    }
-
-    WorkspaceLoading {
-      A path excluded by SourceSelection is not loaded even when an include pattern
-      matches.
-
-      A host filesystem access failure rejects workspace loading.
-    }
-
-    GlossaryInterpretationLoading {
-      A workspace without GlossaryFile loads normally.
-
-      A malformed GlossaryFile contributes diagnostics while loaded Sigil documents
-      remain available.
     }
   }
 }

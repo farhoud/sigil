@@ -10,6 +10,52 @@ component SigilComputedClaims {
     computed facts.
   }
 
+  constraints {
+    ClaimsCommands {
+      Launch no model, worker or task workflow. The *external interpretation* is an
+      input the caller supplies and re-supplies, never a call this executable
+      makes. Reusing a stored interpretation is reuse of what a caller already
+      supplied.
+    }
+
+    ReturnedClaims {
+      Accepting a claim establishes neither that it is true of its Facet nor that
+      the claim interpretation was faithful.
+    }
+
+    SectionAwareClosure {
+      Workers supply no laws and fill no tool-owned table. The compiler's stored
+      projections, its world cache and the files its runtime identity
+      fingerprints are read-only to this component; writing any of them would
+      invalidate every stored world. Findings and stores live under a path this
+      component owns.
+    }
+
+    CompiledGuidance {
+      Guidance discovered in the workspace under validation is refused. The test is
+      *claim provenance*, not location.
+    }
+  }
+
+  cases {
+    SectionAwareClosure {
+      The same claim text raises an *obligation* from a Constraints Facet and none
+      from a Decisions Facet. A permitted commitment raises no obligation where a
+      required one does. A Facet in a declared role that yields only a reading row
+      is interpreted, and one that yields nothing at all is a named gap. A Logic
+      Facet that contributes no step but yields a claim is interpreted, not a gap.
+      A step writing state another component declares is no ownership conflict;
+      the same write is one where a claim marks that state exclusive.
+    }
+
+    ReturnedClaims {
+      An artifact carrying one valid claim beside one rule declaration is refused
+      whole. A claim relating a *local Facet* to a Tag imported from a source in the
+      closure is accepted. A guard comparing an input value to a state read is
+      accepted. An edge naming an ordinal no step declares is refused.
+    }
+  }
+
   interface {
     CompiledGuidance {
       Publish the *claim relation vocabulary*, the seven contract roles, one worked
@@ -190,33 +236,6 @@ component SigilComputedClaims {
     }
   }
 
-  constraints {
-    ClaimsCommands {
-      Launch no model, worker or task workflow. The *external interpretation* is an
-      input the caller supplies and re-supplies, never a call this executable
-      makes. Reusing a stored interpretation is reuse of what a caller already
-      supplied.
-    }
-
-    ReturnedClaims {
-      Accepting a claim establishes neither that it is true of its Facet nor that
-      the claim interpretation was faithful.
-    }
-
-    SectionAwareClosure {
-      Workers supply no laws and fill no tool-owned table. The compiler's stored
-      projections, its world cache and the files its runtime identity
-      fingerprints are read-only to this component; writing any of them would
-      invalidate every stored world. Findings and stores live under a path this
-      component owns.
-    }
-
-    CompiledGuidance {
-      Guidance discovered in the workspace under validation is refused. The test is
-      *claim provenance*, not location.
-    }
-  }
-
   decisions {
     ReturnedClaims {
       Extending identity minting to flow steps, instead of restricting
@@ -301,25 +320,6 @@ component SigilComputedClaims {
       measured declares exactly one component, so a claim had no dependency
       graph to reach. Storing interpretations is what keeps that widening from
       re-reading every shared dependency once per dependent.
-    }
-  }
-
-  cases {
-    SectionAwareClosure {
-      The same claim text raises an *obligation* from a Constraints Facet and none
-      from a Decisions Facet. A permitted commitment raises no obligation where a
-      required one does. A Facet in a declared role that yields only a reading row
-      is interpreted, and one that yields nothing at all is a named gap. A Logic
-      Facet that contributes no step but yields a claim is interpreted, not a gap.
-      A step writing state another component declares is no ownership conflict;
-      the same write is one where a claim marks that state exclusive.
-    }
-
-    ReturnedClaims {
-      An artifact carrying one valid claim beside one rule declaration is refused
-      whole. A claim relating a *local Facet* to a Tag imported from a source in the
-      closure is accepted. A guard comparing an input value to a state read is
-      accepted. An edge naming an ordinal no step declares is refused.
     }
   }
 }

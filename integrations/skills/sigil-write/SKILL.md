@@ -1,15 +1,15 @@
 ---
 name: sigil-write
-description: Create or revise compact Sigil 0.8 designs from intent and evidence, with independent delegated design review and autonomous intent-preserving corrections. Use for authoring; understanding and read-only evaluation have separate skills.
+description: Create or revise compact Sigil 0.9 designs from intent and evidence, with independent delegated design review and autonomous intent-preserving corrections. Use for authoring; understanding and read-only evaluation have separate skills.
 ---
 
-# Write Sigil 0.8
+# Write Sigil 0.9
 
 Write the smallest clear contract that preserves the user's consequential intent.
 Read the sibling [understanding guidance](../sigil-understand/references/understanding.md)
 and relevant rules in the joint [normative reference](../sigil-understand/references/language/sigil-reference.md)
 and [grammar](../sigil-understand/references/language/sigil.ebnf) before authoring.
-These installed siblings supply 0.8.0 authority; do not substitute legacy rules
+These installed siblings supply 0.9.0 authority; do not substitute legacy rules
 or require a functioning compiler.
 
 Write prose the claims check can read, as described in

@@ -40,7 +40,7 @@ export interface Utf16Position {
   readonly character: number;
 }
 
-export const SIGIL_VERSION = "0.8.0";
+export const SIGIL_VERSION = "0.9.0";
 export const SIGIL_CORE_VERSION = metadata.version;
 export const SIGIL_CONFIG_PATH = ".sigil/config.json" as const;
 export const SIGIL_LOCAL_CONFIG_PATH = ".sigil/local.json" as const;

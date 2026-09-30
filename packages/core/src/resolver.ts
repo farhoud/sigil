@@ -25,6 +25,7 @@ import { sourceOccurrenceId } from "./model/source.ts";
 import type { ComponentDeclaration, TagGroup } from "./model/source.ts";
 import type { SigilWorkspace } from "./model/workspace.ts";
 import { joinPath, normalizeImportPath, normalizePath } from "./path.ts";
+import type { SourceText } from "./source-text.ts";
 import { matchTagReferences } from "./tag-matching.ts";
 
 type Mutable<T> = { -readonly [K in keyof T]: T[K] };
@@ -107,6 +108,46 @@ function introductions(
     }
   }
   return result.sort((a, b) => a.range.start - b.range.start);
+}
+
+function interfaceTagNames(
+  component: ResolvedComponent,
+  source: SourceText,
+  accessibleNames: readonly string[],
+): Set<string> {
+  const names = new Set<string>();
+  const localNames = new Set<string>();
+  for (const tag of component.tags) {
+    if (tag.status !== "resolved") continue;
+    localNames.add(tag.name);
+    if (
+      tag.introductions.some((introduction) =>
+        introduction.sectionName === "interface" && introduction.valid &&
+        introduction.complete
+      )
+    ) names.add(tag.name);
+  }
+  const importedNames = new Set(
+    accessibleNames.filter((name) => !localNames.has(name)),
+  );
+  const proseExportableNames = new Set(
+    [...localNames].filter((name) => !importedNames.has(name)),
+  );
+  for (const section of component.declaration.sections) {
+    if (section.name !== "interface" || !section.known) continue;
+    for (const facet of section.units) {
+      for (
+        const match of matchTagReferences(
+          source,
+          facet.eligible,
+          accessibleNames,
+        )
+      ) {
+        if (proseExportableNames.has(match.name)) names.add(match.name);
+      }
+    }
+  }
+  return names;
 }
 
 // @sigil implements packages/core/src/resolver.sigil::SigilResolver::RelationshipResolution interface,logic,constraints,cases
@@ -300,6 +341,58 @@ export function resolveSigilRelationships(
     }
   }
   const importsByFile = bucket(imports, (i) => i.sourceFile);
+  const interfaceTags = new Map<string, Set<string>>();
+  for (const component of components) {
+    const document = documents.get(normalizePath(component.filePath));
+    if (!document?.source) continue;
+    const importedNames = (importsByFile.get(component.filePath) ?? [])
+      .flatMap((item) => item.names)
+      .filter((selection) => selection.status === "resolved")
+      .map((selection) => selection.name);
+    interfaceTags.set(
+      component.id,
+      interfaceTagNames(
+        component,
+        document.source,
+        [
+          ...component.tags.filter((tag) => tag.status === "resolved").map(
+            (tag) => tag.name,
+          ),
+          ...importedNames,
+        ],
+      ),
+    );
+  }
+  for (const item of imports) {
+    for (const selection of item.names) {
+      if (selection.status !== "resolved") continue;
+      const provider = components.find((c) => c.id === item.providerId);
+      if (!provider || interfaceTags.get(provider.id)?.has(selection.name)) {
+        continue;
+      }
+      const tag = selection.tag;
+      selection.status = "unresolved";
+      selection.tag = undefined;
+      if (tag || provider.declaration.complete) {
+        diagnostics.push(
+          diagnostic(
+            "SIGIL_UNRESOLVED_IMPORTED_TAG",
+            `Component ${provider.name} does not own an unambiguous Tag ${
+              JSON.stringify(selection.name)
+            }.`,
+            {
+              filePath: item.sourceFile,
+              range: selection.selection.range,
+              related: tag?.introductions.map((introduction) => ({
+                filePath: introduction.filePath,
+                range: introduction.range,
+              })) ?? [],
+            },
+          ),
+        );
+      }
+    }
+  }
   const componentsByFile = bucket(components, (c) => c.filePath);
   for (const [filePath, fileImports] of importsByFile) {
     const selections = fileImports.flatMap((i) => i.names);
@@ -485,9 +578,10 @@ export function resolveSigilRelationships(
 }
 
 /**
- * Advisory: every Facet should name a Tag in its own prose, so interpretation
- * can ground claims in something narrower than a component. A group heading
- * is not part of the Facet's prose and does not count.
+ * Advisory: operational Facets should name a Tag in their own prose, so
+ * interpretation can ground claims in something narrower than a component.
+ * Goal and Decisions are intentionally exempt; a group heading is not part of
+ * the Facet's prose and does not count.
  */
 // @sigil implements packages/core/src/resolver.sigil::SigilResolver::UntaggedFacet interface,logic,constraints,cases
 export function untaggedFacetDiagnostics(
@@ -509,6 +603,7 @@ export function untaggedFacetDiagnostics(
       ),
     );
     for (const section of component.declaration.sections) {
+      if (section.name === "goal" || section.name === "decisions") continue;
       for (const facet of section.units) {
         if (tagged.has(facet.id) || facet.definitions.some((d) => d.valid)) {
           continue;

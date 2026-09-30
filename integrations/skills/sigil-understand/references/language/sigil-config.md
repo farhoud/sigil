@@ -5,7 +5,7 @@ directory defines the root used for imports and file discovery.
 
 ```json
 {
-  "sigilVersion": "0.8.0",
+  "sigilVersion": "0.9.0",
   "workspace": {
     "name": "example",
     "members": ["packages/example-cli"]

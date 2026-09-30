@@ -1,9 +1,9 @@
 ---
 name: sigil-understand
-description: Explain Sigil 0.8 design intent, contract roles, Tag ownership, and relevant context from source. Use for understanding a design; writing and advisory evaluation have separate skills.
+description: Explain Sigil 0.9 design intent, contract roles, Tag ownership, and relevant context from source. Use for understanding a design; writing and advisory evaluation have separate skills.
 ---
 
-# Understand Sigil 0.8
+# Understand Sigil 0.9
 
 Explain the selected design at the user's requested scope. Use available source
 and linked or provider context; no compiler, repository checkout, network access,
@@ -12,7 +12,7 @@ Missing project context remains a stated limitation.
 
 Read [understanding](references/understanding.md) for the interpretation boundary.
 The [language reference](references/language/sigil-reference.md) and
-[grammar](references/language/sigil.ebnf) jointly define Sigil 0.8.0. Read the
+[grammar](references/language/sigil.ebnf) jointly define Sigil 0.9.0. Read the
 relevant rules before deciding syntax, resolution, or ownership. The
 [guide](references/language/sigil-language.md) supplies examples and authoring
 advice; it adds no language requirements. For discovery questions, use the
@@ -25,9 +25,9 @@ unresolved intent, and implementation choices. Keep a compact design compact:
 optional sections, Tags, exhaustive edge cases, helper decomposition, and a
 mapping to each code declaration are not completion requirements.
 
-Do not run or claim 0.8 compiler validation through legacy 0.7 tooling. The
-configuration references describe the implemented 0.8 workspace contract. Do not
-import legacy expansion, public namespace, or module-index rules into 0.8.
+Do not run or claim 0.9 compiler validation through legacy 0.7 tooling. The
+configuration references describe the implemented 0.9 workspace contract. Do not
+import legacy expansion, public namespace, or module-index rules into 0.9.
 
 Return a concise explanation with evidence anchors and material limitations.
 Understanding does not modify the source, establish implementation conformance,

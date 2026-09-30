@@ -6,17 +6,6 @@ component SigilSemanticCompiler {
     while keeping *language interpretation* and external workers separate.
   }
 
-  interface {
-    FrontendBoundary {
-      Accept only frontend schema 2 with explicit languageVersion 0.8.0 separate from
-      frontend artifact version, as defined by ResolvedDesignInput. Reject unknown
-      fields at every level, malformed source paths, duplicate identities, dangling
-      ownership and import references, and invalid ranges. The TypeScript frontend
-      owns parsing and language resolution. Rust owns input identity and semantic
-      interpretation of validated assertions.
-    }
-  }
-
   constraints {
 
     TagTransport {
@@ -47,5 +36,18 @@ component SigilSemanticCompiler {
       Preserve valid unresolved imports and units with null owners so diagnostics can
       explain failed language resolution without inventing identities.
     }
+  }
+
+  interface {
+    FrontendBoundary {
+      Accept only frontend schema 2 with explicit languageVersion 0.9.0 separate from
+      frontend artifact version, as defined by ResolvedDesignInput. Reject unknown
+      fields at every level, malformed source paths, duplicate identities, dangling
+      ownership and import references, and invalid ranges. The TypeScript frontend
+      owns parsing and language resolution. Rust owns input identity and semantic
+      interpretation of validated assertions.
+    }
+    Exposes language interpretation to direct consumers.
+
   }
 }

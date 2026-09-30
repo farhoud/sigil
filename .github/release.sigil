@@ -15,27 +15,6 @@ component SigilReleaseDistribution {
     a package-registry client.
   }
 
-  interface {
-    NativeCliRelease {
-      a cli-vX.Y.Z GitHub Release provides *native CLI archives* for supported macOS,
-      Linux, and Windows targets
-
-      each archive contains the *language executable* sigil, the independent semantic
-      compiler sigilc, and the distribution-version-matched skill catalog
-
-      install.sh installs the latest or explicitly selected *macOS CLI release*
-      or *Linux CLI release*
-
-      install.ps1 installs the latest or explicitly selected *Windows CLI release*
-
-      SIGIL_VERSION selects an *explicit CLI release* version in both installers
-    }
-
-    VsCodeRelease {
-      a vscode-vX.Y.Z GitHub Release provides one installable VSIX
-    }
-  }
-
   logic {
     NativeCliRelease {
       Validate that the release tag agrees with the *CLI manifest* before building
@@ -74,11 +53,11 @@ component SigilReleaseDistribution {
     LegacySkillIsolation {
       Retain the four-skill catalog while labeling sigil as legacy 0.7 with frozen
       *incompatible requirements* in catalog and install output. Keep its subtree
-      outside active 0.8 workspace discovery, with no active import or implementation
+      outside active 0.9 workspace discovery, with no active import or implementation
       annotation depending on excluded legacy declarations.
 
       Separate static legacy-package validation and explicitly selected legacy-binary
-      smoke from current 0.8 acceptance. Preserve the *old validator* and its fixture
+      smoke from current 0.9 acceptance. Preserve the *old validator* and its fixture
       unchanged; add a current schema 2 native protocol fixture for current released
       binaries. Language, frontend transport, and native report compatibility must
       agree before support is advertised.
@@ -118,6 +97,55 @@ component SigilReleaseDistribution {
     VsCodeRelease {
       The VSIX is distributed through GitHub Releases and not through an extension
       marketplace.
+    }
+  }
+
+  cases {
+    NativeCliRelease {
+      Apple Silicon macOS and supported Linux users install
+      *matching native archives*
+      without host Deno, Node, npm, Rust or TypeScript tools.
+
+      Matching *native runners* build and execute every retained target. Relocated
+      archives export structural Design with sigil and run native scope, preparation,
+      ingestion and gates directly with sigilc using fixed fixtures. Runtime errors
+      are distinct from named Design and Implementation states. No legacy bridge,
+      TypeScript proof runtime, runtime manifest or compiler wrapper is packaged.
+      Repository-local repos dependencies are unnecessary.
+
+      SIGIL_VERSION selects the *requested release*.
+
+      Windows installation requires no *developer-mode symlink* privilege.
+
+      A *checksum mismatch* leaves the previously active executable unchanged.
+
+      An unsupported platform fails without downloading an *unrelated executable*.
+    }
+
+    VsCodeRelease {
+      A user downloads the VSIX from GitHub Releases and installs it through VS Code
+      Install from VSIX.
+    }
+  }
+
+  interface {
+    NativeCliRelease {
+      a cli-vX.Y.Z GitHub Release provides *native CLI archives* for supported macOS,
+      Linux, and Windows targets
+
+      each archive contains the *language executable* sigil, the independent semantic
+      compiler sigilc, and the distribution-version-matched skill catalog
+
+      install.sh installs the latest or explicitly selected *macOS CLI release*
+      or *Linux CLI release*
+
+      install.ps1 installs the latest or explicitly selected *Windows CLI release*
+
+      SIGIL_VERSION selects an *explicit CLI release* version in both installers
+    }
+
+    VsCodeRelease {
+      a vscode-vX.Y.Z GitHub Release provides one installable VSIX
     }
   }
 
@@ -173,34 +201,6 @@ component SigilReleaseDistribution {
 
       Revisit when: An approved publisher identity and *marketplace-release process*
       are available.
-    }
-  }
-
-  cases {
-    NativeCliRelease {
-      Apple Silicon macOS and supported Linux users install
-      *matching native archives*
-      without host Deno, Node, npm, Rust or TypeScript tools.
-
-      Matching *native runners* build and execute every retained target. Relocated
-      archives export structural Design with sigil and run native scope, preparation,
-      ingestion and gates directly with sigilc using fixed fixtures. Runtime errors
-      are distinct from named Design and Implementation states. No legacy bridge,
-      TypeScript proof runtime, runtime manifest or compiler wrapper is packaged.
-      Repository-local repos dependencies are unnecessary.
-
-      SIGIL_VERSION selects the *requested release*.
-
-      Windows installation requires no *developer-mode symlink* privilege.
-
-      A *checksum mismatch* leaves the previously active executable unchanged.
-
-      An unsupported platform fails without downloading an *unrelated executable*.
-    }
-
-    VsCodeRelease {
-      A user downloads the VSIX from GitHub Releases and installs it through VS Code
-      Install from VSIX.
     }
   }
 }

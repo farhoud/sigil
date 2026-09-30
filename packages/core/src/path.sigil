@@ -5,6 +5,13 @@ component SigilPath {
     host integrations.
   }
 
+  constraints {
+    PathSemantics {
+      PathOperations applies path normalization to separators, roots, drives, dot
+      segments, and workspace-relative paths without host filesystem access.
+    }
+  }
+
   interface {
     PathOperations {
       normalizePath, globMatches, dirname, joinPath, basename, relativePath, and
@@ -12,13 +19,8 @@ component SigilPath {
 
       isSigilFile and isModuleFile classify normalized *Sigil source paths*.
     }
-  }
+    Exposes path normalization to direct consumers.
 
-  constraints {
-    PathSemantics {
-      PathOperations applies path normalization to separators, roots, drives, dot
-      segments, and workspace-relative paths without host filesystem access.
-    }
   }
 
   decisions {
