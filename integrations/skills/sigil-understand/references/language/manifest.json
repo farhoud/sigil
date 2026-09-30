@@ -20,8 +20,8 @@
     {
       "source": "spec/sigil-language.md",
       "output": "sigil-language.md",
-      "sourceSha256": "b3b1b083f333a6868e06bb4005f3f49f09b65ac7ae8b4ca8421835c344a2b744",
-      "outputSha256": "b3b1b083f333a6868e06bb4005f3f49f09b65ac7ae8b4ca8421835c344a2b744"
+      "sourceSha256": "9ff26b2d131d28b49675887a9b0b0020723a004f2518d253fd24e906a24e1e35",
+      "outputSha256": "9ff26b2d131d28b49675887a9b0b0020723a004f2518d253fd24e906a24e1e35"
     },
     {
       "source": "spec/migrating-to-0.9.md",

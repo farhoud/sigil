@@ -32,7 +32,9 @@ Sigil records what a part of a system does, the rules it follows, and the reason
 behind its design. A **component** owns a responsibility. Its **contracts**
 organize the different kinds of statements about that responsibility.
 
-Start with the two required contracts: `goal` and `interface`.
+Every component needs `goal` and `interface`. Start with the goal. When the
+design calls for State, Logic, or Constraints, try drafting those before the
+Interface so its promises follow from the behavior and rules you worked out.
 
 **Complete source — `search/panel.sigil`, first version:**
 
@@ -149,10 +151,11 @@ current implementation task.
 A practical authoring sequence is:
 
 1. State the responsibility and its boundary.
-2. Describe the interactions required by the task.
-3. Add relevant state, behavior, and binding rules.
-4. Record important reasons and unresolved choices.
-5. Check the design against a normal case and its material failure cases.
+2. Work through relevant state, behavior, and binding rules.
+3. Check the design against a normal case and its material failure cases.
+4. Write the required Interface around the task's interactions and those
+   commitments.
+5. Record important reasons and unresolved choices.
 6. Introduce names and grouping where they make these contributions easier to use.
 
 For an agent, the task and available evidence bound this work. Do not silently
@@ -804,7 +807,8 @@ component BoundedQueue {
   }
 
   state {
-    Pending items have insertion order and a fixed positive capacity.
+    The queue has a fixed positive *capacity* and holds *pending items* in
+    insertion order.
   }
 
   constraints {
@@ -814,20 +818,21 @@ component BoundedQueue {
   cases {
     An insertion into a full queue reports full and preserves pending items.
 
-    Removing twice after inserting A then B returns A then B.
+    After inserting pending items A then B, removing twice returns A then B.
   }
 
   interface {
-    Accept an item when space is available and report full otherwise.
+    Accept an item when the number of pending items is below capacity, and
+    report full otherwise.
 
-    Remove the oldest pending item, or report empty.
+    Remove the oldest of the pending items, or report empty.
   }
 }
 ```
 
-This design needs no Tags or grouping. Capacity and ordering can be discussed
-clearly without introducing extra identities. It also leaves implementation
-choices such as arrays versus linked storage open.
+The pending items and capacity Tags connect State to the Constraint and
+Interface. The design leaves implementation choices such as arrays versus
+linked storage open.
 
 ### A domain data model
 
@@ -838,16 +843,17 @@ component ReservationWindow {
   }
 
   state {
-    The window stores its start and end as absolute instants.
+    The window stores a *start instant* and an *end instant* as absolute
+    instants.
   }
 
   logic {
-    An instant is within the window when it is at or after the start and
-    strictly before the end.
+    An instant is within the window when it is at or after the start instant
+    and strictly before the end instant.
   }
 
   constraints {
-    The end must be later than the start.
+    The end instant must be later than the start instant.
   }
 
   cases {
@@ -857,7 +863,8 @@ component ReservationWindow {
   interface {
     Accept a start instant and an end instant.
 
-    Report whether an instant falls within the reservation.
+    Report whether an instant falls within the window delimited by the
+    start instant and end instant.
   }
 }
 ```
@@ -870,17 +877,17 @@ The Case makes the boundary convention observable.
 ```sigil
 component AuditRetention {
   goal {
-    Bound how long completed audit records remain available.
+    Bound how long each *completed audit record* remains available.
   }
 
   constraints {
     RetentionPeriod {
-      Keep completed audit records for at least 30 days after completion.
+      Keep each completed audit record for at least 30 days after completion.
     }
   }
 
   cases {
-    A record completed 29 days ago is not eligible for deletion.
+    A completed audit record from 29 days ago is not eligible for deletion.
   }
 
   interface {
@@ -891,7 +898,7 @@ component AuditRetention {
     RetentionPeriod {
       Decision: Use a 30-day minimum for this example's audit history.
 
-      Scope: Completed audit records only; active records are excluded.
+      Scope: Each completed audit record; active records are excluded.
 
       Trade-offs: Longer history would cost more storage.
 
@@ -914,27 +921,27 @@ one contribution. Explain important exclusions without listing every dependent.
 ```sigil
 component ApplicationPersistence {
   goal {
-    Keep domain operations independent of database integration details.
+    Keep *domain operations* independent of database integration details.
   }
 
   constraints {
-    Domain operations access persisted records through repository interfaces.
+    Domain operations access persisted records through *repository interfaces*.
 
-    Database client types do not appear in domain operation signatures.
+    Signatures of domain operations contain no database client types.
   }
 
   cases {
-    A domain rule test supplies an in-memory repository and requires no
-    database connection.
+    A test of domain operations supplies an in-memory repository and requires
+    no database connection.
   }
 
   interface {
-    Provide repository operations for reading and saving domain records.
+    Provide repository interfaces for reading and saving domain records.
   }
 
   decisions {
-    Keep database integration behind repositories so domain rules can be
-    exercised without database access.
+    Keep database integration behind repository interfaces so
+    domain operations can be exercised without database access.
   }
 }
 ```
@@ -957,7 +964,7 @@ Import Tags from the explicit file declaring their owner.
 
 | While writing | Remember |
 | --- | --- |
-| Starting a component | Goal and Interface need content; other contracts are optional. |
+| Starting a component | Goal and Interface need content. Try drafting relevant State, Logic, and Constraints before writing Interface; other contracts are optional. |
 | Adding detail | Edit the existing section; repeated sections are invalid. |
 | Naming a concept | Introduce `*name*` once; use bare names afterward. |
 | Grouping | Bare local headings can repeat; groups are flat and nonempty. |
