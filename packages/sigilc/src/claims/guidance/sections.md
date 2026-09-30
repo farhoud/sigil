@@ -80,6 +80,20 @@ Tag's name, and a Tag owned by a source this one does not import. If a Facet's
 prose does not name a Tag, do not invent a claim about it. Return a `reading`
 row instead.
 
+**Who does the requiring.** For `requires`, `provides`, `owns`, and `dependsOn`,
+the subject is a component (or a step, for a flow). Never a Tag. A Tag cannot
+provide anything, so `booking request requires open time` can never be
+satisfied and reports an obligation that nothing could meet. When a Facet says
+a *booking request* must lie inside open time, the requirement belongs to the
+component that handles it: `Booking requires open time`.
+
+**A scoped exception is not a global ban.** When a Facet says something is
+absent only in one case, such as "the view of a closed search, with no search
+results in it", assert the positive part and stop. Do not write the exception
+as `expected` `false` about the whole component. The claim format cannot say
+"only here", so a global `false` contradicts every Facet that promises the
+thing in general. Write the positive claim and leave the exception unclaimed.
+
 ## What the role does to a claim
 
 A `decisions` Facet's claims are retained and reported, and are passed to the

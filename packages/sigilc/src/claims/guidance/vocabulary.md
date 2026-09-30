@@ -104,6 +104,13 @@ step reads, writes and calls are claims about the step, not edge targets.
 edge is refused. A branching flow declares one end per branch, so more than one
 edge to `graph` is normal.
 
+**A rejection is an end.** A step that refuses the request, returns an error, or
+stops because a check failed ends that branch of the flow, even when no later
+step consumes its result. Give it an edge to `graph`. A check that only gates a
+later step, such as "step one checks the grid, step two rejects a bad time", is
+not a dead end: each refusal declares its own end, and the passing path goes on
+to the next step.
+
 Two things that look like edges and are not. A paragraph saying "derive X, then
 construct Y" states an order, not a consumption: unless the prose says Y uses
 what X produced, there is no edge from X to Y. And a step that ends the flow by

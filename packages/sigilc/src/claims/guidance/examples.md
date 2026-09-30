@@ -44,6 +44,20 @@ nothing says the panel depends on the service. That would be a deduction.
 An ownership claim plus the property that makes it exclusive. The exclusivity is
 a property of the state, so it travels on a `property` row.
 
+> The *draft lock* is held by one editor, and the panel is the only one that may
+> set or clear it.
+
+```
+(claim "f10" "SearchPanel" "owns" "draft lock" "required" "true")
+(property "f10" "draft lock" "exclusive" "true")
+```
+
+"Only one that may set or clear it" is the same exclusivity as "the only one
+whose results may be published". Without the `property` row, two components
+that both claim to own the state do not conflict and the overlap goes
+unreported. Write the `property` row whenever a Facet says it alone may change
+the state.
+
 ## A Tag the component already has
 
 > The panel keeps each cached result on screen until the query changes.
@@ -151,6 +165,39 @@ instead:
 ```
 (reading "f6" "no-commitment")
 ```
+
+### A flow whose checks can refuse
+
+> Checking a query takes two steps. Step one reads the *query length* and
+> rejects an empty query. Step two returns the *search results*.
+
+```
+(step "f11" "1")
+(step "f11" "2")
+(claim "f11" "step:1" "reads" "query length" "required" "true")
+(claim "f11" "step:2" "writes" "search results" "required" "true")
+(claim "f11" "step:1" "to" "step:2" "required" "true")
+(claim "f11" "step:1" "to" "graph" "required" "true")
+(claim "f11" "step:2" "to" "graph" "required" "true")
+```
+
+Step one has two edges: to step two when the query passes, and to `graph` when
+it rejects. The rejection is that branch's end. Without the second edge, a
+reader of the rows sees a check that feeds nothing and ends nowhere.
+
+### A scoped exception
+
+> The panel provides the *history view* of a closed search, with no *search
+> results* in it.
+
+```
+(claim "f12" "SearchPanel" "provides" "history view" "required" "true")
+```
+
+One claim. The phrase "with no search results in it" holds only inside the
+history view. Writing `SearchPanel provides search results` as `false` would
+say the panel never provides results, and would contradict every Facet that
+promises them.
 
 ## `cases`
 
