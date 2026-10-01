@@ -250,6 +250,22 @@ user would be reported against that very step, because the step touches the
 blocked user. Return a reading, or write the positive requirement the flow meets.
 Do not write an exclusion for a rule about what is refused.
 
+### A module named in passing
+
+> **f17** — The panel may depend on the Archive module and the Billing module, and
+> no others.
+
+```
+(reading "f17" "no-commitment")
+```
+
+Archive and Billing appear in the entity list because they are in the closure.
+Nothing says this source imports from either one, and the Facet only lists what
+is allowed. A claim naming them would be refused as ungrounded if the source does
+not import them, so this Facet returns a reading. A Facet that describes using
+what another module provides, and whose source imports it, is different, and
+claims about it are grounded.
+
 ### A scoped exception
 
 > The panel provides the *history view* of a closed search, with no *search

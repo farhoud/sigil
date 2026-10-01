@@ -80,6 +80,15 @@ Tag's name, and a Tag owned by a source this one does not import. If a Facet's
 prose does not name a Tag, do not invent a claim about it. Return a `reading`
 row instead.
 
+**The entity list is wider than what a Facet may name.** The request lists every
+component and Tag in the whole closure, including ones the selected source never
+imports. Being on that list does not ground a name. Name another component only
+when this Facet's prose names it and you have reason to think the source imports
+from it, for example because the Facet describes using what it provides. When a
+Facet names a module only in passing, such as in a list of allowed dependencies,
+and you cannot tell whether the source imports it, return a `reading` for that
+part instead of a claim the tool may refuse as ungrounded.
+
 **Who does the requiring.** For `requires`, `provides`, `owns`, and `dependsOn`,
 the subject is a component (or a step, for a flow). Never a Tag. A Tag cannot
 provide anything, so `booking request requires open time` can never be
