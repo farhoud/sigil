@@ -10,7 +10,9 @@ fn repo_root() -> PathBuf {
 }
 
 fn skill_text(name: &str) -> String {
-    let path = repo_root().join("integrations/skills/sigil-egglog/references").join(name);
+    let path = repo_root()
+        .join("integrations/skills/sigil-egglog/references")
+        .join(name);
     fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
@@ -150,7 +152,8 @@ fn named_law_excerpts_occur_in_the_named_source() {
         }
         assert!(i < lines.len(), "unclosed lisp excerpt for {name}");
         let source = crate_dir().join(relative);
-        let source = fs::read_to_string(&source).unwrap_or_else(|e| panic!("{}: {e}", source.display()));
+        let source =
+            fs::read_to_string(&source).unwrap_or_else(|e| panic!("{}: {e}", source.display()));
         assert!(
             source.contains(&excerpt),
             "excerpt named to {name} does not occur in that law file:\n{excerpt}"

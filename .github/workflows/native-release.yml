@@ -101,6 +101,8 @@ jobs:
           test "$("$cli" --version)" = "$SIGIL_RELEASE_VERSION"
           compiler="/tmp/sigil/sigil-$SIGIL_RELEASE_VERSION/bin/sigilc"
           "$compiler" --version
+          claims="/tmp/sigil/sigil-$SIGIL_RELEASE_VERSION/bin/sigil-claims"
+          "$claims" --version
           cp /fixtures/project/main.sigil /tmp/fixture/main.sigil
           cp /fixtures/project/fixture-config.json /tmp/fixture/.sigil/config.json
           "$cli" export design /tmp/fixture --root /tmp/fixture > /tmp/frontend.json
@@ -214,6 +216,8 @@ jobs:
             run_install
             compiler_wrapper="$bin_root_native/sigilc.cmd"
             pwsh -NoProfile -Command "& '$compiler_wrapper' --version"
+            claims_wrapper="$bin_root_native/sigil-claims.cmd"
+            pwsh -NoProfile -Command "& '$claims_wrapper' --version"
             wrapper="$bin_root_native/sigil.cmd"
             version_one="$(pwsh -NoProfile -Command "& '$wrapper' --version")"
             run_install
@@ -252,6 +256,7 @@ jobs:
             }
             run_install
             "$bin_root/sigilc" --version
+            "$bin_root/sigil-claims" --version
             version_one="$("$bin_root/sigil" --version)"
             run_install
             version_two="$("$bin_root/sigil" --version)"

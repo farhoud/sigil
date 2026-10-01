@@ -60,6 +60,7 @@ source_dir="$tmp/sigil-$VERSION"
 [ -d "$source_dir" ] || fail "archive does not contain sigil-$VERSION"
 [ -x "$source_dir/bin/sigil" ] || fail "archive does not contain bin/sigil"
 [ -x "$source_dir/bin/sigilc" ] || fail "archive does not contain bin/sigilc"
+[ -x "$source_dir/bin/sigil-claims" ] || fail "archive does not contain bin/sigil-claims"
 [ ! -e "$source_dir/lib/sigil/runtime" ] || fail "archive contains obsolete runtime payloads"
 if find "$source_dir" -type l -print -quit | grep . >/dev/null 2>&1; then fail "archive contains a symbolic link"; fi
 archive_prefix="$(printf '%.16s' "$actual")"
@@ -72,9 +73,11 @@ else
 fi
 [ "$("$destination/bin/sigil" --version)" = "$VERSION" ] || fail "language executable version check failed"
 "$destination/bin/sigilc" --version >/dev/null || fail "native compiler failed; existing installation remains selected"
-for name in sigil sigilc; do
+"$destination/bin/sigil-claims" --version >/dev/null || fail "claims command failed; existing installation remains selected"
+for name in sigil sigilc sigil-claims; do
   ln -s "$destination/bin/$name" "$BIN_DIR/.$name-wrapper.$$"
 done
 mv -f "$BIN_DIR/.sigil-wrapper.$$" "$BIN_DIR/sigil"
 mv -f "$BIN_DIR/.sigilc-wrapper.$$" "$BIN_DIR/sigilc"
+mv -f "$BIN_DIR/.sigil-claims-wrapper.$$" "$BIN_DIR/sigil-claims"
 echo "Installed Sigil $VERSION to $destination"

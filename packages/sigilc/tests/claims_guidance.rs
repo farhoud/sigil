@@ -445,9 +445,7 @@ code:
                     continue;
                 }
                 assert!(
-                    components.contains(name)
-                        || ground.contains(name)
-                        || names_in_prose(name),
+                    components.contains(name) || ground.contains(name) || names_in_prose(name),
                     "{quote:?} claims {name:?}, which is neither a component nor                      named in that same prose"
                 );
                 checked += 1;

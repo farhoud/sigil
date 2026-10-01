@@ -28,7 +28,8 @@ const DIR: &str = ".sigil/claims/interpretations";
 /// spans one, so a Logic unit is the section and its key covers every Facet's
 /// prose in it: edit one Logic paragraph and the section is re-read, because
 /// the flow through it may have changed. Every other role is presented one
-/// Facet at a time and is keyed on its own prose alone.
+/// Facet at a time. Its key includes the Facet ID as well as its prose, so
+/// moving it cannot reuse a reading attached to the old identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unit {
     pub key: String,
@@ -47,9 +48,9 @@ pub struct Unit {
 /// rather than at interpretation, so adding an import re-grounds stored rows
 /// without re-reading them.
 ///
-/// It includes the owning component and the contract role because prose alone
-/// does not identify a unit. Two Facets can carry byte-identical prose, and
-/// grounding is checked against each one's own component and references, so
+/// It includes the owning component, contract role, and Facet IDs because prose
+/// alone does not identify a unit. Two Facets can carry byte-identical prose,
+/// and grounding is checked against each one's own component and references, so
 /// reusing the wrong one could judge a row grounded against a Facet that never
 /// named the entity.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::InterpretationRequest interface
@@ -76,10 +77,11 @@ pub fn units(request: &Request) -> Vec<Unit> {
         units.push(Unit {
             key: hash(
                 &serde_json::to_vec(&(
-                    "sigil-claims-memo-v1",
+                    "sigil-claims-memo-v2",
                     identity,
                     &flow.component,
                     "logic",
+                    &flow.facets,
                     &body,
                 ))
                 .expect("memo key serialization"),
@@ -98,10 +100,11 @@ pub fn units(request: &Request) -> Vec<Unit> {
         units.push(Unit {
             key: hash(
                 &serde_json::to_vec(&(
-                    "sigil-claims-memo-v1",
+                    "sigil-claims-memo-v2",
                     identity,
                     &row.component,
                     &row.section,
+                    &row.facet,
                     &[row.prose.as_str()],
                 ))
                 .expect("memo key serialization"),

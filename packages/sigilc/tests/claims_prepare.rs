@@ -142,7 +142,10 @@ fn the_request_lists_what_each_source_imports_and_only_that() {
     );
     let mut sorted = from.names.clone();
     sorted.sort();
-    assert_eq!(sorted, from.names, "names are sorted, so the request is stable");
+    assert_eq!(
+        sorted, from.names,
+        "names are sorted, so the request is stable"
+    );
 
     assert!(
         request.imports.iter().all(|i| i.source != BASE),
@@ -545,7 +548,7 @@ fn editing_one_logic_paragraph_restales_its_section_and_no_other() {
     )
     .unwrap();
     let after = prepare::project(
-        &logic_input(&[("Alpha", &["a one", "a two EDITED"]), ("Beta", &["b one"])]),
+        &logic_input(&[("Alpha", &["a one", "b two"]), ("Beta", &["b one"])]),
         "flows.sigil",
     )
     .unwrap();
@@ -575,6 +578,68 @@ fn editing_one_logic_paragraph_restales_its_section_and_no_other() {
         key(&after, "Beta"),
         "and must restale no other component's section"
     );
+}
+
+#[test]
+fn moving_a_logic_facet_with_unchanged_prose_misses_the_saved_unit() {
+    use sigilc::claims::dialect::Row;
+
+    let root = memo_root("moved-logic-facet");
+    let mut request = prepare::project(
+        &logic_input(&[("Pipeline", &["first step", "second step"])]),
+        "flows.sigil",
+    )
+    .unwrap();
+    let previous = memo::units(&request).remove(0);
+    let previous_facet = previous.facets[0].clone();
+    memo::save(
+        &root,
+        &previous.key,
+        &[Row::Reading {
+            facet: previous_facet.clone(),
+            outcome: "saved reading".into(),
+        }],
+    )
+    .unwrap();
+
+    let moved_facet = format!("{previous_facet}-moved");
+    request.flows[0].facets[0] = moved_facet.clone();
+    request
+        .rows
+        .iter_mut()
+        .find(|row| row.facet == previous_facet)
+        .unwrap()
+        .facet = moved_facet.clone();
+
+    let (stale, reused) = memo::split(&request, &root);
+    assert_eq!(
+        stale.len(),
+        1,
+        "the moved Logic section needs a new reading"
+    );
+    assert_eq!(stale[0].facets[0], moved_facet);
+    assert!(reused.is_empty(), "the old Facet identity cannot be reused");
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn moving_a_non_logic_facet_with_unchanged_prose_changes_its_memo_key() {
+    let mut request = prepare::project(&shared_input(), BASE).unwrap();
+    let previous = memo::units(&request).remove(0);
+    let previous_facet = previous.facets[0].clone();
+    let moved_facet = format!("{previous_facet}-moved");
+    request
+        .rows
+        .iter_mut()
+        .find(|row| row.facet == previous_facet)
+        .unwrap()
+        .facet = moved_facet.clone();
+
+    let moved = memo::units(&request)
+        .into_iter()
+        .find(|unit| unit.facets.len() == 1 && unit.facets[0] == moved_facet)
+        .unwrap();
+    assert_ne!(previous.key, moved.key);
 }
 
 #[test]

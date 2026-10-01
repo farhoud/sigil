@@ -15,8 +15,8 @@ Package docs:
 - [architecture.md](architecture.md): command architecture, module boundaries,
   dependency rules, and implementation guidelines.
 
-Standalone GitHub releases install both `sigil` and `sigilc`, plus bundled
-skills. Each binary reports its own manifest version. On macOS or Linux:
+Standalone GitHub releases install `sigil`, `sigilc`, and `sigil-claims`, plus
+bundled skills. Each binary reports its own manifest version. On macOS or Linux:
 
 ```bash
 curl -fsSL https://github.com/qoherent/sigil/releases/latest/download/install.sh | sh
