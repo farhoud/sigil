@@ -185,6 +185,29 @@ Step one has two edges: to step two when the query passes, and to `graph` when
 it rejects. The rejection is that branch's end. Without the second edge, a
 reader of the rows sees a check that feeds nothing and ends nowhere.
 
+### A step that never ends
+
+> Answering a query takes two steps. Step one reads the *query*, and step two
+> returns the *search results*. Refreshing the *result digest* takes one more
+> step: step three compares the result digest with the one kept from the last
+> refresh.
+
+```
+(step "f13" "1")
+(step "f13" "2")
+(step "f13" "3")
+(claim "f13" "step:1" "reads" "query" "required" "true")
+(claim "f13" "step:2" "writes" "search results" "required" "true")
+(claim "f13" "step:3" "reads" "result digest" "required" "true")
+(claim "f13" "step:1" "to" "step:2" "required" "true")
+(claim "f13" "step:2" "to" "graph" "required" "true")
+```
+
+Step two returns, so it ends the flow. Step three is the last step of its
+sentence, but the prose never says it returns or finishes, and nothing uses what
+it compares. It gets no edge. The tool reports it as an unreached step. That is
+a real gap in the design, and an edge to `graph` would hide it.
+
 ### A scoped exception
 
 > The panel provides the *history view* of a closed search, with no *search

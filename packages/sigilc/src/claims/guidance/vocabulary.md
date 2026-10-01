@@ -111,11 +111,20 @@ later step, such as "step one checks the grid, step two rejects a bad time", is
 not a dead end: each refusal declares its own end, and the passing path goes on
 to the next step.
 
-Two things that look like edges and are not. A paragraph saying "derive X, then
-construct Y" states an order, not a consumption: unless the prose says Y uses
-what X produced, there is no edge from X to Y. And a step that ends the flow by
-writing state or calling outward still needs its own edge to `graph` — ending is
-declared, never inferred from what a step does.
+**An end is declared by the prose, never by position.** Give a step an edge to
+`graph` only when the prose says the flow ends there: the step returns a result,
+refuses, or the prose says the flow is finished. Being the last step of a
+paragraph is not an end. Writing state or calling outward is not an end either,
+unless the prose says that is where the flow stops.
+
+**A dead end is reported, not repaired.** A step whose result no later step uses,
+and whose prose declares no end, gets no outgoing edge at all. Do not add an edge
+to `graph` to close it. The tool reports that step as unreached, and finding it
+is the point.
+
+A paragraph saying "derive X, then construct Y" states an order, not a
+consumption: unless the prose says Y uses what X produced, there is no edge from
+X to Y.
 
 ## Logic sections are presented whole
 
