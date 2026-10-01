@@ -54,7 +54,7 @@ try {
   $Claims = Join-Path $Source "bin\sigil-claims.exe"
   if (-not (Test-Path $Executable -PathType Leaf)) { throw "Archive does not contain bin\sigil.exe." }
   if (-not (Test-Path $Compiler -PathType Leaf)) { throw "Archive does not contain bin\sigilc.exe." }
-  if (-not (Test-Path $Claims -PathType Leaf)) { throw "Archive does not contain bin\sigil-claims.exe." }
+  $ClaimsAvailable = Test-Path $Claims -PathType Leaf
   if (Test-Path (Join-Path $Source "lib\sigil\runtime")) { throw "Archive contains obsolete runtime payloads." }
   if (Get-ChildItem $Source -Recurse -Force | Where-Object { $_.LinkType }) { throw "Archive contains a symbolic link." }
   $Prefix = $Actual.Substring(0, 16)
@@ -77,17 +77,29 @@ try {
   if ($LASTEXITCODE -ne 0 -or $LanguageVersion -ne $Version) { throw "Language executable version check failed." }
   & (Join-Path $Destination "bin\sigilc.exe") --version | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Native compiler failed; existing installation remains selected." }
-  & (Join-Path $Destination "bin\sigil-claims.exe") --version | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Claims command failed; existing installation remains selected." }
-  foreach ($Name in @("sigil", "sigilc", "sigil-claims")) {
+  if ($ClaimsAvailable) {
+    & (Join-Path $Destination "bin\sigil-claims.exe") --version | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Claims command failed; existing installation remains selected." }
+  }
+  $Names = if ($ClaimsAvailable) { @("sigil", "sigilc", "sigil-claims") } else { @("sigil", "sigilc") }
+  foreach ($Name in $Names) {
     $Wrapper = Join-Path $BinDir "$Name.cmd"
     $WrapperTemp = "$Wrapper.$PID.tmp"
     $Body = "@echo off`r`n@chcp 65001 >nul`r`n`"$(Join-Path $Destination "bin\$Name.exe")`" %*`r`n"
     [IO.File]::WriteAllText($WrapperTemp, $Body, [Text.UTF8Encoding]::new($false))
   }
-  foreach ($Name in @("sigil", "sigilc", "sigil-claims")) {
+  foreach ($Name in $Names) {
     $Wrapper = Join-Path $BinDir "$Name.cmd"
     Move-Item -Force "$Wrapper.$PID.tmp" $Wrapper
+  }
+  if (-not $ClaimsAvailable) {
+    $ClaimsWrapper = Join-Path $BinDir "sigil-claims.cmd"
+    if (Test-Path $ClaimsWrapper -PathType Leaf) {
+      $ClaimsBody = [IO.File]::ReadAllText($ClaimsWrapper)
+      $VersionRoot = [regex]::Escape((Join-Path $InstallRoot "versions"))
+      $ManagedClaimsWrapper = '(?s)\A@echo off\r\n@chcp 65001 >nul\r\n"__VERSION_ROOT__[\\/][^\r\n"]+[\\/]bin[\\/]sigil-claims\.exe" %\*\r\n\z'.Replace("__VERSION_ROOT__", $VersionRoot)
+      if ($ClaimsBody -match $ManagedClaimsWrapper) { Remove-Item -Force $ClaimsWrapper }
+    }
   }
   Write-Host "Installed Sigil $Version to $Destination"
 } finally {

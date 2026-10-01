@@ -282,6 +282,77 @@ jobs:
             fi
             test "$("$bin_root/sigil" --version)" = "$version_one"
           fi
+      - name: Exercise two-binary legacy archive compatibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${RUNNER_OS}" = Windows ]]; then
+            temp_root="$(cygpath -u "$RUNNER_TEMP")"
+            artifact="$(cygpath -u "$RUNNER_TEMP/release-artifact")"
+            extracted="$(cygpath -u "$RUNNER_TEMP/release-extracted")"
+          else
+            temp_root="$RUNNER_TEMP"
+            artifact="$RUNNER_TEMP/release-artifact"
+            extracted="$RUNNER_TEMP/release-extracted"
+          fi
+          install_root="$temp_root/sigil-legacy-install"
+          bin_root="$temp_root/sigil-legacy-bin"
+          archive="$(find "$artifact" -maxdepth 1 -type f \( -name '*.tar.gz' -o -name '*.zip' \) | head -n 1)"
+          checksums="$artifact/checksums.txt"
+          distribution="$(find "$extracted" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+          version="${distribution##*/sigil-}"
+          legacy="$temp_root/sigil-legacy-layout"
+          rm -rf "$legacy" "$install_root" "$bin_root"
+          mkdir -p "$legacy" "$install_root" "$bin_root"
+          cp -R "$distribution" "$legacy/sigil-$version"
+          rm -f "$legacy/sigil-$version/bin/sigil-claims" \
+            "$legacy/sigil-$version/bin/sigil-claims.exe"
+          if [[ "${RUNNER_OS}" = Windows ]]; then
+            SIGIL_LEGACY_ROOT="$(cygpath -w "$legacy")" \
+              SIGIL_LEGACY_ARCHIVE="$(cygpath -w "$legacy/legacy.zip")" \
+              SIGIL_VERSION="$version" \
+              pwsh -NoProfile -NonInteractive -Command \
+              '$ErrorActionPreference = "Stop"; Compress-Archive -Path (Join-Path $env:SIGIL_LEGACY_ROOT ("sigil-" + $env:SIGIL_VERSION)) -DestinationPath $env:SIGIL_LEGACY_ARCHIVE -Force'
+            (cd "$legacy" && sha256sum legacy.zip > checksums.txt)
+            installer="$(cygpath -w "$artifact/install.ps1")"
+            install_root_native="$(cygpath -w "$install_root")"
+            bin_root_native="$(cygpath -w "$bin_root")"
+            run_install() {
+              SIGIL_VERSION="$version" \
+                SIGIL_ARCHIVE_PATH="$(cygpath -w "$1")" \
+                SIGIL_CHECKSUMS_PATH="$(cygpath -w "$2")" \
+                SIGIL_INSTALL_DIR="$install_root_native" \
+                SIGIL_BIN_DIR="$bin_root_native" \
+                pwsh -NoProfile -ExecutionPolicy Bypass -File "$installer"
+            }
+            run_install "$archive" "$checksums"
+            test -f "$bin_root/sigil-claims.cmd"
+            run_install "$legacy/legacy.zip" "$legacy/checksums.txt"
+            test ! -e "$bin_root/sigil-claims.cmd"
+            test "$(pwsh -NoProfile -Command "& '$bin_root_native/sigil.cmd' --version")" = "$version"
+            pwsh -NoProfile -Command "& '$bin_root_native/sigilc.cmd' --version" >/dev/null
+          else
+            legacy_archive="$legacy/legacy.tar.gz"
+            (cd "$legacy" && tar -czf "$legacy_archive" "sigil-$version")
+            (cd "$legacy" && sha256sum legacy.tar.gz > checksums.txt)
+            installer="$artifact/install.sh"
+            chmod +x "$installer"
+            run_install() {
+              SIGIL_VERSION="$version" \
+                SIGIL_ARCHIVE_PATH="$1" \
+                SIGIL_CHECKSUMS_PATH="$2" \
+                SIGIL_INSTALL_DIR="$install_root" \
+                SIGIL_BIN_DIR="$bin_root" \
+                "$installer"
+            }
+            run_install "$archive" "$checksums"
+            test -L "$bin_root/sigil-claims"
+            run_install "$legacy_archive" "$legacy/checksums.txt"
+            test ! -e "$bin_root/sigil-claims" && test ! -L "$bin_root/sigil-claims"
+            test "$("$bin_root/sigil" --version)" = "$version"
+            "$bin_root/sigilc" --version >/dev/null
+          fi
+          echo "Two-binary archive installed and stale claims wrapper removed."
       - name: Write consumer summary
         shell: bash
         run: |

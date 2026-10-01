@@ -60,7 +60,11 @@ source_dir="$tmp/sigil-$VERSION"
 [ -d "$source_dir" ] || fail "archive does not contain sigil-$VERSION"
 [ -x "$source_dir/bin/sigil" ] || fail "archive does not contain bin/sigil"
 [ -x "$source_dir/bin/sigilc" ] || fail "archive does not contain bin/sigilc"
-[ -x "$source_dir/bin/sigil-claims" ] || fail "archive does not contain bin/sigil-claims"
+claims_available=0
+if [ -e "$source_dir/bin/sigil-claims" ] || [ -L "$source_dir/bin/sigil-claims" ]; then
+  [ -x "$source_dir/bin/sigil-claims" ] || fail "archive contains a non-executable bin/sigil-claims"
+  claims_available=1
+fi
 [ ! -e "$source_dir/lib/sigil/runtime" ] || fail "archive contains obsolete runtime payloads"
 if find "$source_dir" -type l -print -quit | grep . >/dev/null 2>&1; then fail "archive contains a symbolic link"; fi
 archive_prefix="$(printf '%.16s' "$actual")"
@@ -73,11 +77,21 @@ else
 fi
 [ "$("$destination/bin/sigil" --version)" = "$VERSION" ] || fail "language executable version check failed"
 "$destination/bin/sigilc" --version >/dev/null || fail "native compiler failed; existing installation remains selected"
-"$destination/bin/sigil-claims" --version >/dev/null || fail "claims command failed; existing installation remains selected"
-for name in sigil sigilc sigil-claims; do
+if [ "$claims_available" -eq 1 ]; then
+  "$destination/bin/sigil-claims" --version >/dev/null || fail "claims command failed; existing installation remains selected"
+fi
+for name in sigil sigilc; do
   ln -s "$destination/bin/$name" "$BIN_DIR/.$name-wrapper.$$"
 done
 mv -f "$BIN_DIR/.sigil-wrapper.$$" "$BIN_DIR/sigil"
 mv -f "$BIN_DIR/.sigilc-wrapper.$$" "$BIN_DIR/sigilc"
-mv -f "$BIN_DIR/.sigil-claims-wrapper.$$" "$BIN_DIR/sigil-claims"
+if [ "$claims_available" -eq 1 ]; then
+  ln -s "$destination/bin/sigil-claims" "$BIN_DIR/.sigil-claims-wrapper.$$"
+  mv -f "$BIN_DIR/.sigil-claims-wrapper.$$" "$BIN_DIR/sigil-claims"
+elif [ -L "$BIN_DIR/sigil-claims" ]; then
+  claims_target="$(readlink "$BIN_DIR/sigil-claims")"
+  case "$claims_target" in
+    "$INSTALL_ROOT"/versions/*/bin/sigil-claims) rm -f "$BIN_DIR/sigil-claims" ;;
+  esac
+fi
 echo "Installed Sigil $VERSION to $destination"

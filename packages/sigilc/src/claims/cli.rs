@@ -176,7 +176,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
             .cloned()
             .collect();
         if !mine.is_empty() {
-            memo::save(Path::new(root), &unit.key, &mine).map_err(operational)?;
+            memo::save(Path::new(root), &unit, &mine).map_err(operational)?;
         }
     }
 
