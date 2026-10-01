@@ -161,8 +161,10 @@ component Booking {
     A room timezone must not change while the room has a pending request or
     confirmed booking whose start is in the future.
 
-    Every status change and every room-scoped mutation must run under the room lock
-    and use a compare-and-set from the expected prior status. Commands on an
+    Every status change and every room-scoped mutation must run under the
+    room lock,
+    and every status change must use a compare-and-set from the expected prior
+    status. Commands on an
     existing booking request take only its id, never a client-supplied room, and
     authorize the signed-in user against the room owner of its stored room or
     against its renter. Any new write path to a booking request must go through

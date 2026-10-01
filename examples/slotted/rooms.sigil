@@ -37,10 +37,11 @@ component Rooms {
     changes made by other modules, must run inside the room lock. Changes to
     different rooms must not block each other.
 
-    Rooms exposes a *transactional entry*, a second entry beside the module public
-    entry that runs inside the room lock and that only Booking may import. Rooms
-    must expose the archive, unarchive, and room timezone mutations only through
-    its transactional entry, and Rooms must not import Booking.
+    A *transactional entry* is a second entry beside a module public entry that
+    runs inside a transaction its caller opened and that only Booking may import.
+    Rooms exposes one that runs inside the room lock, and Rooms must expose the
+    archive, unarchive, and room timezone mutations only through its transactional
+    entry, and Rooms must not import Booking.
 
     Rooms depends on Identity and requires the signed-in user to record a
     room owner.
@@ -71,7 +72,7 @@ component Rooms {
     its transactional entry, for Booking's workflows to use.
 
     Rooms provides the room lock, which opens a transaction on one room and hands
-    it to a change, for Booking's workflows and the commands of Rooms to use.
+    it to a change, for Booking and the commands of Rooms to use.
 
     Rooms provides the room owner of a room so other modules can authorize a
     signed-in user against it.

@@ -1,6 +1,16 @@
 @identity.sigil from Identity import { signed-in user }
-@rooms.sigil from Rooms import { transactional entry, room timezone }
-@booking.sigil from Booking import { booking request, booking workflow }
+@rooms.sigil from Rooms import {
+  transactional entry,
+  room timezone,
+  room list,
+  archived room,
+}
+@availability.sigil from Availability import { weekly window, blackout }
+@booking.sigil from Booking import {
+  booking request,
+  booking workflow,
+  decline cause,
+}
 @shared.sigil from SharedKernel import { domain error }
 
 component Slotted {
@@ -21,6 +31,10 @@ component Slotted {
     Availability on Rooms, Rooms on Identity, and Calendar on Booking,
     Availability, and Rooms, with no cycles. The app imports only a
     module public entry.
+
+    Slotted depends on Identity for the signed-in user and on SharedKernel for the
+    domain error, and reaches every other module only through its module public
+    entry.
 
     Only Booking may import the transactional entry of Rooms or of Availability, so
     the app reaches archive, unarchive, room timezone change, and availability
@@ -62,8 +76,9 @@ component Slotted {
     The owner approves one of two overlapping requests, and both parties see the
     new status of each booking request in the app.
 
-    A renter withdraws a pending booking request, or either party cancels a
-    confirmed one, and the time becomes requestable again.
+    A renter withdraws a pending booking request and may submit the same range
+    again, or either party cancels a confirmed one and the time becomes requestable
+    again.
 
     A signed-in user who does not own a room and submits its manage-page actions is
     refused, and the room timezone and every booking request stay unchanged.
@@ -74,8 +89,9 @@ component Slotted {
     room calendar with a request form.
 
     Slotted offers the owner of a room a manage page for its details,
-    room timezone, weekly windows, blackouts, archive, and unarchive, which also
-    reaches each archived room of that owner, and an inbox of each booking request
+    room timezone, each weekly window, each blackout, archive, and unarchive, which
+    also reaches each archived room of that owner, and an inbox of each
+    booking request
     on its rooms.
 
     Slotted offers each renter a page of each booking request they hold, with its

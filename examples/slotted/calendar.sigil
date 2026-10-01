@@ -32,8 +32,8 @@ component Calendar {
     the calendar view to the caller.
 
     A requestable slot lies inside open time, overlaps no confirmed booking, starts
-    after the clock and within Booking's start limit of 180 room-local calendar
-    days, is not the repeated hour of a fall-back day, and belongs to a room that
+    after the clock and within Booking's start limit, is not in the second
+    occurrence of a fall-back day's repeated hour, and belongs to a room that
     is not an archived room and whose viewer is not the room owner. Range-level
     rules stay with Booking's submission.
 
