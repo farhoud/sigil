@@ -635,6 +635,7 @@ fn a_label_shared_by_two_entities_in_the_closure_is_refused_as_ambiguous() {
             prose: "prose".into(),
         }],
         flows: Vec::new(),
+        imports: Vec::new(),
         entities: vec![
             prepare::AdmissibleEntity {
                 id: "urn:e:Owner".into(),

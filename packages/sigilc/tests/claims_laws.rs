@@ -47,6 +47,7 @@ fn request(roles: &[(&str, &str, &str)]) -> Request {
         },
         rows,
         flows: Vec::new(),
+        imports: Vec::new(),
         entities: vec![
             entity(A, "Component", None),
             entity(B, "Component", None),

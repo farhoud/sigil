@@ -6,7 +6,7 @@
 //! already carries every source's full text.
 use super::{guidance, vocabulary};
 use crate::{
-    frontend::{DesignInput, Unit},
+    frontend::{DesignInput, ImportStatus, SelectionStatus, Unit},
     scope, sources,
 };
 use serde::{Deserialize, Serialize};
@@ -21,9 +21,13 @@ use std::{
 /// so a request that presents those Facets only one at a time cannot express
 /// one. 3 widens presentation from the selected source to its whole resolved
 /// closure, so a claim in one component can be checked against a flow graph in
-/// a component it depends on. A directory prepared under either earlier format
-/// carries a narrower Facet set and must be re-prepared.
-pub const REQUEST_FORMAT: u32 = 3;
+/// a component it depends on. 4 adds `imports`: for each source in the closure,
+/// the components it imports from and the Tag names it takes. The entity list
+/// spans the whole closure, so without `imports` an interpreter cannot tell a
+/// component a source imports from one it merely shares a closure with. A
+/// directory prepared under an earlier format lacks the field or carries a
+/// narrower Facet set and must be re-prepared.
+pub const REQUEST_FORMAT: u32 = 4;
 
 /// One Facet handed to the interpreter, pre-filled with its own identity.
 ///
@@ -51,6 +55,27 @@ pub struct AdmissibleEntity {
     pub label: String,
     pub owner: Option<String>,
     pub source: String,
+}
+
+/// One component a source imports from, with the Tag names it takes.
+///
+/// Only a resolved import enters here, and only the names that resolved. A claim
+/// may name a component only when the Facet's own component or the Facet's
+/// source imports from it, so this is the list an interpreter checks.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ImportedFrom {
+    pub component: String,
+    pub component_label: String,
+    pub names: Vec<String>,
+}
+
+/// The components one source imports from.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SourceImports {
+    pub source: String,
+    pub from: Vec<ImportedFrom>,
 }
 
 /// What ingest checks before it trusts a returned artifact.
@@ -110,6 +135,9 @@ pub struct Request {
     /// empty group.
     pub flows: Vec<LogicSection>,
     pub entities: Vec<AdmissibleEntity>,
+    /// Per source in the closure, the components it imports from. A source that
+    /// imports nothing appears nowhere here rather than as an empty entry.
+    pub imports: Vec<SourceImports>,
     /// Contract roles that declare at least one Facet, as `component\tsection`
     /// pairs. This is the denominator for whether an interpretation covered the
     /// design, so it is recorded at preparation rather than recomputed later.
@@ -144,6 +172,7 @@ pub fn presenting(request: &Request, units: &[super::memo::Unit]) -> Request {
             .cloned()
             .collect(),
         entities: request.entities.clone(),
+        imports: request.imports.clone(),
         declared: request.declared.clone(),
     }
 }
@@ -222,6 +251,47 @@ pub fn project(input: &DesignInput, source: &str) -> Result<Request, String> {
         .collect();
     entities.sort_by(|a, b| a.id.cmp(&b.id));
 
+    let labels: BTreeMap<&str, &str> = input
+        .entities
+        .iter()
+        .map(|e| (e.id.as_str(), e.label.as_str()))
+        .collect();
+    let mut taken: BTreeMap<&str, BTreeMap<&str, BTreeSet<&str>>> = BTreeMap::new();
+    for import in &input.imports {
+        if import.status != ImportStatus::Resolved || !closure.contains(&import.source) {
+            continue;
+        }
+        let Some(provider) = import.provider_id.as_deref() else {
+            continue;
+        };
+        let names = taken
+            .entry(import.source.as_str())
+            .or_default()
+            .entry(provider)
+            .or_default();
+        names.extend(
+            import
+                .names
+                .iter()
+                .filter(|n| n.status == SelectionStatus::Resolved)
+                .map(|n| n.name.as_str()),
+        );
+    }
+    let imports: Vec<SourceImports> = taken
+        .into_iter()
+        .map(|(source, providers)| SourceImports {
+            source: source.to_owned(),
+            from: providers
+                .into_iter()
+                .map(|(provider, names)| ImportedFrom {
+                    component: provider.to_owned(),
+                    component_label: labels.get(provider).copied().unwrap_or(provider).to_owned(),
+                    names: names.into_iter().map(str::to_owned).collect(),
+                })
+                .collect(),
+        })
+        .collect();
+
     let binding = Binding {
         format: REQUEST_FORMAT,
         source: source.to_owned(),
@@ -236,6 +306,7 @@ pub fn project(input: &DesignInput, source: &str) -> Result<Request, String> {
         rows,
         flows,
         entities,
+        imports,
         declared: declared.into_iter().collect(),
     })
 }

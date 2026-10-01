@@ -260,11 +260,10 @@ Do not write an exclusion for a rule about what is refused.
 ```
 
 Archive and Billing appear in the entity list because they are in the closure.
-Nothing says this source imports from either one, and the Facet only lists what
-is allowed. A claim naming them would be refused as ungrounded if the source does
-not import them, so this Facet returns a reading. A Facet that describes using
-what another module provides, and whose source imports it, is different, and
-claims about it are grounded.
+Suppose the panel's source has no entry for either in `imports`. A claim naming
+them would be refused as ungrounded, so this Facet returns a reading. If the
+source's `imports` did list Archive under `from`, a claim naming Archive would be
+grounded, and the Facet could return one.
 
 ### A scoped exception
 

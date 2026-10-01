@@ -120,6 +120,45 @@ fn an_imported_tags_owning_source_enters_the_recorded_closure() {
 }
 
 #[test]
+fn the_request_lists_what_each_source_imports_and_only_that() {
+    let request = prepare::project(&shared_input(), CONSUMER).unwrap();
+
+    let consumer = request
+        .imports
+        .iter()
+        .find(|i| i.source == CONSUMER)
+        .expect("consumer imports from base, so it has an entry");
+    assert_eq!(consumer.from.len(), 1, "one provider: {:?}", consumer.from);
+    let from = &consumer.from[0];
+    assert!(
+        from.component.contains("base.sigil"),
+        "the provider is a component of base: {}",
+        from.component
+    );
+    assert!(!from.component_label.is_empty());
+    assert!(
+        !from.names.is_empty(),
+        "the names taken from the provider are listed: {from:?}"
+    );
+    let mut sorted = from.names.clone();
+    sorted.sort();
+    assert_eq!(sorted, from.names, "names are sorted, so the request is stable");
+
+    assert!(
+        request.imports.iter().all(|i| i.source != BASE),
+        "base imports nothing, so it has no entry: {:?}",
+        request.imports
+    );
+
+    let alone = prepare::project(&shared_input(), BASE).unwrap();
+    assert!(
+        alone.imports.is_empty(),
+        "a closure of one source that imports nothing has no imports: {:?}",
+        alone.imports
+    );
+}
+
+#[test]
 fn preparing_an_unexported_source_is_refused_by_name() {
     let error = prepare::project(&shared_input(), "absent.sigil").unwrap_err();
     assert!(error.contains("absent.sigil"), "got: {error}");

@@ -98,7 +98,7 @@ does not run the tool; it reads the prepared request and returns rows.
 | `task` | Read the prepared interpretation request and return data-only rows. This task overrides ordinary explanatory output. |
 | `skills` | Resolved installed entrypoint paths of the required `sigil-understand` and `sigil-egglog` skills. |
 | `preparation` | The preparation directory, containing the files below. |
-| `request` | Path to `request.json`: the presented Facet rows, whole Logic groupings, admissible entities, and declared roles. |
+| `request` | Path to `request.json`: the presented Facet rows, whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
 | `binding` | Path to `binding.json`, the request's identity. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
 | `artifact` | Where the host will read the returned rows. |
