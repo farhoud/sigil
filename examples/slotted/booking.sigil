@@ -107,8 +107,9 @@ component Booking {
     Changing a room timezone under the room lock first refuses the change when the
     room has any pending request or confirmed booking whose start is in the future
     by the clock, and otherwise calls the timezone mutation through the
-    transactional entry of Rooms. Unarchiving calls the unarchive mutation through
-    the transactional entry of Rooms and revives no Declined booking request.
+    transactional entry of Rooms and commits. Unarchiving calls the unarchive
+    mutation through the transactional entry of Rooms, revives no Declined booking
+    request, and commits.
   }
 
   constraints {
