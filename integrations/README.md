@@ -14,8 +14,7 @@ Current integrations:
 - `skills/sigil-write`: compact authoring with independent evaluator delegation,
   supported autonomous corrections, and explicit unresolved decisions.
 - `skills/sigil-align`: implementation review and repair for a selected accepted
-  Sigil 0.9 Component, with code and test evidence and scoped native comparison
-  when compatible tooling is available. Contract changes route through
+  Sigil 0.9 Component, with code and test evidence. Contract changes route through
   `sigil-write`; design-only review stays on `sigil-evaluate`.
 - `skills/sigil-egglog`: egglog/datalog language instruction for claims interpreters
   and law authors; no design-skill dependency.
@@ -30,9 +29,8 @@ Current integrations:
 All seven valid skills ship with CLI releases. `sigil skill install` installs the
 complete catalog globally; `--project` installs locally. The four 0.9 design
 skills and `sigil-align` start at 0.1.0 and require their declared siblings to
-remain together. Design reading needs no compiler. `sigil-align` can review and
-repair code without native comparison, but its scoped comparison needs
-compatible `sigil` and `sigilc` tooling and fresh, separate interpretations.
+remain together. Design reading needs no compiler. `sigil-align` uses contract,
+code, and test evidence without a `sigilc` dependency.
 `sigil-compute` needs the `sigil-claims` binary for its claims loop.
 `sigil-egglog` is a language skill, not a design sibling. If a host cannot
 delegate review, the writer returns an independently unreviewed draft and a

@@ -755,7 +755,7 @@ alignment skill, and one egglog language skill:
 | [sigil-evaluate](integrations/skills/sigil-evaluate/SKILL.md) | Review design read-only for consequential problems and useful simplification. |
 | [sigil-compute](integrations/skills/sigil-compute/SKILL.md) | Run the claims loop on an existing design and hand back the computed Coherent, Loose, or Disjoint ingest state with findings, distinct from advisory review. |
 | [sigil-write](integrations/skills/sigil-write/SKILL.md) | Write compact contracts and apply supported corrections through independent delegated review. |
-| [sigil-align](integrations/skills/sigil-align/SKILL.md) | Review and repair a selected component's implementation against its accepted contract, then report code, test, and comparison evidence. |
+| [sigil-align](integrations/skills/sigil-align/SKILL.md) | Review and repair a selected component's implementation against its accepted contract, then report code and test evidence. |
 | [sigil-egglog](integrations/skills/sigil-egglog/SKILL.md) | Teach egglog/datalog for claims data-only rows and `.egg` law programs. |
 
 The four design skills and `sigil-align` start at artifact version 0.1.0 and
@@ -770,10 +770,8 @@ a host that can delegate a fresh child.
 `sigil-align` requires `sigil-understand`, `sigil-evaluate`, and `sigil-write`.
 Use it for implementation conformance and determinate code repairs; use
 `sigil-evaluate` for read-only design review. A consequential contract change
-routes through `sigil-write` and independent design review. Scoped native
-comparison needs compatible `sigil` and `sigilc` tooling plus fresh, separate
-Design and Implementation interpretations. If that path is unavailable, the
-skill reports the limit alongside its code inspection and test results.
+routes through `sigil-write` and independent design review. `sigil-align`
+uses contract, code, and test evidence; it does not require `sigilc`.
 
 Writing and evaluation use a verified compatible CLI when available. The writer
 runs `check`, formats only authored files, and rechecks before capturing inputs

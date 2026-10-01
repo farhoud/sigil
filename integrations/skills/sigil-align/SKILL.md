@@ -10,23 +10,22 @@ its accepted Sigil source. If the target or accepted contract cannot be
 identified, obtain that identity before assessing alignment. Read the sibling
 [understanding skill](../sigil-understand/SKILL.md) and its
 [interpretation guidance](../sigil-understand/references/understanding.md) for
-contract meaning. Read the [alignment loop](references/alignment-loop.md) before
-editing code.
+contract meaning. Read the
+[current-code compatibility review](references/implementation-evaluation.md) and
+[alignment loop](references/alignment-loop.md) before editing code.
 
 Own the implementation review, code repair, and verification. Inspect relevant
 code and tests across files; use ownership annotations and retrieval as
-navigation, not proof. Diagnose material behavior or architecture against
-authored commitments. Leave implementation choices open when the contract does
-not select them. Repair defects settled by the accepted contract, add focused
-tests for changed behavior, run relevant checks, and reassess without a separate
-approval step.
+navigation, not proof. When the host can delegate, obtain a fresh, read-only
+current-code compatibility assessment. Check its findings against current
+evidence. Leave implementation choices open when the contract does not select
+them. Repair defects settled by the accepted contract, add focused tests for
+changed behavior, run relevant checks, and reassess without a separate approval
+step. Repeat the read-only assessment for changed paths when delegation is
+available.
 
-When compatible native tooling and separate fresh interpreters are available,
-follow the [scoped native comparison](references/native-comparison.md) after
-repairs. Keep its Design and Implementation interpretations separate, use one
-current frontend and explicit scope, and report structured comparison state,
-freshness, and limits alongside code and test evidence. If the native path is
-unavailable, continue supported code work and record the specific reason.
+Do not invoke `sigilc` for alignment. Its Sigil 0.9 implementation comparison
+path is unverified; use contract, code, and test evidence for this skill.
 
 Only a consequential contract choice not settled by accepted intent belongs to
 the user. Finish independent code work, present the smallest choice and its
@@ -37,7 +36,5 @@ through [sigil-write](../sigil-write/SKILL.md), including its independent
 implementation. The evaluator itself remains read-only and design-only.
 
 Return the reviewed Component and evidence scope, code changes, resolved and
-remaining findings, checks actually run and their results, native comparison
-state when established or why it was unavailable, and specific coverage limits.
-Do not claim full alignment from an annotation, passing tests, or unobserved
-comparison.
+remaining findings, checks actually run and their results, and specific coverage
+limits. Do not claim full alignment from an annotation or passing tests alone.

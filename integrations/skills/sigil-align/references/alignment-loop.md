@@ -2,10 +2,10 @@
 
 ## Establish scope and evidence
 
-Identify the selected Component, owning Sigil file, accepted revision, and any
-explicit user decisions. Read its Facets and context needed to understand them:
-relevant Tag providers and linked adopted policy.
-Use `sigil-understand` to distinguish authored commitments, supported
+Before each implementation mutation, identify the selected Component, owning
+Sigil file, accepted revision, and any explicit user decisions. Read its Facets
+and context needed to understand them: relevant Tag providers and linked adopted
+policy. Use `sigil-understand` to distinguish authored commitments, supported
 consequences, unresolved intent, and free implementation choices. A Tag import
 shares vocabulary; it does not establish a runtime call or transfer Facet
 ownership. Do not apply legacy 0.7 expansion or module-index rules.
@@ -44,10 +44,21 @@ Retrieve accessible evidence that could resolve uncertainty before escalating
 it. Classify missing evidence separately from a confirmed defect. If the
 accepted commitment determines the result, fix confirmed drift, missing
 behavior, and code ownership violations in the relevant code. Add or update a
-focused regression test for changed behavior; use a broader check only when the
-affected dependency needs it. Run relevant checks, record actual outcomes, then
-inspect the repaired path again. Repeat while actionable defects remain. Do not
-use a passing test or annotation alone to close a finding.
+focused regression test for changed behavior. Inspect the repository's tasks and
+affected dependents to choose applicable focused, integration, regression,
+build, and static checks. Run those checks, record actual outcomes and
+unavailable prerequisites, then inspect the repaired path again. Repeat while
+actionable defects remain. Do not use a passing test or annotation alone to
+close a finding.
+
+Stop reassessing a finding when it repeats on identical contract, code, and test
+inputs, when a reasoned rejection receives no new evidence, or when another
+repair would return to a previously assessed code state without new evidence. Do
+not flip the code back to satisfy the repeated finding. Record the evaluator's
+anchor, observation, and proposed repair alongside the contrary source, code,
+and test evidence and the reason for stopping. Report the disagreement as
+unresolved; resume that finding only when evidence or an accepted decision
+changes.
 
 If evidence implies a different consequential promise and accepted intent does
 not determine whether to adopt it, keep the current contract intact. Complete
@@ -61,16 +72,15 @@ optional implementation mechanism.
 A pending decision carries the selected Component and owning source; exact
 contract, relevant code/test, linked-policy, and scope identities (paths and
 content digests or immutable revisions); the finding and alternatives; repairs
-already made; check results; and remaining work. Keep this in the handoff, not
-in a compiler world directory or a new workflow database. On resumption, read
-the current sources and user answer, compare identities, refresh changed
-evidence, and reconsider whether the choice remains open. If a consequential
-revision is still authorized, use `sigil-write` and its independent design
-review, then repeat implementation alignment against the revised contract.
+already made; check results; and remaining work. Keep this in the handoff. On
+resumption, read the current sources and user answer, compare identities,
+refresh changed evidence, and reconsider whether the choice remains open. If a
+consequential revision is still authorized, use `sigil-write` and its
+independent design review, then repeat implementation alignment against the
+revised contract.
 
 At every exit, report the Component and actual files/behavior reviewed, code
 changes, resolved and remaining anchored findings, checks actually run with
-results, native comparison state if established (otherwise its unavailable or
-unrun reason), and coverage limits. Separate observed code repair, test results,
-and native comparison evidence. State a remaining decision or evidence gap
-precisely; do not call the component fully aligned while a material gap is open.
+results, and coverage limits. Separate observed code behavior from test
+evidence. State a remaining decision or evidence gap precisely; do not call the
+component fully aligned while a material gap is open.
