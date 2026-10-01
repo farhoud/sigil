@@ -113,9 +113,12 @@ to the next step.
 
 **An end is declared by the prose, never by position.** Give a step an edge to
 `graph` only when the prose says the flow ends there: the step returns a result,
-refuses, or the prose says the flow is finished. Being the last step of a
-paragraph is not an end. Writing state or calling outward is not an end either,
-unless the prose says that is where the flow stops.
+refuses, or the prose says the flow is finished. A step that commits, saves,
+or completes the command is an end, the same as a return: "step four commits"
+finishes that command. Being the last step of a paragraph is not an end. Writing
+state or calling outward is not an end either, unless the prose says that is
+where the flow stops. A step that only compares, reads, or checks, and says
+nothing about returning, refusing, or committing, is not an end.
 
 **A dead end is reported, not repaired.** A step whose result no later step uses,
 and whose prose declares no end, gets no outgoing edge at all. Do not add an edge
