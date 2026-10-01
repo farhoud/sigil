@@ -112,6 +112,39 @@ Deno.test("foundation validates relocated catalog and rejects broken dependencie
   }
 });
 
+Deno.test("alignment skill validates declared siblings and local links in a relocated catalog", async () => {
+  const catalog = await Deno.makeTempDir({
+    prefix: "sigil alignment catalog 空 ",
+  });
+  try {
+    await copyTree(join(root, "integrations/skills"), catalog);
+    await validateFoundation(catalog);
+
+    const entry = join(catalog, "sigil-align/SKILL.md");
+    const original = await Deno.readTextFile(entry);
+    await Deno.writeTextFile(
+      entry,
+      original + "\n[Broken local link](references/absent.md)\n",
+    );
+    await rejects(
+      () => validateFoundation(catalog),
+      /Missing local reference: .*sigil-align/,
+    );
+    await Deno.writeTextFile(entry, original);
+
+    await Deno.rename(
+      join(catalog, "sigil-write"),
+      join(catalog, "unavailable-writer"),
+    );
+    await rejects(
+      () => validateFoundation(catalog),
+      /Missing foundation skill dependency: .*sigil-write\/SKILL\.md/,
+    );
+  } finally {
+    await Deno.remove(catalog, { recursive: true });
+  }
+});
+
 async function fixture(run: (directory: string) => Promise<void>) {
   const directory = await Deno.makeTempDir({ prefix: "sigil foundation 空 " });
   try {

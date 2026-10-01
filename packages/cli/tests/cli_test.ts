@@ -1826,7 +1826,7 @@ Deno.test("skill discovery resolves valid skills from the source installation", 
   assertEquals(listed.exitCode, EXIT_OK);
   assertEquals(
     parseJson(listed.stdout).skills.join(","),
-    "sigil,sigil-compute,sigil-egglog,sigil-evaluate,sigil-understand,sigil-write",
+    "sigil,sigil-align,sigil-compute,sigil-egglog,sigil-evaluate,sigil-understand,sigil-write",
   );
   const legacy = parseJson(listed.stdout).catalog.find((s: { name: string }) =>
     s.name === "sigil"
@@ -1865,8 +1865,9 @@ Deno.test("skill real bundle retains sibling references in global and project li
           },
         });
         assertEquals(result.exitCode, EXIT_OK);
-        assertEquals(parseJson(result.stdout).skills.length, 6);
+        assertEquals(parseJson(result.stdout).skills.length, 7);
         const catalog = `${destination}/.agents/skills`;
+        assert((await Deno.stat(`${catalog}/sigil-align/SKILL.md`)).isFile);
         assertEquals(
           (await Deno.lstat(`${catalog}/sigil-write`)).isSymlink,
           !forceCopy,

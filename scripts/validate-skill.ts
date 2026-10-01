@@ -9,6 +9,7 @@ import {
 } from "./sync-skill-language.ts";
 
 export const FOUNDATION_SKILLS: Readonly<Record<string, readonly string[]>> = {
+  "sigil-align": ["sigil-understand", "sigil-evaluate", "sigil-write"],
   "sigil-understand": [],
   "sigil-evaluate": ["sigil-understand"],
   "sigil-write": ["sigil-understand", "sigil-evaluate"],
@@ -152,6 +153,6 @@ if (import.meta.main) {
     repoRoot: root,
   });
   console.log(
-    "Validated five foundation skills: metadata, dependencies, documentary links and reproducible language authority (offline; no compiler or model behavior claim).",
+    "Validated six foundation skills: metadata, dependencies, documentary links and reproducible language authority (offline; no compiler or model behavior claim).",
   );
 }

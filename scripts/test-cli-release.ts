@@ -82,6 +82,7 @@ try {
   const catalog = JSON.parse(await run(language, ["skill", "list"]));
   assertEquals(catalog.skills, [
     "sigil",
+    "sigil-align",
     "sigil-compute",
     "sigil-egglog",
     "sigil-evaluate",
@@ -95,6 +96,7 @@ try {
   );
   await run(language, ["skill", "install", "--project", "--agent", "codex"]);
   await validateFoundation(join(scratch, ".agents/skills"));
+  assert(await exists(join(scratch, ".agents/skills/sigil-align/SKILL.md")));
   const compilerVersion = (await run(compiler, ["--version"])).trim();
   assert(/^sigilc \d+\.\d+\.\d+$/.test(compilerVersion));
   await run(language, ["check", fixture, "--format", "json"]);

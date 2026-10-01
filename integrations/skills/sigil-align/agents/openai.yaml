@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sigil Align (0.9)"
+  short_description: "Repair implementation drift against accepted Sigil contracts"
+  default_prompt: "Use $sigil-align to review a selected Sigil 0.9 Component against its implementation, repair determinate code drift, and report the checks and evidence limits."
