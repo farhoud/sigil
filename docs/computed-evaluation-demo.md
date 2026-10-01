@@ -109,77 +109,90 @@ Both gradients used one export and separate empty private roots. Every source
 got a fresh child in each pass. The export has 7 sources, 16 imports, and 534
 resolved references.
 
-- Semantic export digest: `11cc16a1ff0088f8cb2658e481d725fed34a4ffb1a1b5b27a3ea5de5abaaafeb`
-- Raw export SHA-256: `b354dcca33f23796f3063cc364bcd4ea97dd008f8388aa651d83245c3cb4ff52`
-- Source-byte manifest SHA-256: `f857684ac3618b90426db81d9e56a99ae8f4cdacc93dcef21398f94d21b7588b`
+- Semantic export digest: `31f45784ffc9fa39bd218d9d784e2a1d2f2ba0b7b312a1e15ed56958ec21ec72`
+- Raw export SHA-256: `d84767695be82c0899ed17b7121f0a1518f8d297dee4201f3f6549f7fdf1b00a`
+- Source-byte manifest SHA-256: `dd772d6378905e06b1d144d219abcf3494cb06315043019456e97649c4f8620d`
 - Guidance fingerprint: `fbe42d67b5ab0fc7448e745a0279d5d8b4831df911d7ac71912e13781bbc54f7`
 
 The seven source files matched the manifest before both passes. Every prepare
-reused zero units. The host limits were instruction-only. Each child was told
-to read only its prepared files and write only its own artifact. No operating
-system sandbox was enforced. All 14 results passed the identity checks above.
-I did not recompute the per-artifact BLAKE3 digests.
+reused zero units. All 14 counted results passed the identity checks above. I
+did not recompute the per-artifact BLAKE3 digests.
+
+Limits of this run:
+
+1. The host limits were instruction-only. Each child was told to read only its
+   prepared files and write only its own artifact. No operating system sandbox
+   was enforced.
+2. Eleven children ran on one model and three (calendar pass 1 and 2, slotted
+   pass 2) on another, because a rate limit interrupted them and the model was
+   changed before the rerun. Earlier gradients ran on the second model.
+3. Four artifacts were set aside and replaced by fresh children: three were cut
+   off by the rate limit, and one child said it had read another run's rows. The
+   replacement child was told not to read other run folders.
+4. One child created a temporary helper file and deleted it. It did not read
+   another run.
 
 | Source | Target | Pass 1 | Pass 2 | Facets presented |
 | --- | --- | --- | --- | ---: |
-| `slotted.sigil` | Coherent / 0 | Loose / 0, 1 unmet-obligation, 6 ungrounded-claim | Loose / 0, 3 unmet-obligation | 168 |
+| `slotted.sigil` | Coherent / 0 | Loose / 0, 4 unmet-obligation | Loose / 0, 2 unmet-obligation, 2 ungrounded-claim | 168 |
 | `identity.sigil` | Coherent / 0 | Coherent / 0, none | Coherent / 0, none | 16 |
 | `rooms.sigil` | Coherent / 0 | Loose / 0, 3 unguarded-flow | Loose / 0, 4 unguarded-flow | 40 |
 | `shared.sigil` | Coherent / 0 | Loose / 0, 1 unguarded-flow | Loose / 0, 1 unguarded-flow | 18 |
-| `availability.sigil` | Coherent / 0 | Loose / 0, 1 unguarded-flow | Loose / 0, 3 unguarded-flow | 81 |
-| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 1 unmet-obligation, 2 unreached-step | Loose / 0, 1 unmet-obligation, 1 ungrounded-claim, 2 unreached-step | 170 |
-| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 2 unmet-obligation, 1 ungrounded-claim, 1 uninterpreted-section, 1 step-excluded-action, 15 unguarded-flow, 2 unreached-step | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 13 unguarded-flow, 2 unreached-step | 145 |
+| `availability.sigil` | Coherent / 0 | Loose / 0, 6 unguarded-flow | Loose / 0, 8 unguarded-flow | 81 |
+| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 1 unmet-obligation, 2 unreached-step, 2 unguarded-flow | Loose / 0, 1 unmet-obligation, 1 ungrounded-claim, 2 unreached-step, 2 unguarded-flow | 170 |
+| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 1 unmet-obligation, 9 step-excluded-action, 26 unguarded-flow, 1 unreached-step | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 2 unmet-obligation, 8 step-excluded-action, 29 unguarded-flow, 1 unreached-step | 145 |
 
 What the two runs show:
 
-1. **All four planted problems appeared in both passes.** Booking was Disjoint
-   each time, with the contradiction over the range change (3 findings) and the
-   ownership conflict over the archived room mark (2 findings, one from each
-   side). Calendar was Loose each time, with the display-name unmet obligation
-   and 2 `unreached-step` findings for the owner-digest steps. This is the first
-   run where every planted problem showed in every pass.
-2. **Booking has two extra `unreached-step` findings.** They point at the
-   timezone-change and unarchive paragraph, which says Booking "calls the
-   mutation" and never says it returns or commits. That is a genuine open end in
-   the prose, and it is not one of the planted problems.
-3. **`unguarded-flow` warnings are common and do not gate.** A constraint names
-   something, such as the room lock or the clock, that no step is tied to with a
-   guard row. Booking has 15 and 13. Children seldom write guard rows, so most of
-   these reflect missing guards from the child, not a flaw in the prose.
-4. **Only `identity.sigil` was Coherent in both passes.** The other sources that
-   should be Coherent were Loose, mostly from `unguarded-flow`. Slotted also has
-   a real unmet obligation: it requires the domain error but its prose never says
-   it depends on SharedKernel. Slotted pass 1 has 6 ungrounded claims about Tags
-   it does not import.
+1. **All four planted problems appeared in both passes again.** Booking was
+   Disjoint with the contradiction (3 findings) and the ownership conflict
+   (2 findings). Calendar was Loose with the display-name warning and 2
+   `unreached-step` findings for the owner-digest steps.
+2. **Booking's timezone and unarchive steps are no longer flagged.** The earlier
+   run flagged them because the prose never said they commit. They were a false
+   positive: the room lock in Rooms commits. Booking now says "and commits", and
+   those findings are gone.
+3. **One `unreached-step` remains in booking.** It points at the availability-edit
+   step "leaves every confirmed booking Confirmed", a step that does nothing. A
+   child can reasonably leave it without an edge.
+4. **Booking has new noise.** It has 8 or 9 `step-excluded-action` findings,
+   mostly from the rule "Booking must not accept a booking request from the room
+   owner". Children wrote it as a prohibition, and the submit flow's check on the
+   room owner then trips it, although the flow is where the refusal happens. The
+   guidance says to leave such a scoped rule as a reading. `unguarded-flow` rose
+   to 26 and 29 for the same reason: more claims and few guard rows. None of
+   these gate.
+5. **Only `identity.sigil` was Coherent in both passes.** Slotted still has a
+   real unmet obligation, because its prose never says it depends on SharedKernel.
 
-No future run is guaranteed to match any of this. Children still differ in how
-many claims they make and how they connect flow steps.
+No future run is guaranteed to match any of this.
 
 ### Earlier runs
 
-Three earlier pairs of gradients ran on the same export under older guidance.
-They are kept as short records. `analyze-demo/slotted-runs/DIAGNOSIS.md` holds
-the analysis of why each changed.
+Four earlier pairs of gradients ran on the same export under older guidance.
+`analyze-demo/slotted-runs/DIAGNOSIS.md` holds the analysis of why each changed.
+Each cell is pass 1 / pass 2.
 
-| Source | Old guidance (p1 / p2) | Corrected naming rule (p1 / p2) | Component subjects, exclusive, rejection, scoped exception (p1 / p2) |
-| --- | --- | --- | --- |
-| `slotted.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose |
-| `identity.sigil` | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent |
-| `rooms.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose |
-| `shared.sigil` | Loose / Loose | Loose / Loose | Loose / Loose |
-| `availability.sigil` | Coherent / Coherent | Loose / Loose | Loose / Loose |
-| `calendar.sigil` | Loose / Loose | Loose / Disjoint | Loose / Loose |
-| `booking.sigil` | Disjoint / Coherent | Disjoint / Disjoint | Disjoint / Disjoint |
+| Source | Old guidance | Corrected naming rule | Four fixes | End declared by the prose |
+| --- | --- | --- | --- | --- |
+| `slotted.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `identity.sigil` | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent |
+| `rooms.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `shared.sigil` | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `availability.sigil` | Coherent / Coherent | Loose / Loose | Loose / Loose | Loose / Loose |
+| `calendar.sigil` | Loose / Loose | Loose / Disjoint | Loose / Loose | Loose / Loose |
+| `booking.sigil` | Disjoint / Coherent | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint |
 
-The three guidance fingerprints were `29f869c7…`, `21f7aa54…`, and `a0ce1299…`.
-The first run said a claim could only name an asterisk-marked Tag, which cannot
-be done for an existing Tag, and booking's planted problems came out in one pass
-of two. The third run fixed that and three other readings, but the owner-digest
-step never produced an `unreached-step`, because children gave the last step of
-every paragraph an edge to the end of its flow. The latest run changed that rule
-to "an end is declared by the prose, never by position", and counted a commit as
-an end. One refused artifact in the third run (duplicate step ordinals) was
-replaced by a fresh child and is not counted.
+The guidance fingerprints were `29f869c7…`, `21f7aa54…`, `a0ce1299…`, and
+`fbe42d67…`. The first run said a claim could only name an asterisk-marked Tag,
+which cannot be done for an existing Tag, and booking's planted problems came
+out in one pass of two. The third changed four readings: a Tag is never the
+subject of "requires", "the only one that may" writes an exclusive property, a
+rejection ends a flow, and a scoped exception is not a global ban. The fourth
+changed the rule for flow ends: an end is declared by the prose, never by
+position, and a commit counts as an end. Under that rule the owner-digest step
+first showed as an unreached step, in the fifth run, which used the same design
+as the first four. The design then changed once, in the sixth run above.
 
 The run records stay outside the repository, except the copies in
 `analyze-demo/slotted-runs/`, which are ignored by git.
@@ -212,14 +225,16 @@ Use the computed loop to gate on the claims the prose expresses. Use advisory
 review to judge meaning, ownership, and consistency across the whole design.
 
 A separate fresh `sigil-evaluate` reviewer read the same seven files, byte for
-byte the ones the two gradients used. The review was design-only. It ran no
-tooling and did not look at the claims results. Its read-only limit was
-instruction-only. It returned ten findings. Four are the deliberate problems:
+byte the ones the two gradients above used. It checked the digests of all seven
+files before assessing. The review was design-only. It ran no tooling and did
+not look at the claims results. Its read-only limit was instruction-only. It
+returned ten findings. Four are the deliberate problems:
 
 - **Contradiction (high).** The Booking interface offers a range change and a
   constraint forbids it.
-- **Ownership (high).** Rooms and Booking both claim the archived room mark.
-  The reviewer noted that the rest of the design points to Rooms.
+- **Ownership (high).** Rooms and Booking both claim the archived room mark. The
+  reviewer called this a determined correction toward Rooms owning the mark. It
+  is kept as authored, because it is a deliberate fixture problem.
 - **Unmet obligation (high).** Calendar requires a display name from Identity.
   Identity has none, and the dependency list omits Calendar on Identity.
 - **Dead-end step (medium).** The owner digest step needs a stored previous
@@ -227,22 +242,22 @@ instruction-only. It returned ten findings. Four are the deliberate problems:
 
 The other six are real questions about the design that nobody planted:
 
-- **Public bookings read.** Booking's read of a room's bookings has no stated
-  audience, so masking exists only in Calendar (medium).
-- **Fall-back night.** It is unclear whether a booking may span the repeated
-  hour on a daylight-saving fall-back night (medium).
-- **Archive and expired requests.** It is unclear whether archiving declines
-  expired requests (low).
-- **Slotted's plain wording.** It could import the owning modules' Tags instead
-  of saying the same things in plain words (low).
-- **Domain errors.** Identity, Rooms, and Availability do not visibly reference
-  the shared domain error (low).
-- **Repetition.** Booking restates several rules in both logic and constraints
-  (low).
+- **Room lock audience (medium).** Rooms says the lock is for Booking's
+  "workflows", which names only the four owner operations. Booking's status
+  commands use it too.
+- **Fall-back night (medium).** Calendar's wording excludes both occurrences of
+  the repeated hour, though its own case excludes only the second.
+- **Transactional entry (low).** Availability reuses a Tag that Rooms defines
+  with Rooms-specific meaning.
+- **Compare-and-set (low).** Booking requires it for every room-scoped mutation,
+  but only status changes have an expected prior status.
+- **Withdrawal (low).** A Slotted case says withdrawing makes the time requestable
+  again, although a pending request never blocks.
+- **Repeated number (low).** Calendar restates Booking's 180-day limit.
 
 These six were not fixed, because any change to the design would have voided
-both gradients above. Treat them as open items for whoever owns the design.
+the gradients above. Treat them as open items for whoever owns the design.
 
 The advisory reviewer names the deliberate problems in prose. The computed loop
-found some of them in some runs, with a state and an exit code. Neither
-replaces the other.
+found all four in both passes, with a state and an exit code, but it also
+reported many warnings that the reviewer did not. Neither replaces the other.

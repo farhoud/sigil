@@ -200,11 +200,14 @@ Booking's availability-edit and archive flows without an end, which the
 1. **All four planted problems appeared in both passes**: booking Disjoint with
    the contradiction and the ownership conflict, calendar Loose with the
    display-name warning and the dead-end step.
-2. **A new, honest finding:** Booking's timezone-change and unarchive paragraph
-   (booking.sigil:5002) says each "calls the mutation through the transactional
-   entry of Rooms" and never says it returns or commits. Two `unreached-step`
-   findings point at it in both Booking passes. It is a real open end in the
-   prose, not a planted one.
+2. **A new finding, later shown to be a false positive:** Booking's
+   timezone-change and unarchive paragraph (booking.sigil:5002) says each "calls
+   the mutation through the transactional entry of Rooms" and never says it
+   returns or commits. Two `unreached-step` findings point at it in both Booking
+   passes. The end is written in Rooms: the room lock "commits and returns the
+   result" (rooms.sigil:26-29), and Booking runs every workflow under that lock.
+   Booking's text just never repeated it, and flows cannot link across
+   components. Section 7 covers the design change that followed.
 3. **`unguarded-flow` is still the largest source of warnings** (up to 15 in
    booking). Children rarely write `guard` rows. Section 5's wording that these
    are "real observations about the prose" was too generous: for booking, most
@@ -222,3 +225,62 @@ Booking's availability-edit and archive flows without an end, which the
 2. **Guidance:** add a worked example of a `guard` row so children tie a step to
    the constraint it satisfies, and a worked example of a Logic section split
    over two paragraphs.
+
+## 7. Follow-up: r6, after Booking says "and commits"
+
+Section 6's finding about booking.sigil:5002 was a false positive, not a gap.
+The room lock in Rooms commits (rooms.sigil:26-29), and Booking's interface says
+every workflow runs "under one room lock". Booking's availability-edit and
+archive workflows already said "commits", but the timezone and unarchive
+sentences did not, so a reader of Booking alone saw an open end. Commit 076d36d
+added "and commits" to both. Only booking.sigil changed. The guidance was the
+same as r5. `r6/` holds the run.
+
+### What changed
+
+| Check | Result in r6 |
+| --- | --- |
+| Booking's timezone and unarchive steps | No longer flagged. Three of those steps now have ends in every pass. |
+| Calendar's owner-digest steps | Still raise `unreached-step`, 2 per pass. |
+| Booking contradiction and ownership conflict | Both appear in both passes. |
+| Calendar display-name unmet obligation | Appears in both passes. |
+
+### What r6 still shows
+
+1. **One `unreached-step` remains in booking.** It points at the
+   availability-edit paragraph (booking.sigil:4136), the step "leaves every
+   confirmed booking Confirmed". That step does nothing, so a child leaves it
+   without an edge. It is a fair finding about the prose: a step that has no
+   effect.
+2. **New noise: `step-excluded-action` (8 and 9 in booking).** The constraints
+   "Booking must not accept a booking request from the room owner" (5 findings),
+   "only a confirmed booking blocks a new booking request" (1 or 2), and a rule
+   about the nonexistent local time (2) were written as prohibitions. The
+   submit flow's check on the room owner or the booking request then trips them,
+   although that check is where the refusal happens. The guidance says a scoped
+   prohibition should be a reading. Children did not follow it consistently.
+3. **`unguarded-flow` is higher in booking (26 and 29).** More claims, few guard
+   rows. Same cause as section 6, item 3.
+4. **Slotted is unchanged:** a real unmet obligation on the domain error and the
+   signed-in user, plus two ungrounded claims in pass 2.
+
+### Limits worth knowing
+
+1. Three children (calendar pass 1 and 2, slotted pass 2) ran on a different model
+   from the other eleven, after a rate limit interrupted them.
+2. One child said it had read another run's rows. That artifact was set aside and
+   a fresh child, told to read nothing outside its prepared files, replaced it.
+   The read limits were instruction-only in every run, so earlier runs cannot be
+   cleared the same way.
+3. The advisory reviewer was rerun on the new bytes. Its findings are in the demo
+   doc. Four are the planted problems. Six are not, and one of them, about the
+   room lock's audience, is related to the same Rooms-owns-the-end pattern.
+
+### What to change next
+
+1. **Guidance:** add a worked example showing a prohibition on accepting a
+   request as a reading, not an exclusion that the refusing step trips.
+2. **Guidance:** add a `guard` row example so children tie a step to the
+   constraint it satisfies.
+3. **Design text** (voids the results): the six unplanted advisory findings,
+   Slotted's dependency sentence, and the no-effect step in the availability edit.
