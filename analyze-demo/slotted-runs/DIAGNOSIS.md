@@ -329,3 +329,57 @@ one model.
 3. **Tool (optional):** do not count a Tag the facet cannot see as an
    interpretation finding against the selected source when the same facet is in
    another source's closure only.
+
+## 9. Follow-up: r8, after the design fixes and the "listed is not grounded" rule
+
+The design changed (commit 4ea5452): Slotted now says it depends on Identity and
+SharedKernel, imports the Tags it used in plain words, and offers the weekly
+window and blackout Tags; the six unplanted advisory findings were fixed. The
+guidance gained a rule that the entity list is wider than what a Facet may name.
+`r8/` holds the run (fingerprint `3bb9b9f0…`), every child on one model.
+
+### Did each change work?
+
+| Change | Result in r8 |
+| --- | --- |
+| Slotted says it depends on Identity and SharedKernel | Worked. No run reports the signed-in user or the domain error as unmet. |
+| Slotted imports the Tags it used in plain words | Worked. Ungrounded claims in slotted fell from 4 and 5 to 1 and 1. |
+| A name on the entity list is not grounded by being listed | Worked in part. One child gave Slotted's dependency list a reading, which is what the rule asks. Slotted still has one ungrounded claim per pass, on `module public entry`. |
+| The six unplanted advisory fixes | Held. The new review did not raise them again. |
+| All four planted problems | Appeared in both passes. |
+
+### What r8 still shows
+
+1. **`unguarded-flow` is unchanged in kind.** Booking 13 and 14, availability
+   pass 2 has 7. Children write guard rows inconsistently. These warnings never
+   gate, but they are the largest source of noise left.
+2. **An `exclusion constraint` unmet obligation in both booking passes.** A child
+   wrote that Booking requires an exclusion constraint and nothing provides it.
+   The sentence says Booking must enforce its rule with one. It is a modelling
+   slip, not a design gap.
+3. **Slotted's `module public entry` claim.** Slotted defines this Tag, and a
+   child names it in a claim the tool refuses as ungrounded, in both passes. I
+   did not find out why the tool refuses it.
+4. **A child that stopped early.** The first slotted pass-2 child returned rows
+   for only 57 of 168 facets and reported full coverage. A script caught it, and
+   the artifact is kept under `r8/set-aside/`. The tool accepted the artifact
+   and raised five `uninterpreted-section` findings. Nothing in the tool or the
+   guidance requires a child to confirm coverage.
+5. **Shared pass 2 was Coherent.** First time for a source other than identity.
+
+### The request still lacks each source's import list
+
+The request lists every component and Tag in the whole closure and not which of
+them the selected source imports. The new guidance rule tells children not to
+assume, but a child cannot check. The real fix is a tool change: put each
+source's import list into the request. It is not made.
+
+### What to change next
+
+1. **Tool:** add each source's imports to the request, and consider flagging a
+   child whose rows leave out facets in `binding.json`.
+2. **Design text** (voids the results): the four advisory questions that are
+   policy choices: who may read bookings, what the repeated hour yields, whether
+   the transactional entry Tag should live in Slotted, and the repeated rules.
+3. **Guidance:** a worked `guard` example for a constraint that names several
+   requirements, to cut the remaining `unguarded-flow` warnings.
