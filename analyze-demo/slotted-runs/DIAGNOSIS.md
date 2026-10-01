@@ -284,3 +284,48 @@ same as r5. `r6/` holds the run.
    constraint it satisfies.
 3. **Design text** (voids the results): the six unplanted advisory findings,
    Slotted's dependency sentence, and the no-effect step in the availability edit.
+
+## 8. Follow-up: r7, after the guard example and the refused-rule example
+
+Two more guidance additions were made after section 7: a worked `guard` row,
+and a rule that "must not accept X" is a reading, not an exclusion. A sentence in
+the examples that said "returning a result does not end a flow" was also
+reconciled with the newer "a return is declared as an end" rule. The design is
+the same as r6. `r7/` holds the run (fingerprint `b100d025…`), with every child on
+one model.
+
+### Did each change work?
+
+| Change | Result in r7 |
+| --- | --- |
+| A refusal rule is a reading | Worked. `step-excluded-action` in booking fell from 8 and 9 to 0. |
+| A guard row ties a step to its constraint | Worked in part. `unguarded-flow` fell in every source that had it: rooms 3, 4 to 1, 2; availability 6, 8 to 2, 2; booking 26, 29 to 11, 14. It is still the largest source of warnings in booking. |
+| Booking's timezone and unarchive end | Held. No `unreached-step` in booking. |
+| All four planted problems | Appeared in both passes. |
+
+### What r7 still shows
+
+1. **Slotted is noisier.** Ungrounded claims rose from 0 and 2 to 4 and 5. Children
+   name `room list`, `decline cause`, `archived room`, and the module Availability
+   in Slotted's facets, and Slotted does not import them. Several children said
+   they "assumed" Slotted imports Availability and Booking. The imports are in the
+   request, so this is a reading error. A design fix is cheap: Slotted already
+   uses these words in plain prose, so either import the Tags or drop the words.
+2. **A real unmet obligation remains in slotted,** in both passes.
+3. **Booking pass 1 has one `uninterpreted-section`** (the goal) and one ungrounded
+   claim about `booking request` in the goal. Both are the child's misses, not
+   design flaws.
+4. **Three children broke the "no helper files" rule** and deleted what they
+   wrote. None read another run, but the read rule was instruction-only. The one
+   child in r6 that read another run's rows was caught only because it said so.
+
+### What to change next
+
+1. **Design text** (voids the current results): Slotted's dependency sentence
+   (Identity and SharedKernel), the Tag words Slotted uses without importing, and
+   the six unplanted advisory findings.
+2. **Guidance:** a line that every component named in a claim must appear in the
+   request's import list, with an example, to stop the "assumed import" misses.
+3. **Tool (optional):** do not count a Tag the facet cannot see as an
+   interpretation finding against the selected source when the same facet is in
+   another source's closure only.
