@@ -10,6 +10,17 @@ response, and host limits. Cases are independent.
 
 ## A. Repair stale search results
 
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
+
 ### Request
 
 Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Align its
@@ -64,6 +75,17 @@ Deno.test("shows results", async () => {
 ```
 
 ## B. Preserve a valid implementation choice
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
 
 ### Request
 
@@ -127,6 +149,17 @@ Deno.test("latest request publishes", async () => {
 ```
 
 ## C. A policy decision with a source change during handoff
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
 
 ### Request
 
@@ -219,6 +252,17 @@ tests resumption; the initial agent must not see these observer instructions.
 
 ## D. Follow behavior across files despite an ownership annotation
 
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
+
 ### Request
 
 Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Review the selected
@@ -243,9 +287,9 @@ component SearchPanel {
 ### `search/panel.ts`
 
 ```ts
-// @sigil implements search/panel.sigil::SearchPanel interface,constraints
 import { publish } from "./publication.ts";
 
+// @sigil implements search/panel.sigil::SearchPanel interface,constraints
 export class SearchPanel {
   visible: string[] = [];
   private active = 0;
@@ -476,6 +520,17 @@ before compare and inspect the resulting stale status. The tested agent must see
 the changed workspace through its normal checks, not through this note.
 
 ## G. Native comparison unavailable after code inspection
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
 
 ### Request
 
