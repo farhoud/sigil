@@ -128,8 +128,9 @@ The edges that do exist come from **f7**, which names what the result contains:
 resolution data, graph data and glossary data. Each of those is something a
 step produced and this step consumes, so each is an edge.
 
-**Step 4 ends the flow**, and its edge to `graph` is what says so. Returning a
-result does not end a flow by itself; nothing is inferred from what a step does.
+**Step 4 ends the flow**, because the prose says it returns the result, and its
+edge to `graph` is what says so. The edge is written because the prose declares
+the end. Nothing is inferred from what a step merely does.
 
 ## `constraints`
 
@@ -207,6 +208,47 @@ Step two returns, so it ends the flow. Step three is the last step of its
 sentence, but the prose never says it returns or finishes, and nothing uses what
 it compares. It gets no edge. The tool reports it as an unreached step. That is
 a real gap in the design, and an edge to `graph` would hide it.
+
+### A constraint the flow satisfies
+
+> **f14** — A search must stay within the *query length* limit before it reaches
+> the *record store*.
+>
+> **f15** — Searching takes two steps. Step one reads the query length and
+> rejects an over-long query. Step two reads the record store and returns the
+> search results.
+
+```
+(claim "f14" "SearchService" "requires" "query length" "required" "true")
+(step "f15" "1")
+(step "f15" "2")
+(claim "f15" "step:1" "reads" "query length" "required" "true")
+(claim "f15" "step:2" "reads" "record store" "required" "true")
+(claim "f15" "step:2" "writes" "search results" "required" "true")
+(guard "f15" "1" "constraint" "f14")
+(claim "f15" "step:1" "to" "step:2" "required" "true")
+(claim "f15" "step:1" "to" "graph" "required" "true")
+(claim "f15" "step:2" "to" "graph" "required" "true")
+```
+
+f14 is a constraint the flow touches, because step one reads the query length.
+The `guard` row ties step one to f14 by naming f14's Facet. The value is the
+Facet that authored the constraint, not a claim. Without the guard row, the tool
+reports the flow as not checking a requirement it touches.
+
+### A rule about what is refused
+
+> **f16** — The service must not accept a search from a *blocked user*.
+
+```
+(reading "f16" "no-commitment")
+```
+
+This sentence says what the service refuses. The step that checks for a blocked
+user is where the refusal happens. A claim that the service excludes the blocked
+user would be reported against that very step, because the step touches the
+blocked user. Return a reading, or write the positive requirement the flow meets.
+Do not write an exclusion for a rule about what is refused.
 
 ### A scoped exception
 

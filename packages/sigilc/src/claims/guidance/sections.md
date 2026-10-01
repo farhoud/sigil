@@ -94,6 +94,11 @@ as `expected` `false` about the whole component. The claim format cannot say
 "only here", so a global `false` contradicts every Facet that promises the
 thing in general. Write the positive claim and leave the exception unclaimed.
 
+**A rule about what is refused is not an exclusion.** "Must not accept a request
+from X" says what a flow refuses. The step that checks X is where the refusal
+happens, so a claim that the component excludes X is reported against that step.
+Return a `reading` for such a rule, or the positive requirement the flow meets.
+
 ## What the role does to a claim
 
 A `decisions` Facet's claims are retained and reported, and are passed to the
