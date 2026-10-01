@@ -101,8 +101,8 @@ pub fn shared_input() -> DesignInput {
 pub const BASE: &str = "base.sigil";
 pub const CONSUMER: &str = "consumer.sigil";
 pub const BASE_GOAL: &str = "facet:base.sigil:29";
-pub const BASE_INTERFACE: &str = "facet:base.sigil:71";
-pub const BASE_CONSTRAINTS: &str = "facet:base.sigil:129";
+pub const BASE_INTERFACE: &str = "facet:base.sigil:129";
+pub const BASE_CONSTRAINTS: &str = "facet:base.sigil:82";
 pub const CONSUMER_GOAL: &str = "facet:consumer.sigil:75";
 pub const CONSUMER_INTERFACE: &str = "facet:consumer.sigil:107";
 
