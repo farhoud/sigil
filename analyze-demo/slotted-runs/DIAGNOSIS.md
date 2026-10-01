@@ -176,3 +176,49 @@ refers to the design-text and tool items only.
 3. **Tool (optional):** consider not treating `unguarded-flow` as a warning for
    constraints that name a shared dependency a flow uses implicitly, or show
    these warnings separately from the planted-problem findings in the demo.
+
+## 6. Follow-up: r5, after "an end is declared by the prose"
+
+Two more guidance changes were made after section 5: a flow ends only where the
+prose declares it (not because a step is last in its paragraph), and a step
+that commits, saves, or completes the command counts as an end. The design files
+did not change. `r5/` holds the run (fingerprint `fbe42d67…`). A calendar-only
+trial in between (guidance commit before the "commits" line) showed
+`unreached-step` firing for the digest steps in 2 of 2 passes, but also left
+Booking's availability-edit and archive flows without an end, which the
+"commits" line then fixed.
+
+### Did each change work?
+
+| Change | Result in r5 |
+| --- | --- |
+| A flow ends only where the prose declares it | Worked. Calendar's owner-digest steps raised `unreached-step` in both passes. It was invisible in every earlier gradient. |
+| A commit is an end | Worked. Booking's availability-edit and archive flows are no longer flagged. Shared and rooms stayed free of `unreached-step`. |
+
+### What r5 shows
+
+1. **All four planted problems appeared in both passes**: booking Disjoint with
+   the contradiction and the ownership conflict, calendar Loose with the
+   display-name warning and the dead-end step.
+2. **A new, honest finding:** Booking's timezone-change and unarchive paragraph
+   (booking.sigil:5002) says each "calls the mutation through the transactional
+   entry of Rooms" and never says it returns or commits. Two `unreached-step`
+   findings point at it in both Booking passes. It is a real open end in the
+   prose, not a planted one.
+3. **`unguarded-flow` is still the largest source of warnings** (up to 15 in
+   booking). Children rarely write `guard` rows. Section 5's wording that these
+   are "real observations about the prose" was too generous: for booking, most
+   are missing guard rows from the child.
+4. **Slotted is unchanged.** It still reports the unmet obligation on the domain
+   error, and pass 1 had 6 ungrounded claims about Tags it uses in plain words
+   without importing.
+5. **Step numbering:** no refused artifacts this time. All 14 passed ingest.
+
+### What to change next
+
+1. **Design text** (voids the current results): say Slotted depends on Identity
+   and SharedKernel; import or drop the Tag words Slotted uses; add "and returns"
+   to booking.sigil:5002 if the open end is unintended.
+2. **Guidance:** add a worked example of a `guard` row so children tie a step to
+   the constraint it satisfies, and a worked example of a Logic section split
+   over two paragraphs.
