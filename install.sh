@@ -91,7 +91,7 @@ if [ "$claims_available" -eq 1 ]; then
 elif [ -L "$BIN_DIR/sigil-claims" ]; then
   claims_target="$(readlink "$BIN_DIR/sigil-claims")"
   case "$claims_target" in
-    "$INSTALL_ROOT"/versions/*/bin/sigil-claims) rm -f "$BIN_DIR/sigil-claims" ;;
+    */versions/*/bin/sigil-claims) rm -f "$BIN_DIR/sigil-claims" ;;
   esac
 fi
 echo "Installed Sigil $VERSION to $destination"

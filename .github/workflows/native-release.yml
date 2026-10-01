@@ -331,6 +331,20 @@ jobs:
             test ! -e "$bin_root/sigil-claims.cmd"
             test "$(pwsh -NoProfile -Command "& '$bin_root_native/sigil.cmd' --version")" = "$version"
             pwsh -NoProfile -Command "& '$bin_root_native/sigilc.cmd' --version" >/dev/null
+            changed_install_root="$temp_root/sigil-legacy-install-changed-root"
+            rm -rf "$changed_install_root"
+            run_install "$archive" "$checksums"
+            test -f "$bin_root/sigil-claims.cmd"
+            changed_install_root_native="$(cygpath -w "$changed_install_root")"
+            SIGIL_VERSION="$version" \
+              SIGIL_ARCHIVE_PATH="$(cygpath -w "$legacy/legacy.zip")" \
+              SIGIL_CHECKSUMS_PATH="$(cygpath -w "$legacy/checksums.txt")" \
+              SIGIL_INSTALL_DIR="$changed_install_root_native" \
+              SIGIL_BIN_DIR="$bin_root_native" \
+              pwsh -NoProfile -ExecutionPolicy Bypass -File "$installer_native"
+            test ! -e "$bin_root/sigil-claims.cmd"
+            test "$(pwsh -NoProfile -Command "& '$bin_root_native/sigil.cmd' --version")" = "$version"
+            pwsh -NoProfile -Command "& '$bin_root_native/sigilc.cmd' --version" >/dev/null
           else
             legacy_archive="$legacy/legacy.tar.gz"
             (cd "$legacy" && tar -czf "$legacy_archive" "sigil-$version")
@@ -348,6 +362,19 @@ jobs:
             run_install "$archive" "$checksums"
             test -L "$bin_root/sigil-claims"
             run_install "$legacy_archive" "$legacy/checksums.txt"
+            test ! -e "$bin_root/sigil-claims" && test ! -L "$bin_root/sigil-claims"
+            test "$("$bin_root/sigil" --version)" = "$version"
+            "$bin_root/sigilc" --version >/dev/null
+            changed_install_root="$temp_root/sigil-legacy-install-changed-root"
+            rm -rf "$changed_install_root"
+            run_install "$archive" "$checksums"
+            test -L "$bin_root/sigil-claims"
+            SIGIL_VERSION="$version" \
+              SIGIL_ARCHIVE_PATH="$legacy/legacy.tar.gz" \
+              SIGIL_CHECKSUMS_PATH="$legacy/checksums.txt" \
+              SIGIL_INSTALL_DIR="$changed_install_root" \
+              SIGIL_BIN_DIR="$bin_root" \
+              "$installer"
             test ! -e "$bin_root/sigil-claims" && test ! -L "$bin_root/sigil-claims"
             test "$("$bin_root/sigil" --version)" = "$version"
             "$bin_root/sigilc" --version >/dev/null

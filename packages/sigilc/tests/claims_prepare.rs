@@ -2,7 +2,7 @@ use sigilc::claims::{guidance, prepare, vocabulary};
 use std::fs;
 
 mod support;
-use support::{BASE, CONSUMER, Workspace, shared_input};
+use support::{BASE, BASE_CONSTRAINTS, CONSUMER, Workspace, shared_input};
 
 fn out_dir(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -651,6 +651,55 @@ fn moving_a_non_logic_facet_with_unchanged_prose_remaps_its_saved_reading() {
 }
 
 #[test]
+fn inserting_an_identical_facet_stales_its_ambiguous_duplicate_group() {
+    use sigilc::claims::dialect::Row;
+
+    let root = memo_root("duplicate-cardinality");
+    let mut request = prepare::project(&shared_input(), BASE).unwrap();
+    let mut first = request.rows[0].clone();
+    first.facet = "facet:duplicate:A".into();
+    first.source = "duplicates.sigil".into();
+    first.component = "urn:sigil:component:duplicates:Example".into();
+    first.section = "constraints".into();
+    first.prose = "the same constraint".into();
+    let mut second = first.clone();
+    second.facet = "facet:duplicate:B".into();
+    request.rows = vec![first.clone(), second.clone()];
+
+    for (row, outcome) in [(&first, "reading A"), (&second, "reading B")] {
+        let unit = memo::units(&request)
+            .into_iter()
+            .find(|unit| unit.facets == [row.facet.clone()])
+            .unwrap();
+        memo::save(
+            &root,
+            &unit,
+            &[Row::Reading {
+                facet: row.facet.clone(),
+                outcome: outcome.into(),
+            }],
+        )
+        .unwrap();
+    }
+
+    let mut inserted = first.clone();
+    inserted.facet = "facet:duplicate:X".into();
+    request.rows = vec![inserted, first, second];
+    let (stale, reused) = memo::split(&request, &root);
+
+    assert_eq!(
+        stale.len(),
+        3,
+        "all rows in the changed duplicate group are ambiguous"
+    );
+    assert!(
+        reused.is_empty(),
+        "no old reading may move to another duplicate Facet"
+    );
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
 fn shifting_many_facet_ids_reuses_and_remaps_every_unchanged_unit() {
     use sigilc::claims::dialect::Row;
 
@@ -694,6 +743,79 @@ fn shifting_many_facet_ids_reuses_and_remaps_every_unchanged_unit() {
             assert!(unit.facets.iter().any(|facet| facet == row.facet()));
         }
     }
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn a_reused_guard_remaps_its_constraint_facet_reference() {
+    use sigilc::claims::{dialect::Row, prepare::LogicSection};
+
+    let root = memo_root("guard-constraint-reference");
+    let mut request = prepare::project(&shared_input(), BASE).unwrap();
+    let logic_component = "urn:sigil:component:flows.sigil:Pipeline".to_owned();
+    let logic_facet = "facet:flows.sigil:1200".to_owned();
+    request.rows.push(prepare::FacetRow {
+        facet: logic_facet.clone(),
+        component: logic_component.clone(),
+        component_label: "Pipeline".into(),
+        section: "logic".into(),
+        source: "flows.sigil".into(),
+        prose: "guard the step with the base constraint".into(),
+    });
+    request.flows.push(LogicSection {
+        component: logic_component,
+        component_label: "Pipeline".into(),
+        source: "flows.sigil".into(),
+        facets: vec![logic_facet.clone()],
+    });
+
+    let constraint_unit = memo::units(&request)
+        .into_iter()
+        .find(|unit| unit.facets.contains(&BASE_CONSTRAINTS.to_owned()))
+        .unwrap();
+    let logic_unit = memo::units(&request)
+        .into_iter()
+        .find(|unit| unit.facets.contains(&logic_facet))
+        .unwrap();
+    memo::save(&root, &constraint_unit, &[]).unwrap();
+    memo::save(
+        &root,
+        &logic_unit,
+        &[Row::Guard {
+            facet: logic_facet.clone(),
+            step: 1,
+            operand: "constraint".into(),
+            value: BASE_CONSTRAINTS.into(),
+        }],
+    )
+    .unwrap();
+
+    let shifted: std::collections::BTreeMap<_, _> = request
+        .rows
+        .iter()
+        .map(|row| (row.facet.clone(), format!("{}-shifted", row.facet)))
+        .collect();
+    for row in &mut request.rows {
+        row.facet = shifted[&row.facet].clone();
+    }
+    for flow in &mut request.flows {
+        for facet in &mut flow.facets {
+            *facet = shifted[facet].clone();
+        }
+    }
+
+    let (stale, reused) = memo::split(&request, &root);
+    assert_eq!(reused.len(), 2);
+    let guard_unit = reused
+        .iter()
+        .find(|(unit, _)| unit.facets.contains(&shifted[&logic_facet]))
+        .unwrap();
+    assert!(matches!(
+        &guard_unit.1[0],
+        Row::Guard { facet, value, .. }
+            if facet == &shifted[&logic_facet] && value == &shifted[BASE_CONSTRAINTS]
+    ));
+    assert_eq!(stale.len(), request.rows.len() - 2);
     fs::remove_dir_all(&root).unwrap();
 }
 

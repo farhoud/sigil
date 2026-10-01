@@ -95,16 +95,34 @@ pub fn units(request: &Request) -> Vec<Unit> {
         grouped.extend(flow.facets.iter().map(String::as_str));
     }
 
+    let mut duplicate_group_sizes = BTreeMap::<(&str, &str, &str, &str), usize>::new();
+    for row in &request.rows {
+        if !grouped.contains(&row.facet.as_str()) {
+            *duplicate_group_sizes
+                .entry((
+                    row.source.as_str(),
+                    row.component.as_str(),
+                    row.section.as_str(),
+                    row.prose.as_str(),
+                ))
+                .or_default() += 1;
+        }
+    }
     let mut duplicate_occurrences = BTreeMap::<(&str, &str, &str, &str), usize>::new();
     for row in &request.rows {
         if grouped.contains(&row.facet.as_str()) {
             continue; // carried by its section's unit
         }
-        let occurrence = duplicate_occurrences
-            .entry((&row.source, &row.component, &row.section, &row.prose))
-            .or_default();
+        let signature = (
+            row.source.as_str(),
+            row.component.as_str(),
+            row.section.as_str(),
+            row.prose.as_str(),
+        );
+        let occurrence = duplicate_occurrences.entry(signature).or_default();
         let discriminator = *occurrence;
         *occurrence += 1;
+        let group_size = duplicate_group_sizes[&signature];
         units.push(Unit {
             key: hash(
                 &serde_json::to_vec(&(
@@ -115,6 +133,7 @@ pub fn units(request: &Request) -> Vec<Unit> {
                     &row.section,
                     &[row.prose.as_str()],
                     discriminator,
+                    group_size,
                 ))
                 .expect("memo key serialization"),
             ),
@@ -138,9 +157,9 @@ struct Stored {
     rows: Vec<Row>,
 }
 
-/// The rows stored for a unit, remapped to its current Facet IDs, or `None` when
-/// the saved identities do not match the unchanged unit.
-pub fn load(root: &Path, unit: &Unit) -> Option<Vec<Row>> {
+/// The rows stored for a unit and its saved-to-current Facet mapping, or `None`
+/// when the saved identities do not match the unchanged unit.
+fn load_with_identities(root: &Path, unit: &Unit) -> Option<(Vec<Row>, BTreeMap<String, String>)> {
     let bytes = std::fs::read(path(root, &unit.key)).ok()?;
     let stored: Stored = serde_json::from_slice(&bytes).ok()?;
     if stored.facets.len() != unit.facets.len()
@@ -154,7 +173,7 @@ pub fn load(root: &Path, unit: &Unit) -> Option<Vec<Row>> {
         .into_iter()
         .zip(unit.facets.iter().cloned())
         .collect();
-    stored
+    let rows: Option<Vec<Row>> = stored
         .rows
         .into_iter()
         .map(|mut row| {
@@ -169,7 +188,14 @@ pub fn load(root: &Path, unit: &Unit) -> Option<Vec<Row>> {
             }
             Some(row)
         })
-        .collect()
+        .collect();
+    Some((rows?, identities))
+}
+
+/// The rows stored for a unit, remapped to its current Facet IDs, or `None` when
+/// the saved identities do not match the unchanged unit.
+pub fn load(root: &Path, unit: &Unit) -> Option<Vec<Row>> {
+    load_with_identities(root, unit).map(|(rows, _)| rows)
 }
 
 /// Store the rows a caller supplied for one unit and the Facet IDs they name.
@@ -193,11 +219,54 @@ pub fn save(root: &Path, unit: &Unit, rows: &[Row]) -> Result<(), String> {
 /// Split a request's units into those a caller must interpret and those stored.
 pub fn split(request: &Request, root: &Path) -> (Vec<Unit>, Vec<(Unit, Vec<Row>)>) {
     let mut stale = Vec::new();
-    let mut reused = Vec::new();
+    let mut candidates = Vec::new();
+    let mut identities = BTreeMap::<String, String>::new();
+    let mut ambiguous = BTreeSet::new();
     for unit in units(request) {
-        match load(root, &unit) {
-            Some(rows) => reused.push((unit, rows)),
-            None => stale.push(unit),
+        match load_with_identities(root, &unit) {
+            Some((rows, unit_identities)) => {
+                for (saved, current) in unit_identities {
+                    if identities
+                        .get(&saved)
+                        .is_some_and(|existing| existing != &current)
+                    {
+                        ambiguous.insert(saved);
+                    } else {
+                        identities.insert(saved, current);
+                    }
+                }
+                candidates.push((unit, Some(rows)));
+            }
+            None => candidates.push((unit, None)),
+        }
+    }
+    let mut reused = Vec::new();
+    for (unit, cached_rows) in candidates {
+        let Some(mut rows) = cached_rows else {
+            stale.push(unit);
+            continue;
+        };
+        let mut all_references_mapped = true;
+        for row in &mut rows {
+            if let Row::Guard { operand, value, .. } = row
+                && operand == "constraint"
+            {
+                if ambiguous.contains(value) {
+                    all_references_mapped = false;
+                    break;
+                }
+                if let Some(current) = identities.get(value) {
+                    *value = current.clone();
+                } else {
+                    all_references_mapped = false;
+                    break;
+                }
+            }
+        }
+        if all_references_mapped {
+            reused.push((unit, rows));
+        } else {
+            stale.push(unit);
         }
     }
     (stale, reused)

@@ -96,8 +96,7 @@ try {
     $ClaimsWrapper = Join-Path $BinDir "sigil-claims.cmd"
     if (Test-Path $ClaimsWrapper -PathType Leaf) {
       $ClaimsBody = [IO.File]::ReadAllText($ClaimsWrapper)
-      $VersionRoot = [regex]::Escape((Join-Path $InstallRoot "versions"))
-      $ManagedClaimsWrapper = '(?s)\A@echo off\r\n@chcp 65001 >nul\r\n"__VERSION_ROOT__[\\/][^\r\n"]+[\\/]bin[\\/]sigil-claims\.exe" %\*\r\n\z'.Replace("__VERSION_ROOT__", $VersionRoot)
+      $ManagedClaimsWrapper = '(?s)\A@echo off\r\n@chcp 65001 >nul\r\n"[^"\r\n]+[\\/]versions[\\/][^\\/\r\n"]+[\\/]bin[\\/]sigil-claims\.exe" %\*\r\n\z'
       if ($ClaimsBody -match $ManagedClaimsWrapper) { Remove-Item -Force $ClaimsWrapper }
     }
   }
