@@ -21,6 +21,13 @@ not select them. Repair defects settled by the accepted contract, add focused
 tests for changed behavior, run relevant checks, and reassess without a separate
 approval step.
 
+When compatible native tooling and separate fresh interpreters are available,
+follow the [scoped native comparison](references/native-comparison.md) after
+repairs. Keep its Design and Implementation interpretations separate, use one
+current frontend and explicit scope, and report structured comparison state,
+freshness, and limits alongside code and test evidence. If the native path is
+unavailable, continue supported code work and record the specific reason.
+
 Only a consequential contract choice not settled by accepted intent belongs to
 the user. Finish independent code work, present the smallest choice and its
 trade-offs, and preserve source identities for resumption. On return, reread

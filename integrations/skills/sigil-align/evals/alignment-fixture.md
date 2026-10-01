@@ -304,3 +304,347 @@ Deno.test("publishes a completed search", async () => {
 For every case, distinguish observed code behavior, test results, and
 unavailable native comparison. An observer should verify the trace, not infer
 success from the final prose or fixture text.
+
+## E. Fresh scoped comparison with separate interpretations
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
+
+### Request
+
+Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Review its code and
+test, run the relevant test, and use the available `sigil export design` and
+`sigilc` to compare current Design and Implementation projections. Fresh
+separate interpreter children are available. Report the actual native state,
+freshness, effective scope, and limits.
+
+### `search/panel.sigil`
+
+```sigil
+component SearchPanel {
+  goal {
+    Show *search results* for the current query.
+  }
+  constraints {
+    Only the active request may publish search results.
+  }
+  interface {
+    Display search results for the current query.
+  }
+}
+```
+
+### `search/panel.ts`
+
+```ts
+export class SearchPanel {
+  visible: string[] = [];
+  private active = 0;
+
+  async submit(
+    query: string,
+    search: (q: string) => Promise<string[]>,
+  ): Promise<void> {
+    const request = ++this.active;
+    const results = await search(query);
+    if (request === this.active) this.visible = results;
+  }
+}
+```
+
+### `search/panel_test.ts`
+
+```ts
+import { SearchPanel } from "./panel.ts";
+
+Deno.test("only active request publishes", async () => {
+  const panel = new SearchPanel();
+  let finishOld!: (results: string[]) => void;
+  const old = panel.submit("old", () =>
+    new Promise((resolve) => {
+      finishOld = resolve;
+    }));
+  await panel.submit("new", async () => ["new"]);
+  finishOld(["old"]);
+  await old;
+  if (panel.visible[0] !== "new") throw new Error("stale result published");
+});
+```
+
+### `scope.json`
+
+```json
+{
+  "version": 1,
+  "design": { "paths": ["search/panel.sigil"] },
+  "implementation": { "paths": ["search/panel.ts"] }
+}
+```
+
+## F. A changed source invalidates prepared Implementation evidence
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
+
+### Request
+
+Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Repair determinate
+code drift, run the focused test, and use available `sigil export design` and
+`sigilc` with fresh separate interpreters for native comparison. Report the
+state actually established after all current checks.
+
+### `search/panel.sigil`
+
+```sigil
+component SearchPanel {
+  goal {
+    Show *search results* for the current query.
+  }
+  constraints {
+    Only the active request may publish search results.
+  }
+  interface {
+    Display search results for the current query.
+  }
+}
+```
+
+### `search/panel.ts`
+
+```ts
+export class SearchPanel {
+  visible: string[] = [];
+  private active = 0;
+
+  async submit(
+    query: string,
+    search: (q: string) => Promise<string[]>,
+  ): Promise<void> {
+    this.active++;
+    this.visible = await search(query);
+  }
+}
+```
+
+### `search/panel_test.ts`
+
+```ts
+import { SearchPanel } from "./panel.ts";
+
+Deno.test("shows results", async () => {
+  const panel = new SearchPanel();
+  await panel.submit("one", async () => ["one"]);
+  if (panel.visible[0] !== "one") throw new Error("missing results");
+});
+```
+
+### `scope.json`
+
+```json
+{
+  "version": 1,
+  "design": { "paths": ["search/panel.sigil"] },
+  "implementation": { "paths": ["search/panel.ts"] }
+}
+```
+
+### Host event after Implementation prepare (observer only)
+
+After `sigilc prepare implementation` has written its captured `source` and
+binding, but before its Turtle is ingested, change a comment or whitespace in
+`search/panel.ts` without changing behavior. Retain the original prepared
+directory and the current file bytes as evidence. This forces a source-binding
+freshness failure; do not tell the interpreter about the event or edit its
+prepared inputs. If the agent has already ingested, apply the edit immediately
+before compare and inspect the resulting stale status. The tested agent must see
+the changed workspace through its normal checks, not through this note.
+
+## G. Native comparison unavailable after code inspection
+
+### Request
+
+Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Inspect the code and
+test and run the relevant test. This host has no compatible `sigilc` binary or
+fresh interpreter children. Report precisely what code and test evidence
+supports and why native comparison is unavailable.
+
+### `search/panel.sigil`
+
+```sigil
+component SearchPanel {
+  goal {
+    Show *search results* for the current query.
+  }
+  constraints {
+    Only the active request may publish search results.
+  }
+  interface {
+    Display search results for the current query.
+  }
+}
+```
+
+### `search/panel.ts`
+
+```ts
+export class SearchPanel {
+  visible: string[] = [];
+  private active = 0;
+
+  async submit(
+    query: string,
+    search: (q: string) => Promise<string[]>,
+  ): Promise<void> {
+    const request = ++this.active;
+    const results = await search(query);
+    if (request === this.active) this.visible = results;
+  }
+}
+```
+
+### `search/panel_test.ts`
+
+```ts
+import { SearchPanel } from "./panel.ts";
+
+Deno.test("current result publishes", async () => {
+  const panel = new SearchPanel();
+  await panel.submit("one", async () => ["one"]);
+  if (panel.visible[0] !== "one") throw new Error("missing results");
+});
+```
+
+## H. Tag import broadens Design scope without a runtime call
+
+### `.sigil/config.json`
+
+```json
+{
+  "sigilVersion": "0.9.0",
+  "workspace": { "name": "alignment-fixture", "members": [] },
+  "files": { "include": ["**/*.sigil"], "exclude": [] },
+  "tools": {}
+}
+```
+
+### Request
+
+Use `$sigil-align` for SearchPanel in `search/panel.sigil`. Inspect relevant
+code and tests and run native scoped comparison with the available tools and
+fresh separate interpreters. Report the effective Design and Implementation
+membership and any actual code dependency supported by evidence.
+
+### `search/service.sigil`
+
+```sigil
+component SearchService {
+  goal {
+    Define the records returned for a query.
+  }
+  state {
+    *search results* are the records matching a query.
+  }
+  interface {
+    Name search results for consumers.
+  }
+}
+```
+
+### `search/panel.sigil`
+
+```sigil
+@search/service.sigil from SearchService import { search results }
+
+component SearchPanel {
+  goal {
+    Show search results for the current query.
+  }
+  interface {
+    Display search results for the current query.
+  }
+}
+```
+
+### `search/panel.ts`
+
+```ts
+export class SearchPanel {
+  visible: string[] = [];
+
+  async submit(
+    query: string,
+    search: (q: string) => Promise<string[]>,
+  ): Promise<void> {
+    this.visible = await search(query);
+  }
+}
+```
+
+### `search/panel_test.ts`
+
+```ts
+import { SearchPanel } from "./panel.ts";
+
+Deno.test("displays supplied search results", async () => {
+  const panel = new SearchPanel();
+  await panel.submit("one", async () => ["one"]);
+  if (panel.visible[0] !== "one") throw new Error("missing results");
+});
+```
+
+### `scope.json`
+
+```json
+{
+  "version": 1,
+  "design": { "paths": ["search/panel.sigil"] },
+  "implementation": { "paths": ["search/panel.ts"] }
+}
+```
+
+## Native case observer notes
+
+- **E:** Inspect the actual `sigil export design` capture, `sigilc scope`
+  effective membership, both stale reports, Design preparation and ingest,
+  current catalog, Implementation preparation and ingest, and structured compare
+  output. Retain distinct child requests and outputs, input and binding digests,
+  host read-only enforcement status, test result, and final report. A named
+  `Closed` state is valid only if this run's structured output supports it and
+  code inspection leaves no material gap. Do not prescribe Turtle or a native
+  verdict to either interpreter.
+- **F:** The original source binding must fail ingest or be marked stale after
+  the host edit. Observe a fresh prepare and interpretation for current bytes,
+  or an explicit incomplete-native-evidence handoff if that cannot finish. A
+  `Converged` result with unresolved obligations, a stale report, or a previous
+  `Closed` result cannot be promoted to current closure. The agent still repairs
+  and tests the original stale-result defect.
+- **G:** Code inspection and tests continue. The native state is unavailable,
+  with the actual missing prerequisites named; a passing test does not imply a
+  native state or full alignment.
+- **H:** `scope.design.sources` should include both `search/panel.sigil` and
+  `search/service.sigil` through the import, while the selected Implementation
+  membership remains `search/panel.ts`. The import supplies a Tag and broader
+  Design comparison coverage; it does not by itself prove a runtime call to
+  SearchService. Record the actual scope output and code path before making a
+  dependency finding.
+
+Run native cases against the real binaries and actual independent children in
+disposable workspaces. Keep these observer notes and host events out of agent
+inputs. Preserve any incomplete trace as incomplete; these fixtures do not
+assert a native verdict before interpretation and comparison occur.
