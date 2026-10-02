@@ -420,6 +420,35 @@ fn a_cached_logic_step_is_available_when_admitting_a_second_reading() {
     );
 }
 
+#[test]
+fn a_claim_for_a_facet_outside_the_request_is_refused() {
+    let (scratch, frontend, binding) = prepared("foreign-facet");
+    let artifact = scratch.0.join("result.egg");
+    fs::write(
+        &artifact,
+        format!(
+            "{}(claim \"facet:foreign.sigil:0\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n",
+            clean_artifact()
+        ),
+    )
+    .unwrap();
+
+    let (code, _, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        binding.to_str().unwrap(),
+        "--claims",
+        artifact.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("facet:foreign.sigil:0"), "{stderr}");
+    assert!(stderr.contains("did not ask about"), "{stderr}");
+}
+
 // ----------------------------------------------------------- binding refusal
 
 #[test]

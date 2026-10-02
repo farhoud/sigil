@@ -150,6 +150,18 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     let limits = dialect::Limits::default();
     let first_text = artifact(&claims_path, limits)?;
     let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
+    let requested_facets: BTreeSet<String> =
+        request.rows.iter().map(|row| row.facet.clone()).collect();
+    if let Some(row) = supplied
+        .iter()
+        .find(|row| !requested_facets.contains(row.facet()))
+    {
+        return Err(gate(format!(
+            "row ({} ...) names {:?}, which this request did not ask about",
+            row.relation_name(),
+            row.facet()
+        )));
+    }
 
     // Stored rows join first readings before admission, so the closure sees the
     // whole design. A supplied reading for a cached unit is composed with the
