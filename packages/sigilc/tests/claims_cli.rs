@@ -79,6 +79,8 @@ fn prepared(name: &str) -> (Scratch, PathBuf, PathBuf) {
         BASE,
         "--out",
         out.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
     ]);
     assert_eq!(code, 0, "{stdout}{stderr}");
     let binding = out.join("binding.json");
@@ -201,6 +203,98 @@ fn a_repeat_interpretation_is_reported_only_when_supplied() {
         assert_eq!(entry["facet"], BASE_INTERFACE);
         assert_eq!(entry["section"], "interface");
     }
+}
+
+#[test]
+fn a_supplied_cached_unit_is_compared_without_replacing_its_saved_reading() {
+    let (scratch, frontend, binding) = prepared("cached-repeat");
+    let first = scratch.0.join("first.egg");
+    fs::write(&first, clean_artifact()).unwrap();
+    let (code, stdout, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        binding.to_str().unwrap(),
+        "--claims",
+        first.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+
+    let out = scratch.0.join("prep-again");
+    let (code, stdout, stderr) = claims(&[
+        "prepare",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--source",
+        BASE,
+        "--out",
+        out.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    assert_eq!(json(&stdout)["facets"], 0, "all first readings are cached");
+
+    let second = scratch.0.join("second.egg");
+    fs::write(
+        &second,
+        format!(
+            "(reading {BASE_GOAL:?} \"no-commitment\")\n\
+             (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
+             (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        ),
+    )
+    .unwrap();
+    let second_binding = out.join("binding.json");
+    let (code, stdout, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        second_binding.to_str().unwrap(),
+        "--claims",
+        second.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let result = json(&stdout);
+    let report = json(&fs::read_to_string(result["report"].as_str().unwrap()).unwrap());
+    let disagreements = report["disagreements"].as_array().unwrap();
+    assert_eq!(disagreements.len(), 2, "{report}");
+    assert!(
+        disagreements
+            .iter()
+            .any(|entry| { entry["facet"] == BASE_INTERFACE && entry["onlyIn"] == "first" })
+    );
+    assert!(
+        disagreements
+            .iter()
+            .any(|entry| { entry["facet"] == BASE_INTERFACE && entry["onlyIn"] == "repeat" })
+    );
+
+    let context = json(&fs::read_to_string(result["judgmentContext"].as_str().unwrap()).unwrap());
+    let interface = context["units"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|unit| unit["facet"] == BASE_INTERFACE)
+        .unwrap();
+    assert!(
+        interface["asserted"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|claim| {
+                claim["body"]["object"]
+                    .as_str()
+                    .is_some_and(|object| object.ends_with(":tag:value"))
+            }),
+        "the second reading must not replace the cached first reading: {context}"
+    );
 }
 
 // ----------------------------------------------------------- binding refusal

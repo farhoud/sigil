@@ -5,7 +5,10 @@
 //! supply again, which is what makes a run reproducible.
 use super::{context, dialect, findings, guidance, identity, memo, prepare, program, vocabulary};
 use crate::{cli::Output, eqval, frontend::DesignInput};
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+};
 
 const MAX_FRONTEND_BYTES: u64 = 64_000_000;
 const MAX_BINDING_BYTES: u64 = 16_000_000;
@@ -147,36 +150,65 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     let limits = dialect::Limits::default();
     let first_text = artifact(&claims_path, limits)?;
     let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
+    // Validate every supplied row, including an extra reading for a cached
+    // unit. Such a reading is compared below; it never replaces the cache.
+    identity::admit(&request, &input, &supplied).map_err(gate)?;
 
-    // Stored rows join the supplied ones before admission, so the closure sees
-    // the whole design either way. They are re-admitted rather than trusted:
+    // Stored rows join first readings before admission, so the closure sees the
+    // whole design. A supplied reading for a cached unit is compared against
+    // that stored answer and does not replace it. Reused rows are re-admitted:
     // grounding runs here, so a stored claim naming an entity that has since
     // left the closure is refused like any other.
-    let (_, reused) = memo::split(&request, Path::new(root));
-    let mut rows = supplied.clone();
-    for (unit, stored) in &reused {
-        if supplied
+    let all_units = memo::units(&request);
+    let (stale, reused) = memo::split(&request, Path::new(root));
+    let stale_keys: BTreeSet<String> = stale.iter().map(|unit| unit.key.clone()).collect();
+    let reused: BTreeMap<String, Vec<dialect::Row>> = reused
+        .into_iter()
+        .map(|(unit, rows)| (unit.key, rows))
+        .collect();
+    let mut rows = Vec::new();
+    let mut comparison_rows = Vec::new();
+    let mut has_cached_second_reading = false;
+    for unit in &all_units {
+        let mine: Vec<_> = supplied
             .iter()
-            .any(|r| unit.facets.iter().any(|f| f == r.facet()))
-        {
-            continue; // the caller answered this unit anyway; theirs is a second reading
+            .filter(|row| unit.facets.iter().any(|facet| facet == row.facet()))
+            .cloned()
+            .collect();
+        if stale_keys.contains(&unit.key) {
+            rows.extend(mine.iter().cloned());
+            comparison_rows.extend(mine);
+        } else if let Some(stored) = reused.get(&unit.key) {
+            rows.extend(stored.iter().cloned());
+            if mine.is_empty() {
+                comparison_rows.extend(stored.iter().cloned());
+            } else {
+                comparison_rows.extend(mine);
+                has_cached_second_reading = true;
+            }
+        } else {
+            return Err(operational(format!(
+                "memo did not classify interpretation unit {}",
+                unit.key
+            )));
         }
-        rows.extend(stored.iter().cloned());
     }
     rows.sort();
     rows.dedup();
+    comparison_rows.sort();
+    comparison_rows.dedup();
     let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
 
-    // Only what the caller actually supplied is stored, and only after it was
-    // admitted, so a refused artifact leaves the store untouched.
-    for unit in memo::units(&request) {
+    // Only first readings of stale units are stored, and only after admission,
+    // so a refused artifact or second reading leaves the cache untouched.
+    for unit in &stale {
         let mine: Vec<_> = supplied
             .iter()
             .filter(|r| unit.facets.iter().any(|f| f == r.facet()))
             .cloned()
             .collect();
         if !mine.is_empty() {
-            memo::save(Path::new(root), &unit, &mine).map_err(operational)?;
+            memo::save(Path::new(root), &request, unit, &mine).map_err(operational)?;
         }
     }
 
@@ -187,6 +219,9 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
             digests.push(crate::sources::hash(text.as_bytes()));
             let rows = dialect::parse(&text, limits).map_err(gate)?;
             Some(identity::admit(&request, &input, &rows).map_err(gate)?)
+        }
+        None if has_cached_second_reading => {
+            Some(identity::admit(&request, &input, &comparison_rows).map_err(gate)?)
         }
         None => None,
     };

@@ -341,7 +341,7 @@ jobs:
               SIGIL_CHECKSUMS_PATH="$(cygpath -w "$legacy/checksums.txt")" \
               SIGIL_INSTALL_DIR="$changed_install_root_native" \
               SIGIL_BIN_DIR="$bin_root_native" \
-              pwsh -NoProfile -ExecutionPolicy Bypass -File "$installer_native"
+              pwsh -NoProfile -ExecutionPolicy Bypass -File "$installer"
             test ! -e "$bin_root/sigil-claims.cmd"
             test "$(pwsh -NoProfile -Command "& '$bin_root_native/sigil.cmd' --version")" = "$version"
             pwsh -NoProfile -Command "& '$bin_root_native/sigilc.cmd' --version" >/dev/null

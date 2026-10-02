@@ -29,7 +29,9 @@ const DIR: &str = ".sigil/claims/interpretations";
 /// prose in it: edit one Logic paragraph and the section is re-read, because
 /// the flow through it may have changed. Every other role is presented one
 /// Facet at a time. Facet IDs are saved beside each unit's rows, so an unchanged
-/// unit can remap rows after its source offsets move.
+/// unit can remap rows after its source offsets move. Cross-unit Guard
+/// references use the target unit key and Facet position, so a target without
+/// stored rows is still resolvable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unit {
     pub key: String,
@@ -78,7 +80,7 @@ pub fn units(request: &Request) -> Vec<Unit> {
         units.push(Unit {
             key: hash(
                 &serde_json::to_vec(&(
-                    "sigil-claims-memo-v3",
+                    "sigil-claims-memo-v4",
                     identity,
                     &flow.source,
                     &flow.component,
@@ -126,7 +128,7 @@ pub fn units(request: &Request) -> Vec<Unit> {
         units.push(Unit {
             key: hash(
                 &serde_json::to_vec(&(
-                    "sigil-claims-memo-v3",
+                    "sigil-claims-memo-v4",
                     identity,
                     &row.source,
                     &row.component,
@@ -155,11 +157,51 @@ fn path(root: &Path, key: &str) -> PathBuf {
 struct Stored {
     facets: Vec<String>,
     rows: Vec<Row>,
+    constraint_targets: BTreeMap<usize, StableFacetReference>,
 }
 
-/// The rows stored for a unit and its saved-to-current Facet mapping, or `None`
-/// when the saved identities do not match the unchanged unit.
-fn load_with_identities(root: &Path, unit: &Unit) -> Option<(Vec<Row>, BTreeMap<String, String>)> {
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct StableFacetReference {
+    unit_key: String,
+    facet_index: usize,
+}
+
+fn facet_targets(units: &[Unit]) -> Result<BTreeMap<String, StableFacetReference>, String> {
+    let mut targets = BTreeMap::new();
+    for unit in units {
+        for (facet_index, facet) in unit.facets.iter().enumerate() {
+            if targets
+                .insert(
+                    facet.clone(),
+                    StableFacetReference {
+                        unit_key: unit.key.clone(),
+                        facet_index,
+                    },
+                )
+                .is_some()
+            {
+                return Err(format!(
+                    "Facet identity occurs in multiple memo units: {facet}"
+                ));
+            }
+        }
+    }
+    Ok(targets)
+}
+
+fn resolve_facet<'a>(units: &'a [Unit], reference: &StableFacetReference) -> Option<&'a str> {
+    let mut matching = units.iter().filter(|unit| unit.key == reference.unit_key);
+    let unit = matching.next()?;
+    if matching.next().is_some() {
+        return None;
+    }
+    unit.facets.get(reference.facet_index).map(String::as_str)
+}
+
+/// Load rows remapped to current Facet IDs, or `None` when the unit or any
+/// cross-unit reference no longer matches the current request.
+fn load_with_identities(root: &Path, unit: &Unit, current_units: &[Unit]) -> Option<Vec<Row>> {
     let bytes = std::fs::read(path(root, &unit.key)).ok()?;
     let stored: Stored = serde_json::from_slice(&bytes).ok()?;
     if stored.facets.len() != unit.facets.len()
@@ -170,13 +212,16 @@ fn load_with_identities(root: &Path, unit: &Unit) -> Option<(Vec<Row>, BTreeMap<
     }
     let identities: BTreeMap<String, String> = stored
         .facets
-        .into_iter()
+        .iter()
+        .cloned()
         .zip(unit.facets.iter().cloned())
         .collect();
+    let mut seen_targets = BTreeSet::new();
     let rows: Option<Vec<Row>> = stored
         .rows
         .into_iter()
-        .map(|mut row| {
+        .enumerate()
+        .map(|(index, mut row)| {
             let facet = identities.get(row.facet())?.clone();
             match &mut row {
                 Row::Claim { facet: current, .. }
@@ -186,30 +231,59 @@ fn load_with_identities(root: &Path, unit: &Unit) -> Option<(Vec<Row>, BTreeMap<
                 | Row::Step { facet: current, .. }
                 | Row::Guard { facet: current, .. } => *current = facet,
             }
+            match &mut row {
+                Row::Guard { operand, value, .. } if operand == "constraint" => {
+                    seen_targets.insert(index);
+                    let reference = stored.constraint_targets.get(&index)?;
+                    *value = resolve_facet(current_units, reference)?.to_owned();
+                }
+                _ if stored.constraint_targets.contains_key(&index) => return None,
+                _ => {}
+            }
             Some(row)
         })
         .collect();
-    Some((rows?, identities))
+    if seen_targets.len() != stored.constraint_targets.len() {
+        return None;
+    }
+    rows
 }
 
 /// The rows stored for a unit, remapped to its current Facet IDs, or `None` when
 /// the saved identities do not match the unchanged unit.
-pub fn load(root: &Path, unit: &Unit) -> Option<Vec<Row>> {
-    load_with_identities(root, unit).map(|(rows, _)| rows)
+pub fn load(root: &Path, request: &Request, unit: &Unit) -> Option<Vec<Row>> {
+    let current_units = units(request);
+    load_with_identities(root, unit, &current_units)
 }
 
-/// Store the rows a caller supplied for one unit and the Facet IDs they name.
+/// Store a nonempty interpretation and the stable identities it names.
 ///
 /// Writes under this component's own path and never the compiler's world cache,
 /// which the contract makes read-only here.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::InterpretationRequest interface
-pub fn save(root: &Path, unit: &Unit, rows: &[Row]) -> Result<(), String> {
+pub fn save(root: &Path, request: &Request, unit: &Unit, rows: &[Row]) -> Result<(), String> {
+    if rows.is_empty() {
+        return Err("a rowless unit remains stale and cannot be memoized".into());
+    }
+    let targets = facet_targets(&units(request))?;
+    let mut constraint_targets = BTreeMap::new();
+    for (index, row) in rows.iter().enumerate() {
+        if let Row::Guard { operand, value, .. } = row
+            && operand == "constraint"
+        {
+            let reference = targets
+                .get(value)
+                .ok_or_else(|| format!("constraint Guard names an unknown Facet: {value}"))?;
+            constraint_targets.insert(index, reference.clone());
+        }
+    }
     let path = path(root, &unit.key);
     let dir = path.parent().expect("memo path has a parent");
     std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     let mut bytes = serde_json::to_vec(&Stored {
         facets: unit.facets.clone(),
         rows: rows.to_vec(),
+        constraint_targets,
     })
     .map_err(|e| e.to_string())?;
     bytes.push(b'\n');
@@ -219,54 +293,12 @@ pub fn save(root: &Path, unit: &Unit, rows: &[Row]) -> Result<(), String> {
 /// Split a request's units into those a caller must interpret and those stored.
 pub fn split(request: &Request, root: &Path) -> (Vec<Unit>, Vec<(Unit, Vec<Row>)>) {
     let mut stale = Vec::new();
-    let mut candidates = Vec::new();
-    let mut identities = BTreeMap::<String, String>::new();
-    let mut ambiguous = BTreeSet::new();
-    for unit in units(request) {
-        match load_with_identities(root, &unit) {
-            Some((rows, unit_identities)) => {
-                for (saved, current) in unit_identities {
-                    if identities
-                        .get(&saved)
-                        .is_some_and(|existing| existing != &current)
-                    {
-                        ambiguous.insert(saved);
-                    } else {
-                        identities.insert(saved, current);
-                    }
-                }
-                candidates.push((unit, Some(rows)));
-            }
-            None => candidates.push((unit, None)),
-        }
-    }
     let mut reused = Vec::new();
-    for (unit, cached_rows) in candidates {
-        let Some(mut rows) = cached_rows else {
-            stale.push(unit);
-            continue;
-        };
-        let mut all_references_mapped = true;
-        for row in &mut rows {
-            if let Row::Guard { operand, value, .. } = row
-                && operand == "constraint"
-            {
-                if ambiguous.contains(value) {
-                    all_references_mapped = false;
-                    break;
-                }
-                if let Some(current) = identities.get(value) {
-                    *value = current.clone();
-                } else {
-                    all_references_mapped = false;
-                    break;
-                }
-            }
-        }
-        if all_references_mapped {
-            reused.push((unit, rows));
-        } else {
-            stale.push(unit);
+    let current_units = units(request);
+    for unit in current_units.iter().cloned() {
+        match load_with_identities(root, &unit, &current_units) {
+            Some(rows) => reused.push((unit, rows)),
+            None => stale.push(unit),
         }
     }
     (stale, reused)

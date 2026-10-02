@@ -594,6 +594,7 @@ fn moving_a_logic_facet_with_unchanged_prose_remaps_its_saved_reading() {
     let previous_facet = previous.facets[0].clone();
     memo::save(
         &root,
+        &request,
         &previous,
         &[Row::Reading {
             facet: previous_facet.clone(),
@@ -628,6 +629,7 @@ fn moving_a_non_logic_facet_with_unchanged_prose_remaps_its_saved_reading() {
     let previous_facet = previous.facets[0].clone();
     memo::save(
         &root,
+        &request,
         &previous,
         &[Row::Reading {
             facet: previous_facet.clone(),
@@ -673,6 +675,7 @@ fn inserting_an_identical_facet_stales_its_ambiguous_duplicate_group() {
             .unwrap();
         memo::save(
             &root,
+            &request,
             &unit,
             &[Row::Reading {
                 facet: row.facet.clone(),
@@ -715,7 +718,7 @@ fn shifting_many_facet_ids_reuses_and_remaps_every_unchanged_unit() {
                 outcome: "saved reading".into(),
             })
             .collect();
-        memo::save(&root, unit, &rows).unwrap();
+        memo::save(&root, &request, unit, &rows).unwrap();
     }
     let shifted: std::collections::BTreeMap<_, _> = units
         .iter()
@@ -769,17 +772,15 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
         facets: vec![logic_facet.clone()],
     });
 
-    let constraint_unit = memo::units(&request)
-        .into_iter()
-        .find(|unit| unit.facets.contains(&BASE_CONSTRAINTS.to_owned()))
-        .unwrap();
     let logic_unit = memo::units(&request)
         .into_iter()
         .find(|unit| unit.facets.contains(&logic_facet))
         .unwrap();
-    memo::save(&root, &constraint_unit, &[]).unwrap();
+    // The rowless constraint unit remains stale, but its identity is available
+    // from the request when the saved Guard is loaded.
     memo::save(
         &root,
+        &request,
         &logic_unit,
         &[Row::Guard {
             facet: logic_facet.clone(),
@@ -805,7 +806,7 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
     }
 
     let (stale, reused) = memo::split(&request, &root);
-    assert_eq!(reused.len(), 2);
+    assert_eq!(reused.len(), 1);
     let guard_unit = reused
         .iter()
         .find(|(unit, _)| unit.facets.contains(&shifted[&logic_facet]))
@@ -815,7 +816,16 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
         Row::Guard { facet, value, .. }
             if facet == &shifted[&logic_facet] && value == &shifted[BASE_CONSTRAINTS]
     ));
-    assert_eq!(stale.len(), request.rows.len() - 2);
+    assert!(
+        stale
+            .iter()
+            .any(|unit| unit.facets == [shifted[BASE_CONSTRAINTS].clone()])
+    );
+    assert!(
+        !stale
+            .iter()
+            .any(|unit| unit.facets == [shifted[&logic_facet].clone()])
+    );
     fs::remove_dir_all(&root).unwrap();
 }
 
@@ -836,6 +846,8 @@ fn two_facets_with_identical_prose_do_not_share_a_stored_interpretation() {
 
 #[test]
 fn a_stored_unit_is_reused_and_a_stale_one_is_asked_for() {
+    use sigilc::claims::dialect::Row;
+
     let root = memo_root("reuse");
     let input = logic_input(&[("Alpha", &["a one"]), ("Beta", &["b one"])]);
     let request = prepare::project(&input, "flows.sigil").unwrap();
@@ -844,7 +856,16 @@ fn a_stored_unit_is_reused_and_a_stale_one_is_asked_for() {
     assert_eq!(stale.len(), 2, "an empty store makes everything stale");
     assert!(reused.is_empty());
 
-    memo::save(&root, &stale[0], &[]).unwrap();
+    memo::save(
+        &root,
+        &request,
+        &stale[0],
+        &[Row::Reading {
+            facet: stale[0].facets[0].clone(),
+            outcome: "saved reading".into(),
+        }],
+    )
+    .unwrap();
     let (stale_now, reused_now) = memo::split(&request, &root);
     assert_eq!(stale_now.len(), 1, "the stored unit is no longer asked for");
     assert_eq!(reused_now.len(), 1);
@@ -878,11 +899,22 @@ fn moving_the_guidance_fingerprint_restales_everything() {
 
 #[test]
 fn a_request_with_nothing_stale_is_valid_and_asks_for_nothing() {
+    use sigilc::claims::dialect::Row;
+
     let root = memo_root("empty");
     let input = logic_input(&[("Alpha", &["a one"])]);
     let request = prepare::project(&input, "flows.sigil").unwrap();
     for unit in memo::units(&request) {
-        memo::save(&root, &unit, &[]).unwrap();
+        memo::save(
+            &root,
+            &request,
+            &unit,
+            &[Row::Reading {
+                facet: unit.facets[0].clone(),
+                outcome: "saved reading".into(),
+            }],
+        )
+        .unwrap();
     }
     let (stale, reused) = memo::split(&request, &root);
     assert!(stale.is_empty());
@@ -895,5 +927,18 @@ fn a_request_with_nothing_stale_is_valid_and_asks_for_nothing() {
         asked.binding, request.binding,
         "an empty ask still carries the binding ingest will compare"
     );
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn a_rowless_unit_remains_stale_and_cannot_be_memoized() {
+    let root = memo_root("rowless-stale");
+    let request = prepare::project(&logic_input(&[("Alpha", &["a one"])]), "flows.sigil").unwrap();
+    let unit = memo::units(&request).remove(0);
+
+    assert!(memo::save(&root, &request, &unit, &[]).is_err());
+    let (stale, reused) = memo::split(&request, &root);
+    assert_eq!(stale, vec![unit]);
+    assert!(reused.is_empty());
     fs::remove_dir_all(&root).unwrap();
 }
