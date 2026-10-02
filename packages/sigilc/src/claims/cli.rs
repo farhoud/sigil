@@ -150,13 +150,11 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     let limits = dialect::Limits::default();
     let first_text = artifact(&claims_path, limits)?;
     let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
-    // Validate every supplied row, including an extra reading for a cached
-    // unit. Such a reading is compared below; it never replaces the cache.
-    identity::admit(&request, &input, &supplied).map_err(gate)?;
 
     // Stored rows join first readings before admission, so the closure sees the
-    // whole design. A supplied reading for a cached unit is compared against
-    // that stored answer and does not replace it. Reused rows are re-admitted:
+    // whole design. A supplied reading for a cached unit is composed with the
+    // other units' first readings before admission, then compared against that
+    // stored answer; it never replaces the cache. Reused rows are re-admitted:
     // grounding runs here, so a stored claim naming an entity that has since
     // left the closure is refused like any other.
     let all_units = memo::units(&request);
@@ -198,6 +196,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     comparison_rows.sort();
     comparison_rows.dedup();
     let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
+    let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
 
     // Only first readings of stale units are stored, and only after admission,
     // so a refused artifact or second reading leaves the cache untouched.
@@ -213,23 +212,27 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     }
 
     let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
-    let repeat = match options.get("--claims-repeat") {
-        Some(path) => {
-            let text = artifact(path, limits)?;
-            digests.push(crate::sources::hash(text.as_bytes()));
-            let rows = dialect::parse(&text, limits).map_err(gate)?;
-            Some(identity::admit(&request, &input, &rows).map_err(gate)?)
-        }
-        None if has_cached_second_reading => {
-            Some(identity::admit(&request, &input, &comparison_rows).map_err(gate)?)
-        }
-        None => None,
-    };
+    let mut comparisons = Vec::new();
+    if has_cached_second_reading {
+        comparisons.push(comparison_facts);
+    }
+    if let Some(path) = options.get("--claims-repeat") {
+        let text = artifact(path, limits)?;
+        digests.push(crate::sources::hash(text.as_bytes()));
+        let rows = dialect::parse(&text, limits).map_err(gate)?;
+        comparisons.push(identity::admit(&request, &input, &rows).map_err(gate)?);
+    }
 
     let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
     let mut report = findings::report(&request, &facts, &world, &digests);
-    if let Some(repeat) = &repeat {
-        findings::attach(&mut report, findings::disagreements(&facts, repeat));
+    let mut disagreements = Vec::new();
+    for repeat in &comparisons {
+        disagreements.extend(findings::disagreements(&facts, repeat));
+    }
+    if !comparisons.is_empty() {
+        disagreements.sort();
+        disagreements.dedup();
+        findings::attach(&mut report, disagreements);
     }
     let context = context::build(&request, &facts, &world, report.identity.clone());
 

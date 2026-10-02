@@ -23,15 +23,9 @@ impl Scratch {
         Self(path.canonicalize().unwrap())
     }
 
-    /// The shared design export, written out exactly as `sigil export design`
-    /// would produce it.
-    fn frontend(&self) -> PathBuf {
+    fn frontend_value(&self, value: serde_json::Value) -> PathBuf {
         let path = self.0.join("frontend.json");
-        fs::write(
-            &path,
-            serde_json::to_vec_pretty(&support::shared_value()).unwrap(),
-        )
-        .unwrap();
+        fs::write(&path, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
         path
     }
 }
@@ -68,8 +62,50 @@ fn clean_artifact() -> String {
 
 /// Prepare, then return the scratch root, the export path and the binding path.
 fn prepared(name: &str) -> (Scratch, PathBuf, PathBuf) {
+    prepared_with_value(name, support::shared_value())
+}
+
+/// The same export with Base's Constraints unit presented as a Logic section.
+/// Keeping the replacement the same byte length preserves the fixture's
+/// offset-derived identities while providing a cached Step for admission.
+fn prepared_with_cached_logic(name: &str) -> (Scratch, PathBuf, PathBuf) {
+    let mut value = support::shared_value();
+    let source = value["sources"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|source| source["path"] == BASE)
+        .unwrap();
+    let text = source["text"].as_str().unwrap();
+    assert!(text.contains("constraints {"));
+    source["text"] = serde_json::json!(text.replacen("constraints {", "logic       {", 1));
+    let unit = value["units"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|unit| unit["id"] == BASE_CONSTRAINTS)
+        .unwrap();
+    unit["section"] = serde_json::json!("logic");
+    let group = value["groups"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|group| group["id"] == "group:base.sigil:73")
+        .unwrap();
+    group["section"] = serde_json::json!("logic");
+    let introduction = value["introductions"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|introduction| introduction["id"] == "group:base.sigil:73")
+        .unwrap();
+    introduction["section"] = serde_json::json!("logic");
+    prepared_with_value(name, value)
+}
+
+fn prepared_with_value(name: &str, value: serde_json::Value) -> (Scratch, PathBuf, PathBuf) {
     let scratch = Scratch::new(name);
-    let frontend = scratch.frontend();
+    let frontend = scratch.frontend_value(value);
     let out = scratch.0.join("prep");
     let (code, stdout, stderr) = claims(&[
         "prepare",
@@ -294,6 +330,93 @@ fn a_supplied_cached_unit_is_compared_without_replacing_its_saved_reading() {
                     .is_some_and(|object| object.ends_with(":tag:value"))
             }),
         "the second reading must not replace the cached first reading: {context}"
+    );
+
+    // An explicit repeat is a separate comparison input. It must not suppress
+    // the cached-unit second reading already carried by --claims.
+    let (code, stdout, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        second_binding.to_str().unwrap(),
+        "--claims",
+        second.to_str().unwrap(),
+        "--claims-repeat",
+        first.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+    let disagreements = report["disagreements"].as_array().unwrap();
+    assert_eq!(disagreements.len(), 2, "{report}");
+}
+
+#[test]
+fn a_cached_logic_step_is_available_when_admitting_a_second_reading() {
+    let (scratch, frontend, binding) = prepared_with_cached_logic("cached-step-admission");
+    let first = scratch.0.join("first.egg");
+    fs::write(
+        &first,
+        format!(
+            "(reading {BASE_GOAL:?} \"no-commitment\")\n\
+             (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+             (step {BASE_CONSTRAINTS:?} \"1\")\n"
+        ),
+    )
+    .unwrap();
+    let (code, stdout, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        binding.to_str().unwrap(),
+        "--claims",
+        first.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+
+    let out = scratch.0.join("prep-again");
+    let (code, stdout, stderr) = claims(&[
+        "prepare",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--source",
+        BASE,
+        "--out",
+        out.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    assert_eq!(json(&stdout)["facets"], 0);
+
+    let second = scratch.0.join("second.egg");
+    fs::write(
+        &second,
+        format!(
+            "(reading {BASE_GOAL:?} \"no-commitment\")\n\
+             (claim {BASE_GOAL:?} \"step:1\" \"reads\" \"Base\" \"required\" \"true\")\n"
+        ),
+    )
+    .unwrap();
+    let (code, stdout, stderr) = claims(&[
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        out.join("binding.json").to_str().unwrap(),
+        "--claims",
+        second.to_str().unwrap(),
+        "--root",
+        scratch.0.to_str().unwrap(),
+    ]);
+    assert_eq!(
+        code, 0,
+        "the stored Logic Step must be composed with the supplied Goal before admission: {stdout}{stderr}"
     );
 }
 
