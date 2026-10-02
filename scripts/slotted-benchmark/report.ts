@@ -10,7 +10,6 @@ export interface ReportAttempt {
 }
 
 interface FindingAnalysis {
-  readonly detected: readonly string[];
   readonly matched: ReadonlyMap<string, readonly number[]>;
   readonly extra: readonly number[];
   readonly findings: readonly JsonObject[];
@@ -164,7 +163,7 @@ export function renderReport(
     const planted = relevant.map((issue) =>
       issue.status === "drift"
         ? `${issue.id}: N/A`
-        : finding.detected.includes(issue.id)
+        : finding.matched.has(issue.id)
         ? issue.id
         : ""
     ).filter(Boolean).join(", ") || "—";
@@ -237,7 +236,7 @@ export function renderReport(
           ? "N/A"
           : `${
             valid.filter((attempt) =>
-              analysis.get(attempt.record.id)!.detected.includes(issue.id)
+              analysis.get(attempt.record.id)!.matched.has(issue.id)
             ).length
           }/${valid.length}`
       }`
@@ -362,7 +361,7 @@ function analyze(
   const findings = array(object(attempt.outcome?.report)?.findings).map(object)
     .filter((entry): entry is JsonObject => entry !== null);
   if (attempt.record.status !== "valid") {
-    return { detected: [], matched: new Map(), extra: [], findings };
+    return { matched: new Map(), extra: [], findings };
   }
   const claimFacet = new Map<string, string>();
   for (const unit of array(object(attempt.outcome?.context)?.units)) {
@@ -390,7 +389,6 @@ function analyze(
     if (indices.length) matched.set(issue.id, indices);
   }
   return {
-    detected: [...matched.keys()],
     matched,
     extra: findings.map((_, index) => index).filter((index) =>
       !consumed.has(index)

@@ -71,7 +71,7 @@ export async function runInterpretationAgent(
   let exitCode: number | null = null;
   let finalResponsePath: string | null = null;
   try {
-    await stagePreparation(
+    await copyTree(
       request.preparationDir,
       join(stagedWorkspace, "preparation"),
     );
@@ -284,13 +284,6 @@ async function probeVersion(executable: string): Promise<string | null> {
   } catch {
     return null;
   }
-}
-
-async function stagePreparation(
-  source: string,
-  destination: string,
-): Promise<void> {
-  await copyTree(source, destination);
 }
 
 async function stageSkill(source: string, destination: string): Promise<void> {

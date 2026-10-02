@@ -1,11 +1,6 @@
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  type BatchSelection,
-  readBatch,
-  runBatch,
-  validateSelections,
-} from "./batch.ts";
+import { readBatch, runBatch, validateSelections } from "./batch.ts";
 import type { AgentName } from "./agents.ts";
 import { writeReport } from "./report.ts";
 
@@ -104,7 +99,7 @@ export async function executeCommand(
     }`,
   );
   await runBatch({
-    selections: selections as BatchSelection[],
+    selections,
     passes,
     outputDir: destination,
     timeoutMs,
