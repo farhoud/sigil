@@ -1,4 +1,4 @@
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { DesignInput } from "../../packages/core/src/design-input.ts";
 import {
@@ -136,11 +136,12 @@ export function buildSchedule(
 /** Run the frozen Slotted schedule sequentially, keeping every attempt. */
 export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   const schedule = buildSchedule(options.selections, options.passes);
+  const outputDir = resolve(options.outputDir);
   if (!Number.isSafeInteger(options.timeoutMs) || options.timeoutMs < 1) {
     throw new Error("Timeout must be a positive number of milliseconds");
   }
-  if (await exists(options.outputDir)) {
-    throw new Error(`Output directory already exists: ${options.outputDir}`);
+  if (await exists(outputDir)) {
+    throw new Error(`Output directory already exists: ${outputDir}`);
   }
 
   const workspaceDir = options.workspaceDir ??
@@ -152,9 +153,9 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
     understandDir: join(repoRoot, "integrations/skills/sigil-understand"),
     egglogDir: join(repoRoot, "integrations/skills/sigil-egglog"),
   };
-  await Deno.mkdir(dirname(options.outputDir), { recursive: true });
-  await Deno.mkdir(options.outputDir);
-  const frontendPath = join(options.outputDir, "frontend.json");
+  await Deno.mkdir(dirname(outputDir), { recursive: true });
+  await Deno.mkdir(outputDir);
+  const frontendPath = join(outputDir, "frontend.json");
   const exportResult = await new Deno.Command(sigil, {
     args: [
       "export",
@@ -171,7 +172,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   await Promise.all([
     Deno.writeFile(frontendPath, exportResult.stdout),
     Deno.writeFile(
-      join(options.outputDir, "export.stderr.txt"),
+      join(outputDir, "export.stderr.txt"),
       exportResult.stderr,
     ),
   ]);
@@ -184,7 +185,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
     new TextDecoder().decode(exportResult.stdout),
   ) as DesignInput;
 
-  const pinned = join(options.outputDir, "pinned");
+  const pinned = join(outputDir, "pinned");
   await Deno.mkdir(pinned);
   const pinnedClaims = join(pinned, "sigil-claims");
   await Deno.copyFile(claims, pinnedClaims);
@@ -201,12 +202,12 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   let vocabularyGeneration: number | null = null;
   for (const source of SLOTTED_FIXTURE.sources) {
     const prepDir = join(
-      options.outputDir,
+      outputDir,
       "preflight",
       basename(source.path, ".sigil"),
     );
     const root = join(
-      options.outputDir,
+      outputDir,
       "preflight-roots",
       basename(source.path, ".sigil"),
     );
@@ -309,9 +310,9 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       vocabularyGeneration: vocabularyGeneration!,
     },
   };
-  await writeJson(join(options.outputDir, "manifest.json"), manifest);
+  await writeJson(join(outputDir, "manifest.json"), manifest);
   for (const planned of schedule) {
-    await writeRecord(options.outputDir, {
+    await writeRecord(outputDir, {
       ...planned,
       status: "pending",
       startedAt: null,
@@ -329,14 +330,14 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
 
   for (const planned of schedule) {
     if (options.signal?.aborted) break;
-    const recordPath = join(options.outputDir, "records", `${planned.id}.json`);
+    const recordPath = join(outputDir, "records", `${planned.id}.json`);
     const running: AttemptRecord = {
       ...JSON.parse(await Deno.readTextFile(recordPath)),
       status: "running",
       startedAt: new Date().toISOString(),
     };
-    await writeRecord(options.outputDir, running);
-    const attemptDir = join(options.outputDir, "attempts", planned.id);
+    await writeRecord(outputDir, running);
+    const attemptDir = join(outputDir, "attempts", planned.id);
     try {
       const outcome = await runClaimsAttempt({
         executable: pinnedClaims,
@@ -359,7 +360,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       });
       const outcomePath = join(attemptDir, "outcome.json");
       await writeJson(outcomePath, outcome);
-      await writeRecord(options.outputDir, {
+      await writeRecord(outputDir, {
         ...running,
         status: outcome.status,
         finishedAt: new Date().toISOString(),
@@ -375,7 +376,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
         outcomePath: `attempts/${planned.id}/outcome.json`,
       });
     } catch (cause) {
-      await writeRecord(options.outputDir, {
+      await writeRecord(outputDir, {
         ...running,
         status: "failed",
         finishedAt: new Date().toISOString(),
