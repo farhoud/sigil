@@ -1,107 +1,48 @@
 # Slotted computed-evaluation demo
 
-Slotted is a room-booking design. People own rooms and rent other people's
-rooms, and the owner approves each request. This demo runs Sigil's computed
-claims loop on it and shows what the loop reports.
+Slotted is a room-booking design used to demonstrate Sigil's computed claims
+loop. The benchmark owns the current seven-source fixture, its four planted
+problems, the target state gradient, and the evidence anchors in
+[`scripts/slotted-benchmark/fixture.ts`](../scripts/slotted-benchmark/fixture.ts).
+The design files are in [`examples/slotted/`](../examples/slotted/). Keep the
+planted problems in the fixture when comparing interpretations.
 
-The design is seven plain-prose files. Four deliberate design mistakes are
-built into it. They are intentional demo content, so do not "fix" them. The
-expected results below are targets, not guarantees. The loop uses a model to
-read the prose, so fresh runs give different answers.
+## Run the current benchmark
 
-## The seven files
-
-| Source | What it owns | Imports from |
-| --- | --- | --- |
-| `slotted.sigil` | The app: module list, dependency rules, technology stack | Identity, Rooms, Availability, Booking, SharedKernel |
-| `identity.sigil` | User accounts, sessions, the signed-in user, `requireUser` | — |
-| `rooms.sigil` | Rooms, room owners, room timezone, archiving, the room lock | Identity |
-| `shared.sigil` | The kernel: clock, 30-minute grid, time conversion, domain errors | — |
-| `availability.sigil` | Weekly windows, blackouts, open time | Identity, Rooms, SharedKernel |
-| `booking.sigil` | Booking requests, their lifecycle, the no-overlap rule, owner workflows | Identity, Rooms, Availability, SharedKernel |
-| `calendar.sigil` | The room calendar, with masking by viewer | Rooms, Availability, Booking, SharedKernel |
-
-SharedKernel is a kernel, not a module. Any module may use it without a
-dependency edge. Every facet in these files names at least one Tag. Each Tag
-has one owning component, and other components reuse it through an import.
-
-## The four deliberate problems
-
-| Source | What the prose does | Intended finding | A remedy |
-| --- | --- | --- | --- |
-| `booking.sigil` | The interface says Booking provides a renter a *range change* of their own pending request. A constraint says Booking must not provide a range change of a pending request. | Contradiction | Decide whether a pending range may change. Then make the interface and the constraint agree. |
-| `booking.sigil` and `rooms.sigil` | Booking says it owns the archived room mark and is the only one that may set or clear it. Rooms says Rooms owns the archived room mark. | Ownership conflict | Keep the mark in Rooms. Reword Booking so its workflows only call Rooms' archive and unarchive mutations. |
-| `calendar.sigil` | A constraint requires the *renter display name* of each renter from Identity. Identity has no display name. | Unmet obligation | Give Identity a display name and an interface, or return the label from Booking, or use the email. |
-| `calendar.sigil` | A separate logic step compares an *owner digest* with the previous one. It writes nothing and returns nothing. | Flow warning (`unreached-step`) | Delete the step, or say what consumes its result. |
-
-For the ownership conflict, the evidence is two sentences: Booking's "owns the
-archived room mark, and Booking is the only one that may set or clear it", and
-Rooms' "Rooms owns the archived room mark".
-
-The target gradient is:
-
-- `slotted`, `identity`, `rooms`, `shared`, and `availability`: Coherent, exit 0.
-- `calendar`: Loose, exit 0, with the unmet-obligation and unreached-step warnings.
-- `booking`: Disjoint, exit 1, with the contradiction and ownership-conflict findings.
-
-## Run the claims loop
-
-`sigil-claims` never launches a model. The host captures an export, prepares
-one exact source, gives the prepared request to one fresh interpretation child,
-captures the child's rows, and ingests those exact bytes. Keep run files and
-the private store outside `examples/slotted`. Use a new empty private root,
-preparation directory, and fresh child for every source in every pass. If the
-workspace has a `.sigil/claims/interpretations` folder, copy it into the private
-root first. This workspace has none.
-
-Build the binaries if they are missing, then prepare one source. Run this from
-the repository root:
+Build the two local tools, then select one or more coding-agent/model combinations
+and a positive pass count. Replace `MODEL` with a model selector available in
+each installed agent. The runner starts a fresh child for each source attempt
+and keeps an isolated claims store per attempt.
 
 ```sh
 deno task build:cli
 deno task build:sigilc
-
-RUN="$(mktemp -d "${TMPDIR:-/tmp}/slotted-booking.XXXXXX")"
-mkdir -p "$RUN/private-root"
-
-build/sigil export design examples/slotted --root examples/slotted --format json \
-  > "$RUN/frontend.json"
-
-packages/sigilc/target/debug/sigil-claims prepare \
-  --frontend "$RUN/frontend.json" \
-  --source booking.sigil \
-  --out "$RUN/prepared" \
-  --root "$RUN/private-root"
+deno task slotted-benchmark run --agent claude:MODEL --agent codex:MODEL --agent pi:PROVIDER/MODEL --passes 3
 ```
 
-Take the source name from the export's `sources[].path`. The seven values are
-`slotted.sigil`, `identity.sigil`, `rooms.sigil`, `shared.sigil`,
-`availability.sigil`, `calendar.sigil`, and `booking.sigil`.
+Use `--out DIR` to name the batch directory and `--timeout-ms N` to set a
+per-attempt timeout. The default output is a new directory under
+`analyze-demo/slotted-runs/benchmarks/`, which Git ignores. The command prints
+its report path and completion counts. The directory keeps the captured export,
+fixture check, prepared requests, exact child rows, raw agent events, native
+reports, and one record for every scheduled attempt, including failures.
 
-Start a fresh child with no earlier conversation. Give it `request.json`,
-`binding.json`, every prepared guidance file, the installed `sigil-understand`
-and `sigil-egglog` skills, and one file to write, such as `$RUN/child-result.egg`.
-The child returns only data rows. It does not run `sigil-claims` and does not
-edit the design. Then ingest the exact bytes:
+Rebuild a report from saved evidence without starting any agent:
 
 ```sh
-packages/sigilc/target/debug/sigil-claims ingest \
-  --frontend "$RUN/frontend.json" \
-  --binding "$RUN/prepared/binding.json" \
-  --claims "$RUN/child-result.egg" \
-  --root "$RUN/private-root"
+deno task slotted-benchmark report analyze-demo/slotted-runs/benchmarks/BATCH_DIRECTORY
 ```
 
-Exit `0` means Coherent or Loose. Exit `1` means Disjoint, but only when the
-ingest also prints a matching structured result and report. A bare exit code is
-not a state.
+The report has a run table and an agent/model/source comparison table. It shows
+planted-problem detection, additional findings for review, and differences in
+Facet rows across repeated valid runs as separate views. It does not assign an
+overall rank. A requested model is labeled unverified when the host supplies no
+served-model identity.
 
-A result counts only when all of these hold:
-
-1. The report's source, state, and version match the ingest result.
-2. The report's export digest, guidance fingerprint, and vocabulary generation
-   match `binding.json`.
-3. The report's paths lie under that run's private root.
+The two-pass results below are historical observations from the manual workflow.
+They used earlier guidance and mixed or restarted model calls, so they are not
+an agent/model benchmark result. The fixture and current report are the authority
+for new comparisons.
 
 ## Two full runs against one export
 
@@ -115,7 +56,8 @@ references.
 - Guidance fingerprint: `f86262b80a4dd32a29df56a69e3aa234635b7f9f6fd164f28d9c15735ebd404f`
 
 The seven source files matched the manifest before both passes. Every prepare
-reused zero units. All 14 counted results passed the identity checks above.
+reused zero units. All 14 counted results passed the native identity checks
+used for that historical run.
 
 Limits of this run:
 
@@ -193,20 +135,13 @@ fingerprint is `f86262b8…`.
 The run records stay outside the repository, except the copies in
 `analyze-demo/slotted-runs/`, which are ignored by git.
 
-## Remedies and the expected return state
+## Interpreting the historical results
 
-The files keep the problems so you can rerun the demo. To try a repaired
-design, work in a scratch copy:
-
-1. Make Booking's interface and constraint agree about changing a pending range.
-2. Keep the archived room mark in Rooms. Reword Booking so its workflows only
-   call Rooms' archive and unarchive mutations.
-3. Give the renter display name a provider, or remove the requirement.
-4. Delete the owner digest step, or say what consumes it.
-
-If those are the only defects, the repaired sources should return to Coherent
-with no findings. The model may still report other findings, so run the loop on
-the repaired copy instead of assuming a result. No repaired copy is committed.
+The tool-owned fixture names the intended remedies and target state gradient.
+The historical tables above show what earlier interpretations returned, rather
+than a guarantee that a future model will reach those targets. Review the saved
+rows and cited findings in each new benchmark report before making a claim
+about an agent or model.
 
 ## Computed evaluation and advisory review
 

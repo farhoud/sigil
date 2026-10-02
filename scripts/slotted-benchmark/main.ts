@@ -1,0 +1,155 @@
+import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  type BatchSelection,
+  readBatch,
+  runBatch,
+  validateSelections,
+} from "./batch.ts";
+import type { AgentName } from "./agents.ts";
+import { writeReport } from "./report.ts";
+
+const DEFAULT_OUTPUT = fileURLToPath(
+  new URL("../../analyze-demo/slotted-runs/benchmarks/", import.meta.url),
+);
+
+export const HELP = `Slotted interpretation benchmark
+
+Run a batch:
+  deno task slotted-benchmark run --agent claude:MODEL --agent codex:MODEL --passes 3 [--out DIR] [--timeout-ms N]
+
+Rebuild a report without launching an agent:
+  deno task slotted-benchmark report DIR
+
+Each --agent selects one coding agent and requested model. Repeat it for more combinations.
+The batch keeps raw events, rows, native reports, and the generated report under
+analyze-demo/slotted-runs/benchmarks/ by default.
+`;
+
+export interface CommandDependencies {
+  /** Test and diagnostic override; normal CLI use resolves the installed agents. */
+  readonly agentExecutables?: Partial<Record<AgentName, string>>;
+}
+
+export interface CommandResult {
+  readonly batchDir: string;
+  readonly reportPath: string;
+  readonly scheduled: number;
+  readonly valid: number;
+  readonly failed: number;
+  readonly unfinished: number;
+}
+
+export async function executeCommand(
+  args: readonly string[],
+  dependencies: CommandDependencies = {},
+): Promise<CommandResult> {
+  const [command, ...tail] = args;
+  if (command === "report") {
+    if (tail.length !== 1) {
+      throw new Error("Usage: slotted-benchmark report DIR");
+    }
+    const batchDir = resolve(tail[0]);
+    const reportPath = await writeReport(batchDir);
+    const { records } = await readBatch(batchDir);
+    return summarize(batchDir, reportPath, records);
+  }
+  if (command !== "run") throw new Error(HELP);
+  const selections: { agent: string; model: string }[] = [];
+  let passes: number | null = null;
+  let outputDir: string | null = null;
+  let timeoutMs = 180_000;
+  for (let index = 0; index < tail.length; index += 2) {
+    const flag = tail[index];
+    const value = tail[index + 1];
+    if (
+      !value || !["--agent", "--passes", "--out", "--timeout-ms"].includes(flag)
+    ) {
+      throw new Error(
+        `Unknown or incomplete option: ${flag ?? "(none)"}\n${HELP}`,
+      );
+    }
+    if (flag === "--agent") {
+      const colon = value.indexOf(":");
+      if (colon < 0) throw new Error("Agent selection must be AGENT:MODEL");
+      selections.push({
+        agent: value.slice(0, colon),
+        model: value.slice(colon + 1),
+      });
+    } else if (flag === "--passes") {
+      if (passes !== null) {
+        throw new Error("Pass count supplied more than once");
+      }
+      passes = Number(value);
+    } else if (flag === "--out") {
+      if (outputDir !== null) {
+        throw new Error("Output directory supplied more than once");
+      }
+      outputDir = resolve(value);
+    } else {
+      timeoutMs = Number(value);
+    }
+  }
+  validateSelections(selections);
+  if (!Number.isSafeInteger(passes) || passes === null || passes < 1) {
+    throw new Error("--passes requires a positive integer");
+  }
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) {
+    throw new Error("--timeout-ms requires a positive integer");
+  }
+  const destination = outputDir ?? join(
+    DEFAULT_OUTPUT,
+    `${new Date().toISOString().replaceAll(/[:.]/g, "-")}-${
+      crypto.randomUUID().slice(0, 8)
+    }`,
+  );
+  await runBatch({
+    selections: selections as BatchSelection[],
+    passes,
+    outputDir: destination,
+    timeoutMs,
+    agentExecutables: dependencies.agentExecutables,
+  });
+  const reportPath = await writeReport(destination);
+  const { records } = await readBatch(destination);
+  return summarize(destination, reportPath, records);
+}
+
+function summarize(
+  batchDir: string,
+  reportPath: string,
+  records: readonly { status: string }[],
+): CommandResult {
+  return {
+    batchDir,
+    reportPath,
+    scheduled: records.length,
+    valid: records.filter((record) => record.status === "valid").length,
+    failed:
+      records.filter((record) =>
+        record.status === "failed" || record.status === "invalid"
+      ).length,
+    unfinished:
+      records.filter((record) =>
+        record.status === "pending" || record.status === "running"
+      ).length,
+  };
+}
+
+if (import.meta.main) {
+  if (
+    Deno.args.length === 0 || Deno.args[0] === "--help" || Deno.args[0] === "-h"
+  ) {
+    console.log(HELP);
+  } else {
+    try {
+      const result = await executeCommand(Deno.args);
+      console.log(
+        `Report: ${result.reportPath}\nScheduled: ${result.scheduled}; valid: ${result.valid}; failed or invalid: ${result.failed}; unfinished: ${result.unfinished}`,
+      );
+    } catch (cause) {
+      console.error(String(cause));
+      Deno.exitCode = 1;
+    }
+  }
+}
