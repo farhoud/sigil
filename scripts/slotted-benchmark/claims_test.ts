@@ -2,6 +2,7 @@ import {
   deepStrictEqual as deepEqual,
   strictEqual as equal,
 } from "node:assert/strict";
+import { relative } from "node:path";
 import { blake3 } from "@noble/hashes/blake3.js";
 import { runClaimsAttempt, validateClaimsEvidence } from "./claims.ts";
 import type { AgentRunResult } from "./agents.ts";
@@ -157,13 +158,15 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
 
   async function attempt(name: string, omitLast: boolean) {
     const dir = `${scratch}/${name}`;
+    const path = (value: string) =>
+      name === "full" ? relative(Deno.cwd(), value) : value;
     return await runClaimsAttempt({
       executable: claims,
-      frontendPath,
+      frontendPath: path(frontendPath),
       source: "identity.sigil",
-      privateRoot: `${dir}/private`,
-      preparationDir: `${dir}/prepared`,
-      evidenceDir: `${dir}/evidence`,
+      privateRoot: path(`${dir}/private`),
+      preparationDir: path(`${dir}/prepared`),
+      evidenceDir: path(`${dir}/evidence`),
       interpret: async (preparationDir, evidenceDir) => {
         await Deno.mkdir(evidenceDir, { recursive: true });
         const request = JSON.parse(

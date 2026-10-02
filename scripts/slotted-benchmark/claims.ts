@@ -172,6 +172,10 @@ export interface ClaimsAttemptResult {
 export async function runClaimsAttempt(
   input: ClaimsAttemptRequest,
 ): Promise<ClaimsAttemptResult> {
+  const frontendPath = resolve(input.frontendPath);
+  const privateRoot = resolve(input.privateRoot);
+  const preparationDir = resolve(input.preparationDir);
+  const evidenceDir = resolve(input.evidenceDir);
   let agent: AgentRunResult | null = null;
   let prepareResult: JsonObject | null = null;
   let ingestResult: JsonObject | null = null;
@@ -180,9 +184,9 @@ export async function runClaimsAttempt(
   let report: JsonObject | null = null;
   let context: JsonObject | null = null;
   try {
-    await Deno.mkdir(input.evidenceDir, { recursive: true });
-    await Deno.mkdir(input.privateRoot, { recursive: true });
-    for await (const _entry of Deno.readDir(input.privateRoot)) {
+    await Deno.mkdir(evidenceDir, { recursive: true });
+    await Deno.mkdir(privateRoot, { recursive: true });
+    for await (const _entry of Deno.readDir(privateRoot)) {
       return failure("prepare", "private claims root is not empty");
     }
     const prepared = await invoke(
@@ -190,15 +194,15 @@ export async function runClaimsAttempt(
       [
         "prepare",
         "--frontend",
-        input.frontendPath,
+        frontendPath,
         "--source",
         input.source,
         "--out",
-        input.preparationDir,
+        preparationDir,
         "--root",
-        input.privateRoot,
+        privateRoot,
       ],
-      input.evidenceDir,
+      evidenceDir,
       "prepare",
     );
     if (prepared.exitCode !== 0) {
@@ -207,12 +211,12 @@ export async function runClaimsAttempt(
     prepareResult = object(JSON.parse(prepared.stdout));
     binding = object(
       JSON.parse(
-        await Deno.readTextFile(`${input.preparationDir}/binding.json`),
+        await Deno.readTextFile(`${preparationDir}/binding.json`),
       ),
     );
     request = object(
       JSON.parse(
-        await Deno.readTextFile(`${input.preparationDir}/request.json`),
+        await Deno.readTextFile(`${preparationDir}/request.json`),
       ),
     );
     if (
@@ -224,8 +228,8 @@ export async function runClaimsAttempt(
       );
     }
     agent = await input.interpret(
-      input.preparationDir,
-      `${input.evidenceDir}/child`,
+      preparationDir,
+      `${evidenceDir}/child`,
     );
     if (agent.status !== "completed" || !agent.finalResponsePath) {
       return failure("child", agent.error ?? `child ${agent.status}`);
@@ -236,15 +240,15 @@ export async function runClaimsAttempt(
       [
         "ingest",
         "--frontend",
-        input.frontendPath,
+        frontendPath,
         "--binding",
-        `${input.preparationDir}/binding.json`,
+        `${preparationDir}/binding.json`,
         "--claims",
         agent.finalResponsePath,
         "--root",
-        input.privateRoot,
+        privateRoot,
       ],
-      input.evidenceDir,
+      evidenceDir,
       "ingest",
     );
     if (ingested.exitCode !== 0 && ingested.exitCode !== 1) {
@@ -256,8 +260,8 @@ export async function runClaimsAttempt(
       return failure("ingest", "ingest returned no structured result");
     }
     if (
-      !ingestResult || !inside(input.privateRoot, ingestResult.report) ||
-      !inside(input.privateRoot, ingestResult.judgmentContext)
+      !ingestResult || !inside(privateRoot, ingestResult.report) ||
+      !inside(privateRoot, ingestResult.judgmentContext)
     ) {
       return failure("validation", "native result paths escape private root");
     }
@@ -274,7 +278,7 @@ export async function runClaimsAttempt(
     }
     const validation = validateClaimsEvidence({
       source: input.source,
-      privateRoot: input.privateRoot,
+      privateRoot,
       exitCode: ingested.exitCode,
       artifact,
       binding,
