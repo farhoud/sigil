@@ -43,7 +43,7 @@ export interface AgentRunResult {
   readonly finalResponsePath: string | null;
 }
 
-const PROMPT =
+export const INTERPRETATION_PROMPT =
   `Interpret the Sigil claims preparation in this workspace. This is one fresh interpretation task.\n\nRead preparation/request.json, preparation/binding.json, and every guidance file in preparation/. Read skills/sigil-understand/SKILL.md and skills/sigil-egglog/SKILL.md and their referenced materials for design meaning and the claims dialect. The prepared guidance controls the accepted row format and names.\n\nReturn only the complete data rows for every presented Facet, including contextual Facets. An explicit reading row is appropriate when a Facet asserts no claim. Preserve whole Logic groupings. Do not run sigil-claims or inspect any repository or prior attempt. No explanation, markdown fence, or repaired summary. Your final message must be the exact claims artifact.\n`;
 
 /** Launches one isolated interpretation process and retains its raw evidence. */
@@ -55,7 +55,7 @@ export async function runInterpretationAgent(
   const stdoutPath = join(request.evidenceDir, "stdout.jsonl");
   const stderrPath = join(request.evidenceDir, "stderr.txt");
   const finalPath = join(request.evidenceDir, "final-response.txt");
-  await Deno.writeTextFile(promptPath, PROMPT);
+  await Deno.writeTextFile(promptPath, INTERPRETATION_PROMPT);
   await Deno.writeFile(stdoutPath, new Uint8Array());
   await Deno.writeFile(stderrPath, new Uint8Array());
 
@@ -92,7 +92,7 @@ export async function runInterpretationAgent(
       let child: Deno.ChildProcess;
       try {
         child = new Deno.Command(executable, {
-          args: [...settings, PROMPT],
+          args: [...settings, INTERPRETATION_PROMPT],
           cwd: stagedWorkspace,
           stdin: "null",
           stdout: "piped",
