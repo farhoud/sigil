@@ -597,6 +597,34 @@ fn a_handle_the_request_did_not_issue_is_refused_by_name() {
 }
 
 #[test]
+fn a_refused_repeat_leaves_the_memo_untouched() {
+    // A valid first reading must not be stored when the repeat beside it is
+    // refused, or the next prepare would reuse rows from a refused ingest.
+    let (scratch, frontend, binding) = prepared("refused-repeat");
+    let first = scratch.0.join("first.egg");
+    fs::write(&first, clean_artifact()).unwrap();
+    let repeat = scratch.0.join("repeat.egg");
+    fs::write(
+        &repeat,
+        "(claim \"f9\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n",
+    )
+    .unwrap();
+    let repeat_arg = repeat.to_str().unwrap().to_owned();
+    let (code, _, stderr) = ingest(
+        &frontend,
+        &binding,
+        &first,
+        &scratch.0,
+        &["--claims-repeat", &repeat_arg],
+    );
+    assert_eq!(code, 1, "{stderr}");
+    assert!(
+        stored_rows(&scratch.0).is_empty(),
+        "a refused repeat stored the first reading"
+    );
+}
+
+#[test]
 fn a_constraint_guard_naming_an_unissued_handle_is_refused_by_name() {
     let (scratch, frontend, binding) = prepared("unissued-guard-handle");
     let artifact = scratch.0.join("result.egg");

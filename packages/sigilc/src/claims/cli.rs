@@ -212,19 +212,6 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
     let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
 
-    // Only first readings of stale units are stored, and only after admission,
-    // so a refused artifact or second reading leaves the cache untouched.
-    for unit in &stale {
-        let mine: Vec<_> = supplied
-            .iter()
-            .filter(|r| unit.facets.iter().any(|f| f == r.facet()))
-            .cloned()
-            .collect();
-        if !mine.is_empty() {
-            memo::save(Path::new(root), &request, unit, &mine).map_err(operational)?;
-        }
-    }
-
     let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
     let mut comparisons = Vec::new();
     if has_cached_second_reading {
@@ -239,6 +226,21 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     }
 
     let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
+
+    // Only first readings of stale units are stored, and only once the artifact,
+    // any repeat and saturation have all been accepted, so a refused artifact or
+    // second reading leaves the cache untouched.
+    for unit in &stale {
+        let mine: Vec<_> = supplied
+            .iter()
+            .filter(|r| unit.facets.iter().any(|f| f == r.facet()))
+            .cloned()
+            .collect();
+        if !mine.is_empty() {
+            memo::save(Path::new(root), &request, unit, &mine).map_err(operational)?;
+        }
+    }
+
     let mut report = findings::report(&request, &facts, &world, &digests);
     let mut disagreements = Vec::new();
     for repeat in &comparisons {
