@@ -85,9 +85,16 @@ export async function runInterpretationAgent(
     );
     const outputFile = join(stagedWorkspace, "codex-final-response.txt");
     settings = commandArgs(request.agent, request.requestedModel, outputFile);
-    hostVersion = await probeVersion(executable);
+    const deadline = Date.now() + request.timeoutMs;
+    hostVersion = await probeVersion(
+      executable,
+      request.timeoutMs,
+      request.signal,
+    );
     if (request.signal?.aborted) {
       status = "cancelled";
+    } else if (Date.now() >= deadline) {
+      status = "timeout";
     } else {
       let child: Deno.ChildProcess;
       try {
@@ -126,7 +133,10 @@ export async function runInterpretationAgent(
           }
         }, 2_000);
       };
-      const timeout = setTimeout(() => stop("timeout"), request.timeoutMs);
+      const timeout = setTimeout(
+        () => stop("timeout"),
+        Math.max(0, deadline - Date.now()),
+      );
       const onAbort = () => stop("cancelled");
       request.signal?.addEventListener("abort", onAbort, { once: true });
       try {
@@ -271,16 +281,49 @@ function isolationLimits(agent: AgentName): string[] {
   }
 }
 
-async function probeVersion(executable: string): Promise<string | null> {
+async function probeVersion(
+  executable: string,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<string | null> {
+  if (signal?.aborted) return null;
+  let forceTimer: ReturnType<typeof setTimeout> | undefined;
+  let expired = false;
+  let exited = false;
   try {
-    const result = await new Deno.Command(executable, {
+    const child = new Deno.Command(executable, {
       args: ["--version"],
       stdout: "piped",
       stderr: "null",
-    }).output();
-    return result.success
-      ? new TextDecoder().decode(result.stdout).trim()
-      : null;
+    }).spawn();
+    const stop = () => {
+      if (exited) return;
+      expired = true;
+      try {
+        child.kill("SIGTERM");
+      } catch { /* The process already exited. */ }
+      forceTimer = setTimeout(() => {
+        if (!exited) {
+          try {
+            child.kill("SIGKILL");
+          } catch { /* The process already exited. */ }
+        }
+      }, 500);
+    };
+    const timer = setTimeout(stop, Math.min(timeoutMs, 5_000));
+    signal?.addEventListener("abort", stop, { once: true });
+    try {
+      const result = await child.output();
+      exited = true;
+      return !expired && result.success
+        ? new TextDecoder().decode(result.stdout).trim()
+        : null;
+    } finally {
+      exited = true;
+      clearTimeout(timer);
+      if (forceTimer !== undefined) clearTimeout(forceTimer);
+      signal?.removeEventListener("abort", stop);
+    }
   } catch {
     return null;
   }

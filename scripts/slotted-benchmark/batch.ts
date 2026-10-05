@@ -444,8 +444,14 @@ async function sha256(bytes: Uint8Array): Promise<string> {
 async function copySkill(source: string, destination: string): Promise<void> {
   await Deno.mkdir(destination, { recursive: true });
   for (const file of ["SKILL.md", "VERSION"]) {
-    const path = join(source, file);
-    if (await exists(path)) await Deno.copyFile(path, join(destination, file));
+    try {
+      await Deno.copyFile(join(source, file), join(destination, file));
+    } catch (cause) {
+      if (file === "VERSION" && cause instanceof Deno.errors.NotFound) {
+        continue;
+      }
+      throw cause;
+    }
   }
   await copyTree(join(source, "references"), join(destination, "references"));
 }

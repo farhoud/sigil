@@ -233,6 +233,35 @@ Deno.test("launch failure is recorded and does not poison another host", async (
   }
 });
 
+Deno.test("a hanging version probe obeys the attempt timeout", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-version-test-" });
+  try {
+    const options = await context(root);
+    const executable = `${root}/host.sh`;
+    await Deno.writeTextFile(
+      executable,
+      `#!/bin/sh
+if [ "$1" = "--version" ]; then exec sleep 10; fi
+printf '%s\\n' '{"type":"result","result":"unexpected"}'
+`,
+    );
+    await Deno.chmod(executable, 0o755);
+    const started = Date.now();
+    const result = await runInterpretationAgent({
+      ...options,
+      agent: "claude",
+      requestedModel: "fake",
+      executable,
+      timeoutMs: 150,
+    });
+    assert(result.status === "timeout", `wrong status: ${result.status}`);
+    assert(Date.now() - started < 3_000, "version probe stalled the batch");
+    assert(result.finalResponsePath === null, "main child was launched");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
 for (const termination of ["timeout", "cancelled"] as const) {
   Deno.test(`${termination} ends child and retains partial output`, async () => {
     const root = await Deno.makeTempDir({ prefix: "slotted-agent-test-" });
@@ -245,14 +274,14 @@ while :; do :; done`,
       );
       const controller = new AbortController();
       if (termination === "cancelled") {
-        setTimeout(() => controller.abort(), 100);
+        setTimeout(() => controller.abort(), 300);
       }
       const result = await runInterpretationAgent({
         ...options,
         agent: "claude",
         requestedModel: "model-a",
         executable,
-        timeoutMs: 150,
+        timeoutMs: 500,
         signal: termination === "cancelled" ? controller.signal : undefined,
       });
       assert(

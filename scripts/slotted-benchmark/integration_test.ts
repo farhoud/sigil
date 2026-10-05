@@ -1,8 +1,8 @@
 import { match as matches, strictEqual as equal } from "node:assert/strict";
-import { runBatch } from "./batch.ts";
+import { readBatch, runBatch } from "./batch.ts";
 import { executeCommand } from "./main.ts";
 
-async function fakeClaude(root: string): Promise<string> {
+async function fakeClaude(root: string, planted = false): Promise<string> {
   const path = `${root}/fake-claude.py`;
   await Deno.writeTextFile(
     path,
@@ -13,7 +13,20 @@ if '--version' in sys.argv:
     sys.exit(0)
 with open('preparation/request.json', encoding='utf8') as f:
     request = json.load(f)
-rows = '\\n'.join('(reading ' + json.dumps(row['facet']) + ' "no-commitment")' for row in request['rows']) + '\\n'
+rows = []
+for row in request['rows']:
+    facet = json.dumps(row['facet'])
+    if ${
+      planted ? "True" : "False"
+    } and row['section'] == 'interface' and 'Booking provides a renter a *range change*' in row['prose']:
+        rows.append('(claim ' + facet + ' "Booking" "provides" "range change" "required" "true")')
+    elif ${
+      planted ? "True" : "False"
+    } and row['section'] == 'constraints' and 'Booking must not provide a range change' in row['prose']:
+        rows.append('(claim ' + facet + ' "Booking" "provides" "range change" "required" "false")')
+    else:
+        rows.append('(reading ' + facet + ' "no-commitment")')
+rows = '\\n'.join(rows) + '\\n'
 print(json.dumps({'type': 'assistant', 'message': {'model': 'served-fake-model'}}))
 print(json.dumps({'type': 'result', 'result': rows}))
 `,
@@ -63,6 +76,61 @@ Deno.test("run launches seven fake-host interpretations and report regenerates w
     const regenerated = await executeCommand(["report", batch]);
     equal(regenerated.reportPath, `${batch}/report.md`);
     equal(await Deno.readTextFile(regenerated.reportPath), report);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("failed host does not block later native detection and report", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-continued-test-" });
+  try {
+    const host = await fakeClaude(root, true);
+    const batch = `${root}/batch`;
+    const result = await executeCommand([
+      "run",
+      "--agent",
+      "codex:missing-model",
+      "--agent",
+      "claude:fake-model",
+      "--passes",
+      "1",
+      "--out",
+      batch,
+      "--timeout-ms",
+      "10000",
+    ], {
+      agentExecutables: { codex: `${root}/missing`, claude: host },
+    });
+    equal(result.scheduled, 14);
+    equal(result.failed, 7);
+    equal(result.valid, 7);
+    const { records } = await readBatch(batch);
+    equal(
+      records.slice(0, 7).every((record) => record.status === "failed"),
+      true,
+    );
+    equal(records.slice(7).every((record) => record.status === "valid"), true);
+    const outcome = JSON.parse(
+      await Deno.readTextFile(`${batch}/attempts/000013/outcome.json`),
+    );
+    equal(outcome.status, "valid", outcome.error ?? "");
+    equal(
+      outcome.report.findings.some((finding: { law: string }) =>
+        finding.law === "contradictory-claims"
+      ),
+      true,
+    );
+    const report = await Deno.readTextFile(result.reportPath);
+    matches(report, /booking-pending-range-contradiction: 1\/1/);
+    matches(
+      report,
+      /Attempt 000013, `booking-pending-range-contradiction`: native finding/,
+    );
+    matches(
+      report,
+      /\[report\]\(attempts\/000013\/private\/\.sigil\/claims\/booking\.sigil\.json\)/,
+    );
+    matches(report, /\| 000001 \| codex \| missing-model .*\| failed \|/);
   } finally {
     await Deno.remove(root, { recursive: true });
   }

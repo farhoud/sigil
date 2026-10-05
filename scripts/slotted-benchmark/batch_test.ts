@@ -104,3 +104,41 @@ Deno.test("existing output directory is refused before export or child launch", 
     await Deno.remove(outputDir, { recursive: true });
   }
 });
+
+Deno.test("missing pinned skill fails before scheduling attempts", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-skill-test-" });
+  try {
+    const missing = `${root}/missing-skill`;
+    await Deno.mkdir(`${missing}/references`, { recursive: true });
+    let error = "";
+    try {
+      await runBatch({
+        selections: [{ agent: "claude", model: "unlaunched" }],
+        passes: 1,
+        outputDir: `${root}/batch`,
+        timeoutMs: 1000,
+        skillDirs: {
+          understandDir: missing,
+          egglogDir: "integrations/skills/sigil-egglog",
+        },
+      });
+    } catch (cause) {
+      error = String(cause);
+    }
+    equal(error.includes("SKILL.md"), true, error);
+    equal(await exists(`${root}/batch/manifest.json`), false);
+    equal(await exists(`${root}/batch/records`), false);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await Deno.stat(path);
+    return true;
+  } catch (cause) {
+    if (cause instanceof Deno.errors.NotFound) return false;
+    throw cause;
+  }
+}
