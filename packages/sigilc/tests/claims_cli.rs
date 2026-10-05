@@ -6,7 +6,9 @@ use std::{
 };
 
 mod support;
-use support::{BASE, BASE_CONSTRAINTS, BASE_GOAL, BASE_INTERFACE};
+use support::{
+    BASE, BASE_CONSTRAINTS, BASE_GOAL, BASE_INTERFACE, CONSUMER, CONSUMER_GOAL, CONSUMER_INTERFACE,
+};
 
 struct Scratch(PathBuf);
 
@@ -447,6 +449,386 @@ fn a_claim_for_a_facet_outside_the_request_is_refused() {
     assert_eq!(code, 1, "{stderr}");
     assert!(stderr.contains("facet:foreign.sigil:0"), "{stderr}");
     assert!(stderr.contains("did not ask about"), "{stderr}");
+}
+
+// ------------------------------------------------------------------ handles
+
+fn ingest(
+    frontend: &Path,
+    binding: &Path,
+    artifact: &Path,
+    root: &Path,
+    extra: &[&str],
+) -> (i32, String, String) {
+    let mut args = vec![
+        "ingest",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--binding",
+        binding.to_str().unwrap(),
+        "--claims",
+        artifact.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+    ];
+    args.extend_from_slice(extra);
+    claims(&args)
+}
+
+fn prepare_into(frontend: &Path, source: &str, out: &Path, root: &Path) -> serde_json::Value {
+    let (code, stdout, stderr) = claims(&[
+        "prepare",
+        "--frontend",
+        frontend.to_str().unwrap(),
+        "--source",
+        source,
+        "--out",
+        out.to_str().unwrap(),
+        "--root",
+        root.to_str().unwrap(),
+    ]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    json(&stdout)
+}
+
+/// The prepared request's Facet for each handle it issued.
+fn handles_of(binding: &Path) -> std::collections::BTreeMap<String, String> {
+    let request = json(&fs::read_to_string(binding.with_file_name("request.json")).unwrap());
+    request["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            (
+                row["handle"].as_str().unwrap().to_owned(),
+                row["facet"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect()
+}
+
+/// Every stored row under the root's interpretation store, as written.
+fn stored_rows(root: &Path) -> Vec<serde_json::Value> {
+    let dir = root.join(".sigil/claims/interpretations");
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut rows = Vec::new();
+    for entry in entries {
+        let stored = json(&fs::read_to_string(entry.unwrap().path()).unwrap());
+        rows.extend(stored["rows"].as_array().unwrap().iter().cloned());
+    }
+    rows
+}
+
+/// Every Facet-naming column of the stored rows holds a Facet id, never a handle.
+fn assert_stored_rows_name_facet_ids(root: &Path) {
+    let rows = stored_rows(root);
+    assert!(!rows.is_empty(), "nothing was stored");
+    for row in &rows {
+        let (kind, body) = row.as_object().unwrap().iter().next().unwrap();
+        assert!(
+            body["facet"].as_str().unwrap().starts_with("facet:"),
+            "stored {kind} row names a handle: {row}"
+        );
+        if kind == "guard" && body["operand"] == "constraint" {
+            assert!(
+                body["value"].as_str().unwrap().starts_with("facet:"),
+                "stored constraint guard names a handle: {row}"
+            );
+        }
+    }
+}
+
+fn handle_artifact() -> String {
+    "(reading \"f1\" \"no-commitment\")\n\
+     (claim \"f3\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+     (claim \"f2\" \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        .to_owned()
+}
+
+#[test]
+fn rows_naming_handles_are_admitted_like_rows_naming_facet_ids() {
+    let (by_id, frontend, binding) = prepared("by-id");
+    let handles = handles_of(&binding);
+    assert_eq!(handles["f1"], BASE_GOAL);
+    assert_eq!(handles["f2"], BASE_CONSTRAINTS);
+    assert_eq!(handles["f3"], BASE_INTERFACE);
+    let artifact = by_id.0.join("result.egg");
+    fs::write(&artifact, clean_artifact()).unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &artifact, &by_id.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let id_report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+
+    let (by_handle, frontend, binding) = prepared("by-handle");
+    let artifact = by_handle.0.join("result.egg");
+    fs::write(&artifact, handle_artifact()).unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &artifact, &by_handle.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let handle_report =
+        json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+
+    assert_eq!(handle_report["state"], id_report["state"]);
+    assert_eq!(handle_report["findings"], id_report["findings"]);
+    let mut id_rows = stored_rows(&by_id.0);
+    let mut handle_rows = stored_rows(&by_handle.0);
+    id_rows.sort_by_key(|row| row.to_string());
+    handle_rows.sort_by_key(|row| row.to_string());
+    assert_eq!(handle_rows, id_rows, "a handle is stored as its Facet");
+    assert_stored_rows_name_facet_ids(&by_handle.0);
+}
+
+#[test]
+fn a_handle_the_request_did_not_issue_is_refused_by_name() {
+    // Covers AE1. base.sigil's closure issues f1 to f3.
+    let (scratch, frontend, binding) = prepared("unissued-handle");
+    assert_eq!(handles_of(&binding).len(), 3);
+    let artifact = scratch.0.join("result.egg");
+    fs::write(
+        &artifact,
+        format!(
+            "{}(claim \"f4\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n",
+            handle_artifact()
+        ),
+    )
+    .unwrap();
+    let (code, _, stderr) = ingest(&frontend, &binding, &artifact, &scratch.0, &[]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("\"f4\""), "{stderr}");
+    assert!(stderr.contains("numbers no Facet"), "{stderr}");
+    assert!(
+        stored_rows(&scratch.0).is_empty(),
+        "a refused artifact stores nothing"
+    );
+}
+
+#[test]
+fn a_constraint_guard_resolves_its_handle_and_an_input_guard_keeps_its_literal() {
+    let path = "flow.sigil";
+    let text = "component Flow {\n  constraints {\n    Check the caller first.\n  }\n  logic {\n    Check then act.\n  }\n}\n";
+    let id = format!("urn:sigil:component:{path}:Flow");
+    let unit = |prose: &str, section: &str| {
+        let start = text.find(prose).unwrap();
+        let end = start + prose.len();
+        serde_json::json!({"id": format!("facet:{path}:{start}"), "source": path, "owner": id,
+            "section": section, "range": {"start": start, "end": end},
+            "proseRange": {"start": start, "end": end}, "grouping": null,
+            "introductions": [], "references": [], "links": [],
+            "payload": null, "valid": true, "complete": true})
+    };
+    let constraints = unit("Check the caller first.", "constraints");
+    let logic = unit("Check then act.", "logic");
+    let value = serde_json::json!({
+        "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
+        "sources": [{"path": path, "text": text}],
+        "context": [
+            {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.9.0\"}"},
+            {"path": ".sigil/local.json", "text": null},
+            {"path": ".sigil/glossary.json", "text": null}
+        ],
+        "diagnostics": [], "entities": [support::component(path, "Flow", text)],
+        "units": [constraints, logic], "imports": [], "groups": [], "introductions": [],
+        "references": [], "links": []
+    });
+    let scratch = Scratch::new("guard-handles");
+    let frontend = scratch.frontend_value(value);
+    let out = scratch.0.join("prep");
+    prepare_into(&frontend, path, &out, &scratch.0);
+    let binding = out.join("binding.json");
+    let handles = handles_of(&binding);
+    assert_eq!(handles["f1"], constraints["id"].as_str().unwrap());
+    assert_eq!(handles["f2"], logic["id"].as_str().unwrap());
+
+    let artifact = scratch.0.join("result.egg");
+    fs::write(
+        &artifact,
+        "(reading \"f1\" \"no-commitment\")\n\
+         (step \"f2\" \"1\")\n\
+         (guard \"f2\" \"1\" \"constraint\" \"f1\")\n\
+         (guard \"f2\" \"1\" \"input\" \"f3\")\n",
+    )
+    .unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &artifact, &scratch.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+
+    let guards: Vec<_> = stored_rows(&scratch.0)
+        .into_iter()
+        .filter_map(|row| row.get("guard").cloned())
+        .collect();
+    assert_eq!(guards.len(), 2, "{guards:?}");
+    for guard in &guards {
+        assert_eq!(guard["facet"], logic["id"]);
+        match guard["operand"].as_str().unwrap() {
+            "constraint" => assert_eq!(guard["value"], constraints["id"]),
+            "input" => assert_eq!(guard["value"], "f3", "an input literal is not a handle"),
+            other => panic!("unexpected operand {other}"),
+        }
+    }
+    assert_stored_rows_name_facet_ids(&scratch.0);
+}
+
+#[test]
+fn a_handle_of_a_reused_unit_is_admitted_as_a_second_reading() {
+    let (scratch, frontend, binding) = prepared("cached-handle");
+    let first = scratch.0.join("first.egg");
+    fs::write(&first, clean_artifact()).unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &first, &scratch.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+
+    let out = scratch.0.join("prep-again");
+    let prepared = prepare_into(&frontend, BASE, &out, &scratch.0);
+    assert_eq!(prepared["facets"], 0, "all first readings are cached");
+    let second_binding = out.join("binding.json");
+    // The presented request is empty, so f1 to f3 name reused units only.
+
+    let second = scratch.0.join("second.egg");
+    fs::write(
+        &second,
+        "(reading \"f1\" \"no-commitment\")\n\
+         (claim \"f3\" \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
+         (claim \"f2\" \"Base\" \"owns\" \"value\" \"required\" \"true\")\n",
+    )
+    .unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &second_binding, &second, &scratch.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+    let disagreements = report["disagreements"].as_array().unwrap();
+    assert_eq!(disagreements.len(), 2, "{report}");
+    for entry in disagreements {
+        assert_eq!(entry["facet"], BASE_INTERFACE, "{report}");
+    }
+    assert_stored_rows_name_facet_ids(&scratch.0);
+}
+
+#[test]
+fn shifted_handles_leave_unchanged_units_reused() {
+    // Covers AE3. consumer.sigil's closure numbers base.sigil first, so a Facet
+    // added to base.sigil moves every consumer.sigil handle.
+    let scratch = Scratch::new("shifted-handles");
+    let frontend = scratch.frontend_value(support::shared_value());
+    let out = scratch.0.join("prep");
+    let prepared = prepare_into(&frontend, CONSUMER, &out, &scratch.0);
+    assert_eq!(prepared["facets"], 5);
+    let binding = out.join("binding.json");
+    let handles = handles_of(&binding);
+    assert_eq!(handles["f4"], CONSUMER_GOAL);
+    assert_eq!(handles["f5"], CONSUMER_INTERFACE);
+
+    let artifact = scratch.0.join("first.egg");
+    fs::write(
+        &artifact,
+        format!(
+            "{}(reading \"f4\" \"no-commitment\")\n\
+             (claim \"f5\" \"Consumer\" \"uses\" \"value\" \"required\" \"true\")\n",
+            handle_artifact()
+        ),
+    )
+    .unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &artifact, &scratch.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    assert_stored_rows_name_facet_ids(&scratch.0);
+
+    // Append a component to base.sigil, keeping every existing offset.
+    let mut value = support::shared_value();
+    let base = value["sources"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|source| source["path"] == BASE)
+        .unwrap();
+    let text = format!(
+        "{}component Extra {{\ngoal {{\nKeep the extra.\n}}\n}}\n",
+        base["text"].as_str().unwrap()
+    );
+    base["text"] = serde_json::json!(text);
+    value["entities"]
+        .as_array_mut()
+        .unwrap()
+        .push(support::component(BASE, "Extra", &text));
+    let extra = support::unit(BASE, "Extra", &text, "Keep the extra.");
+    value["units"].as_array_mut().unwrap().push(extra.clone());
+    let frontend = scratch.frontend_value(value);
+
+    let out = scratch.0.join("prep-again");
+    let prepared = prepare_into(&frontend, CONSUMER, &out, &scratch.0);
+    assert_eq!(prepared["facets"], 1, "only the new Facet is stale");
+    assert_eq!(prepared["reusedUnits"], 5, "unchanged units are reused");
+    let binding = out.join("binding.json");
+    let handles = handles_of(&binding);
+    assert_eq!(handles.len(), 1, "{handles:?}");
+    assert_eq!(handles["f4"], extra["id"].as_str().unwrap());
+
+    // The closure alone fixes the numbering, so an empty store shows the whole
+    // table the reused units are numbered by.
+    let fresh = Scratch::new("shifted-handles-fresh");
+    let out_fresh = fresh.0.join("prep");
+    prepare_into(&frontend, CONSUMER, &out_fresh, &fresh.0);
+    let handles = handles_of(&out_fresh.join("binding.json"));
+    assert_eq!(handles["f4"], extra["id"].as_str().unwrap());
+    assert_eq!(
+        handles["f5"], CONSUMER_GOAL,
+        "consumer.sigil's handles shift"
+    );
+    assert_eq!(handles["f6"], CONSUMER_INTERFACE);
+
+    // f4 is the new Facet, and f5 a second reading that agrees with the stored
+    // consumer.sigil goal. Numbering only the presented Facet would call it f1.
+    let artifact = scratch.0.join("second.egg");
+    fs::write(
+        &artifact,
+        "(reading \"f4\" \"no-commitment\")\n(reading \"f5\" \"no-commitment\")\n",
+    )
+    .unwrap();
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &artifact, &scratch.0, &[]);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+    assert!(
+        report["disagreements"]
+            .as_array()
+            .is_none_or(|entries| entries.is_empty()),
+        "f5 must resolve to the consumer.sigil goal: {report}"
+    );
+    assert_stored_rows_name_facet_ids(&scratch.0);
+    let prepared = prepare_into(
+        &frontend,
+        CONSUMER,
+        &scratch.0.join("prep-third"),
+        &scratch.0,
+    );
+    assert_eq!(prepared["facets"], 0, "{prepared}");
+}
+
+#[test]
+fn a_repeat_interpretation_resolves_handles_against_the_same_table() {
+    let (scratch, frontend, binding) = prepared("repeat-handles");
+    let first = scratch.0.join("first.egg");
+    let second = scratch.0.join("second.egg");
+    fs::write(&first, clean_artifact()).unwrap();
+    fs::write(
+        &second,
+        "(reading \"f1\" \"no-commitment\")\n\
+         (claim \"f3\" \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
+         (claim \"f2\" \"Base\" \"owns\" \"value\" \"required\" \"true\")\n",
+    )
+    .unwrap();
+    let repeat = ["--claims-repeat", second.to_str().unwrap()];
+    let (code, stdout, stderr) = ingest(&frontend, &binding, &first, &scratch.0, &repeat);
+    assert_eq!(code, 0, "{stdout}{stderr}");
+    let report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
+    let entries = report["disagreements"].as_array().unwrap();
+    assert_eq!(entries.len(), 2, "{report}");
+    for entry in entries {
+        assert_eq!(entry["facet"], BASE_INTERFACE);
+    }
+
+    fs::write(
+        &second,
+        "(claim \"f9\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n",
+    )
+    .unwrap();
+    let (code, _, stderr) = ingest(&frontend, &binding, &first, &scratch.0, &repeat);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("\"f9\""), "{stderr}");
 }
 
 // ----------------------------------------------------------- binding refusal
