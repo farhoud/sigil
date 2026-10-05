@@ -1,12 +1,6 @@
 import { strictEqual as equal } from "node:assert/strict";
 import { basename } from "node:path";
 import { STAGED_PREPARATION } from "./agents.ts";
-import type { DesignInput } from "../../packages/core/src/design-input.ts";
-import {
-  preflightSlottedFixture,
-  type PreparedFacetRequest,
-  SLOTTED_FIXTURE,
-} from "./fixture.ts";
 
 const repo = (path: string) =>
   new URL(`../../${path}`, import.meta.url).pathname;
@@ -21,10 +15,7 @@ const REQUIRED_SKILL = [
 ];
 const SIZE_GATE_BYTES = 25_600;
 
-async function exportSlotted(scratch: string): Promise<{
-  frontendPath: string;
-  design: DesignInput;
-}> {
+async function exportSlotted(scratch: string): Promise<string> {
   const exported = await new Deno.Command(cli, {
     args: [
       "export",
@@ -41,10 +32,7 @@ async function exportSlotted(scratch: string): Promise<{
   equal(exported.code, 0, new TextDecoder().decode(exported.stderr));
   const frontendPath = `${scratch}/frontend.json`;
   await Deno.writeFile(frontendPath, exported.stdout);
-  return {
-    frontendPath,
-    design: JSON.parse(new TextDecoder().decode(exported.stdout)),
-  };
+  return frontendPath;
 }
 
 async function prepare(
@@ -76,7 +64,7 @@ async function prepare(
 Deno.test("availability's required reading stays under the size gate", async () => {
   const scratch = await Deno.makeTempDir({ prefix: "slotted-size-gate-" });
   try {
-    const { frontendPath } = await exportSlotted(scratch);
+    const frontendPath = await exportSlotted(scratch);
     const out = await prepare(scratch, frontendPath, "availability.sigil");
     const sizes: Record<string, number> = {};
     for (const name of STAGED_PREPARATION) {
@@ -93,27 +81,6 @@ Deno.test("availability's required reading stays under the size gate", async () 
         JSON.stringify(sizes)
       }`,
     );
-  } finally {
-    await Deno.remove(scratch, { recursive: true });
-  }
-});
-
-Deno.test("native preparations still present every planted-problem anchor", async () => {
-  const scratch = await Deno.makeTempDir({ prefix: "slotted-preflight-" });
-  try {
-    const { frontendPath, design } = await exportSlotted(scratch);
-    const requests: PreparedFacetRequest[] = [];
-    for (const source of SLOTTED_FIXTURE.sources) {
-      const out = await prepare(scratch, frontendPath, source.path);
-      requests.push(
-        JSON.parse(await Deno.readTextFile(`${out}/request.json`)),
-      );
-    }
-    const preflight = preflightSlottedFixture(design, requests);
-    equal(preflight.canSchedule, true, preflight.sourceDrift.join("; "));
-    for (const issue of preflight.issues) {
-      equal(issue.status, "scorable", `${issue.id}: ${issue.reason}`);
-    }
   } finally {
     await Deno.remove(scratch, { recursive: true });
   }

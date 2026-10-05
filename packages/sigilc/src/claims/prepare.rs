@@ -4,7 +4,7 @@
 //! prose of each Facet, the guidance bundle, and an immutable binding that lets
 //! ingest refuse a mismatched pair. No `.sigil` file is read — the export
 //! already carries every source's full text.
-use super::{guidance, vocabulary};
+use super::{guidance, identity, vocabulary};
 use crate::{
     frontend::{DesignInput, ImportStatus, SelectionStatus, Unit},
     scope, sources,
@@ -232,11 +232,10 @@ pub fn project(input: &DesignInput, source: &str) -> Result<Request, String> {
         }
         placed.push((unit.prose_range.start, row));
     }
-    // Number by position, not identity: an identity embeds its offset as text,
-    // so sorting identities would put offset 1000 before 999.
+    // Handles follow source, then offset, the same order the flows keep.
     placed.sort_by(|(a_at, a), (b_at, b)| (&a.source, a_at).cmp(&(&b.source, b_at)));
     for (number, (_, mut row)) in placed.into_iter().enumerate() {
-        row.handle = format!("f{}", number + 1);
+        row.handle = handle(number + 1);
         rows.push(row);
     }
     rows.sort_by(|a, b| a.facet.cmp(&b.facet));
@@ -411,6 +410,11 @@ pub fn write(request: &Request, out: &Path) -> Result<Vec<PathBuf>, String> {
 /// The file the interpreter reads, beside the tool-side request and binding.
 pub const BRIEF: &str = "brief.md";
 
+/// The handle for a Facet's 1-based position in the closure.
+fn handle(number: usize) -> String {
+    format!("f{number}")
+}
+
 /// A handle's number, so `f10` orders after `f9`.
 pub fn handle_number(handle: &str) -> Option<usize> {
     handle.strip_prefix('f')?.parse().ok()
@@ -443,10 +447,7 @@ pub fn brief(request: &Request) -> String {
         .iter()
         .map(|e| (e.id.as_str(), e.label.as_str()))
         .collect();
-    let mut shared: BTreeMap<&str, usize> = BTreeMap::new();
-    for entity in &request.entities {
-        *shared.entry(entity.label.as_str()).or_default() += 1;
-    }
+    let ambiguous = identity::ambiguous_labels(request);
     out.push_str("\n## Entities\n\n");
     for entity in &request.entities {
         out.push_str(&format!("- {} ({}", entity.label, entity.kind));
@@ -457,7 +458,7 @@ pub fn brief(request: &Request) -> String {
             ));
         }
         out.push(')');
-        if shared[entity.label.as_str()] > 1 {
+        if ambiguous.contains(&entity.label) {
             out.push_str(&format!(" `{}`", entity.id));
         }
         out.push('\n');
@@ -477,7 +478,7 @@ pub fn brief(request: &Request) -> String {
     }
 
     let mut rows: Vec<&FacetRow> = request.rows.iter().collect();
-    rows.sort_by_key(|r| handle_number(&r.handle));
+    rows.sort_by_cached_key(|r| handle_number(&r.handle));
     let mut component = None;
     let mut section = None;
     for row in rows {

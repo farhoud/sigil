@@ -948,10 +948,7 @@ fn a_rowless_unit_remains_stale_and_cannot_be_memoized() {
 
 /// The handle's number, so `f10` orders after `f9`.
 fn handle_number(handle: &str) -> usize {
-    handle
-        .strip_prefix('f')
-        .and_then(|n| n.parse().ok())
-        .unwrap_or_else(|| panic!("not a Facet handle: {handle}"))
+    prepare::handle_number(handle).unwrap_or_else(|| panic!("not a Facet handle: {handle}"))
 }
 
 #[test]

@@ -109,18 +109,7 @@ fn prepared_with_value(name: &str, value: serde_json::Value) -> (Scratch, PathBu
     let scratch = Scratch::new(name);
     let frontend = scratch.frontend_value(value);
     let out = scratch.0.join("prep");
-    let (code, stdout, stderr) = claims(&[
-        "prepare",
-        "--frontend",
-        frontend.to_str().unwrap(),
-        "--source",
-        BASE,
-        "--out",
-        out.to_str().unwrap(),
-        "--root",
-        scratch.0.to_str().unwrap(),
-    ]);
-    assert_eq!(code, 0, "{stdout}{stderr}");
+    prepare_into(&frontend, BASE, &out, &scratch.0);
     let binding = out.join("binding.json");
     assert!(binding.exists());
     (scratch, frontend, binding)
@@ -540,6 +529,11 @@ fn assert_stored_rows_name_facet_ids(root: &Path) {
     }
 }
 
+/// A second reading that disagrees with `clean_artifact` on what Base provides.
+fn disagreeing_handle_artifact() -> String {
+    handle_artifact().replace("\"provides\" \"value\"", "\"provides\" \"result\"")
+}
+
 fn handle_artifact() -> String {
     "(reading \"f1\" \"no-commitment\")\n\
      (claim \"f3\" \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
@@ -682,13 +676,7 @@ fn a_handle_of_a_reused_unit_is_admitted_as_a_second_reading() {
     // The presented request is empty, so f1 to f3 name reused units only.
 
     let second = scratch.0.join("second.egg");
-    fs::write(
-        &second,
-        "(reading \"f1\" \"no-commitment\")\n\
-         (claim \"f3\" \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
-         (claim \"f2\" \"Base\" \"owns\" \"value\" \"required\" \"true\")\n",
-    )
-    .unwrap();
+    fs::write(&second, disagreeing_handle_artifact()).unwrap();
     let (code, stdout, stderr) = ingest(&frontend, &second_binding, &second, &scratch.0, &[]);
     assert_eq!(code, 0, "{stdout}{stderr}");
     let report = json(&fs::read_to_string(json(&stdout)["report"].as_str().unwrap()).unwrap());
@@ -804,13 +792,7 @@ fn a_repeat_interpretation_resolves_handles_against_the_same_table() {
     let first = scratch.0.join("first.egg");
     let second = scratch.0.join("second.egg");
     fs::write(&first, clean_artifact()).unwrap();
-    fs::write(
-        &second,
-        "(reading \"f1\" \"no-commitment\")\n\
-         (claim \"f3\" \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
-         (claim \"f2\" \"Base\" \"owns\" \"value\" \"required\" \"true\")\n",
-    )
-    .unwrap();
+    fs::write(&second, disagreeing_handle_artifact()).unwrap();
     let repeat = ["--claims-repeat", second.to_str().unwrap()];
     let (code, stdout, stderr) = ingest(&frontend, &binding, &first, &scratch.0, &repeat);
     assert_eq!(code, 0, "{stdout}{stderr}");
