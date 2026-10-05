@@ -116,6 +116,7 @@ pub fn run(args: &[&str]) -> Output {
                 &serde_json::json!({
                     "version": findings::REPORT_VERSION,
                     "binding": Path::new(&out).join("binding.json"),
+                    "brief": Path::new(&out).join(prepare::BRIEF),
                     "inputs": written,
                     "facets": asked.rows.len(),
                     "reusedUnits": reused.len(),

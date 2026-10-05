@@ -628,6 +628,7 @@ fn a_label_shared_by_two_entities_in_the_closure_is_refused_as_ambiguous() {
         },
         rows: vec![prepare::FacetRow {
             facet: "f1".into(),
+            handle: "f1".into(),
             component: "urn:e:Owner".into(),
             component_label: "Owner".into(),
             section: "interface".into(),

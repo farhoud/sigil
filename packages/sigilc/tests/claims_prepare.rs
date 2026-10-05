@@ -174,7 +174,7 @@ fn preparing_the_same_export_twice_writes_identical_bytes() {
     let second = out_dir("twice-b");
     prepare::write(&prepare::project(&input, BASE).unwrap(), &first).unwrap();
     prepare::write(&prepare::project(&input, BASE).unwrap(), &second).unwrap();
-    for name in ["binding.json", "request.json"] {
+    for name in ["binding.json", "request.json", "brief.md"] {
         assert_eq!(
             fs::read(first.join(name)).unwrap(),
             fs::read(second.join(name)).unwrap(),
@@ -222,7 +222,7 @@ fn the_prepared_directory_carries_the_guidance_the_interpreter_needs() {
             doc.name
         );
     }
-    assert_eq!(written.len(), guidance::BUNDLE.len() + 2);
+    assert_eq!(written.len(), guidance::BUNDLE.len() + 3);
     fs::remove_dir_all(&out).unwrap();
 }
 
@@ -759,6 +759,7 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
     let logic_facet = "facet:flows.sigil:1200".to_owned();
     request.rows.push(prepare::FacetRow {
         facet: logic_facet.clone(),
+        handle: "f99".into(),
         component: logic_component.clone(),
         component_label: "Pipeline".into(),
         section: "logic".into(),
@@ -941,4 +942,171 @@ fn a_rowless_unit_remains_stale_and_cannot_be_memoized() {
     assert_eq!(stale, vec![unit]);
     assert!(reused.is_empty());
     fs::remove_dir_all(&root).unwrap();
+}
+
+// ------------------------------------------------ interpretation brief
+
+/// The handle's number, so `f10` orders after `f9`.
+fn handle_number(handle: &str) -> usize {
+    handle
+        .strip_prefix('f')
+        .and_then(|n| n.parse().ok())
+        .unwrap_or_else(|| panic!("not a Facet handle: {handle}"))
+}
+
+#[test]
+fn handles_number_the_whole_closure_in_source_order() {
+    let input = shared_input();
+    let request = prepare::project(&input, CONSUMER).unwrap();
+    let mut rows: Vec<_> = request.rows.iter().collect();
+    rows.sort_by_key(|r| handle_number(&r.handle));
+
+    let numbers: Vec<usize> = rows.iter().map(|r| handle_number(&r.handle)).collect();
+    assert_eq!(
+        numbers,
+        (1..=rows.len()).collect::<Vec<_>>(),
+        "every closure Facet gets one handle, numbered without gaps"
+    );
+    let offset = |facet: &str| {
+        input
+            .units
+            .iter()
+            .find(|u| u.id == facet)
+            .unwrap()
+            .prose_range
+            .start
+    };
+    let order: Vec<(&str, usize)> = rows
+        .iter()
+        .map(|r| (r.source.as_str(), offset(&r.facet)))
+        .collect();
+    let mut sorted = order.clone();
+    sorted.sort();
+    assert_eq!(order, sorted, "handles follow source, then source offset");
+}
+
+#[test]
+fn a_handle_at_offset_1000_follows_one_at_999() {
+    let input = logic_input(&[("Pipeline", &["first step", "second step", "third step"])]);
+    let request = prepare::project(&input, "flows.sigil").unwrap();
+    let by_offset = |r: &&prepare::FacetRow| {
+        input
+            .units
+            .iter()
+            .find(|u| u.id == r.facet)
+            .unwrap()
+            .prose_range
+            .start
+    };
+    let mut rows: Vec<_> = request.rows.iter().collect();
+    rows.sort_by_key(by_offset);
+    let handles: Vec<&str> = rows.iter().map(|r| r.handle.as_str()).collect();
+    assert_eq!(handles, ["f1", "f2", "f3"]);
+}
+
+#[test]
+fn the_brief_lists_each_presented_facet_on_one_handle_line() {
+    let request = prepare::project(&shared_input(), CONSUMER).unwrap();
+    let brief = prepare::brief(&request);
+    for row in &request.rows {
+        let line = format!(
+            "[{}] {}",
+            row.handle,
+            row.prose.split_whitespace().collect::<Vec<_>>().join(" ")
+        );
+        assert!(
+            brief.lines().any(|l| l == line),
+            "{} is missing its one-line entry:\n{brief}",
+            row.handle
+        );
+    }
+    assert!(
+        !brief.contains("facet:"),
+        "the brief names Facets by handle, never by identity"
+    );
+}
+
+#[test]
+fn the_brief_groups_facets_under_component_and_role_headings() {
+    let request = prepare::project(&shared_input(), CONSUMER).unwrap();
+    let brief = prepare::brief(&request);
+    let mut component = None;
+    let mut role = None;
+    for line in brief.lines() {
+        if let Some(rest) = line.strip_prefix("## ") {
+            component = Some(rest.to_owned());
+            role = None;
+        } else if let Some(rest) = line.strip_prefix("### ") {
+            role = Some(rest.to_owned());
+        } else if let Some(rest) = line.strip_prefix("[f") {
+            let handle = format!("f{}", rest.split(']').next().unwrap());
+            let row = request.rows.iter().find(|r| r.handle == handle).unwrap();
+            assert_eq!(
+                component.as_deref(),
+                Some(format!("{} ({})", row.component_label, row.source).as_str())
+            );
+            assert_eq!(role.as_deref(), Some(row.section.as_str()));
+        }
+    }
+}
+
+#[test]
+fn a_logic_section_reads_as_consecutive_handle_lines_in_source_order() {
+    let input = logic_input(&[("Pipeline", &["first step", "second step", "third step"])]);
+    let brief = prepare::brief(&prepare::project(&input, "flows.sigil").unwrap());
+    let lines: Vec<&str> = brief.lines().collect();
+    let at = lines.iter().position(|l| *l == "### logic").unwrap();
+    assert_eq!(lines[at + 1], "", "a blank line follows the role heading");
+    assert_eq!(
+        &lines[at + 2..at + 5],
+        ["[f1] first step", "[f2] second step", "[f3] third step"]
+    );
+}
+
+#[test]
+fn a_warm_memo_presents_fewer_facets_under_unchanged_handles() {
+    let request = prepare::project(&shared_input(), CONSUMER).unwrap();
+    let units: Vec<_> = memo::units(&request)
+        .into_iter()
+        .filter(|u| u.source == CONSUMER)
+        .collect();
+    let asked = prepare::presenting(&request, &units);
+    assert!(asked.rows.len() < request.rows.len());
+    for row in &asked.rows {
+        let whole = request.rows.iter().find(|r| r.facet == row.facet).unwrap();
+        assert_eq!(row.handle, whole.handle, "presenting fewer never renumbers");
+    }
+    let brief = prepare::brief(&asked);
+    for row in request.rows.iter().filter(|r| r.source == BASE) {
+        assert!(
+            !brief.contains(&format!("[{}]", row.handle)),
+            "a stored unit's Facet is not presented"
+        );
+    }
+}
+
+#[test]
+fn the_brief_lists_entities_by_label_and_qualifies_a_shared_label() {
+    let mut request = prepare::project(&shared_input(), CONSUMER).unwrap();
+    let brief = prepare::brief(&request);
+    let entity = request.entities[0].clone();
+    assert!(brief.contains(&entity.label));
+    assert!(
+        !brief.contains(&entity.id),
+        "an unshared label needs no identity"
+    );
+
+    let mut twin = entity.clone();
+    twin.id.push_str("-twin");
+    request.entities.push(twin.clone());
+    let brief = prepare::brief(&request);
+    assert!(brief.contains(&entity.id) && brief.contains(&twin.id));
+}
+
+#[test]
+fn a_brief_with_nothing_stale_says_so() {
+    let request = prepare::project(&shared_input(), BASE).unwrap();
+    let brief = prepare::brief(&prepare::presenting(&request, &[]));
+    assert!(!brief.contains("[f"));
+    assert!(brief.contains("Nothing to interpret"));
 }

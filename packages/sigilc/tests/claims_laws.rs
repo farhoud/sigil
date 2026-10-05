@@ -22,6 +22,7 @@ fn request(roles: &[(&str, &str, &str)]) -> Request {
         .iter()
         .map(|(facet, component, section)| FacetRow {
             facet: (*facet).to_string(),
+            handle: (*facet).to_string(),
             component: (*component).to_string(),
             component_label: (*component).to_string(),
             section: (*section).to_string(),
