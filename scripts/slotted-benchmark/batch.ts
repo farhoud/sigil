@@ -396,15 +396,37 @@ export async function readBatch(
   ) as BatchManifest;
   const records: AttemptRecord[] = [];
   for (const planned of manifest.schedule) {
-    records.push(
-      JSON.parse(
-        await Deno.readTextFile(
-          join(outputDir, "records", `${planned.id}.json`),
+    try {
+      records.push(
+        JSON.parse(
+          await Deno.readTextFile(
+            join(outputDir, "records", `${planned.id}.json`),
+          ),
         ),
-      ),
-    );
+      );
+    } catch (cause) {
+      if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+      records.push(pendingRecord(planned));
+    }
   }
   return { manifest, records };
+}
+
+function pendingRecord(planned: ScheduledAttempt): AttemptRecord {
+  return {
+    ...planned,
+    status: "pending",
+    startedAt: null,
+    finishedAt: null,
+    state: null,
+    failureStep: null,
+    error: null,
+    observedModels: [],
+    modelVerification: "unverified",
+    presentedFacets: null,
+    coveredFacets: null,
+    outcomePath: null,
+  };
 }
 
 async function writeRecord(

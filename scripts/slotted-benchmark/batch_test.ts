@@ -77,6 +77,24 @@ Deno.test("frozen batch retains seven pending records when cancelled before laun
     );
     equal(Object.keys(manifest.input.sourceSha256).length, 7);
     equal(manifest.input.workspaceMemoPresent, false);
+
+    await Deno.remove(`${outputDir}/records/${manifest.schedule[0].id}.json`);
+    const recovered = await readBatch(outputDir);
+    equal(recovered.records.length, 7);
+    deepEqual(recovered.records[0], {
+      ...manifest.schedule[0],
+      status: "pending",
+      startedAt: null,
+      finishedAt: null,
+      state: null,
+      failureStep: null,
+      error: null,
+      observedModels: [],
+      modelVerification: "unverified",
+      presentedFacets: null,
+      coveredFacets: null,
+      outcomePath: null,
+    });
   } finally {
     await Deno.remove(outputDir, { recursive: true });
   }
