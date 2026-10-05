@@ -103,6 +103,7 @@ Deno.test("failed host does not block later native detection and report", async 
     });
     equal(result.scheduled, 14);
     equal(result.failed, 7);
+    equal(result.interrupted, 0);
     equal(result.valid, 7);
     const { records } = await readBatch(batch);
     equal(
@@ -185,6 +186,142 @@ Deno.test("report rebuilds a partial batch with all pending rows and no launch",
     equal(result.unfinished, 7);
     const markdown = await Deno.readTextFile(result.reportPath);
     equal((markdown.match(/\| pending \|/g) ?? []).length, 7);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("an aborted run records the active attempt as interrupted", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-abort-test-" });
+  const marker = `${root}/started`;
+  const host = `${root}/hanging-claude.py`;
+  await Deno.writeTextFile(
+    host,
+    `#!/usr/bin/env python3
+import pathlib, time
+pathlib.Path(${JSON.stringify(marker)}).write_text('started', encoding='utf8')
+while True: time.sleep(1)
+`,
+  );
+  await Deno.chmod(host, 0o755);
+  const controller = new AbortController();
+  try {
+    const pending = executeCommand([
+      "run",
+      "--agent",
+      "claude:fake-model",
+      "--passes",
+      "1",
+      "--out",
+      `${root}/batch`,
+      "--timeout-ms",
+      "30000",
+    ], { agentExecutables: { claude: host }, signal: controller.signal });
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      try {
+        await Deno.stat(marker);
+        break;
+      } catch (cause) {
+        if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    }
+    await Deno.stat(marker);
+    controller.abort();
+    const result = await pending;
+    equal(result.interrupted, 1);
+    equal(result.unfinished, 6);
+    const { records } = await readBatch(`${root}/batch`);
+    equal(records[0].status, "interrupted");
+    equal(
+      records.slice(1).every((record) => record.status === "pending"),
+      true,
+    );
+  } finally {
+    controller.abort();
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("CLI SIGINT and SIGTERM stop the detached host and write a report", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-cli-signal-test-" });
+  try {
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+      const batch = `${root}/${signal}`;
+      const marker = `${root}/${signal}-started`;
+      const host = `${root}/${signal}-host.py`;
+      await Deno.writeTextFile(
+        host,
+        `#!/usr/bin/env python3
+import pathlib, sys, time
+if '--version' in sys.argv:
+    print('fake-claude 1.0')
+    sys.exit(0)
+pathlib.Path(${JSON.stringify(marker)}).write_text('started', encoding='utf8')
+while True: time.sleep(1)
+`,
+      );
+      await Deno.chmod(host, 0o755);
+      const bin = `${root}/${signal}-bin`;
+      await Deno.mkdir(bin);
+      await Deno.symlink(host, `${bin}/claude`);
+      const child = new Deno.Command(Deno.execPath(), {
+        args: [
+          "run",
+          "--allow-read",
+          "--allow-write",
+          "--allow-run",
+          "--allow-env=PATH",
+          "scripts/slotted-benchmark/main.ts",
+          "run",
+          "--agent",
+          "claude:fake-model",
+          "--passes",
+          "1",
+          "--out",
+          batch,
+          "--timeout-ms",
+          "30000",
+        ],
+        env: { PATH: `${bin}:${Deno.env.get("PATH") ?? ""}` },
+        stdout: "piped",
+        stderr: "piped",
+      }).spawn();
+      const output = child.output();
+      try {
+        const deadline = Date.now() + 15_000;
+        let started = false;
+        while (Date.now() < deadline) {
+          try {
+            await Deno.stat(marker);
+            started = true;
+            break;
+          } catch (cause) {
+            if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+        }
+        equal(started, true, `host did not start for ${signal}`);
+        child.kill(signal);
+        const result = await output;
+        equal(result.code, 0, new TextDecoder().decode(result.stderr));
+        const { records } = await readBatch(batch);
+        equal(records[0].status, "interrupted");
+        equal(
+          records.slice(1).every((record) => record.status === "pending"),
+          true,
+        );
+        matches(await Deno.readTextFile(`${batch}/report.md`), /interrupted/);
+      } finally {
+        try {
+          child.kill("SIGKILL");
+        } catch { /* The child already exited. */ }
+        try {
+          await output;
+        } catch { /* The child failed before producing output. */ }
+      }
+    }
   } finally {
     await Deno.remove(root, { recursive: true });
   }

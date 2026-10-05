@@ -1,5 +1,6 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { blake3 } from "@noble/hashes/blake3.js";
+import { captureStream, settleWithin, signalOwnedProcess } from "./process.ts";
 import type { AgentRunResult } from "./agents.ts";
 
 type JsonObject = Record<string, unknown>;
@@ -147,14 +148,17 @@ export interface ClaimsAttemptRequest {
   readonly privateRoot: string;
   readonly preparationDir: string;
   readonly evidenceDir: string;
+  readonly timeoutMs: number;
+  readonly signal?: AbortSignal;
   readonly interpret: (
     preparationDir: string,
     evidenceDir: string,
+    timeoutMs: number,
   ) => Promise<AgentRunResult>;
 }
 
 export interface ClaimsAttemptResult {
-  readonly status: "valid" | "invalid" | "failed";
+  readonly status: "valid" | "invalid" | "failed" | "interrupted";
   readonly failureStep: "prepare" | "child" | "ingest" | "validation" | null;
   readonly error: string | null;
   readonly state: ComputedState | null;
@@ -176,6 +180,8 @@ export async function runClaimsAttempt(
   const privateRoot = resolve(input.privateRoot);
   const preparationDir = resolve(input.preparationDir);
   const evidenceDir = resolve(input.evidenceDir);
+  const deadline = Date.now() + input.timeoutMs;
+  const remainingMs = () => deadline - Date.now();
   let agent: AgentRunResult | null = null;
   let prepareResult: JsonObject | null = null;
   let ingestResult: JsonObject | null = null;
@@ -184,6 +190,9 @@ export async function runClaimsAttempt(
   let report: JsonObject | null = null;
   let context: JsonObject | null = null;
   try {
+    if (remainingMs() <= 0) {
+      return failure("prepare", "attempt timeout", "interrupted");
+    }
     await Deno.mkdir(evidenceDir, { recursive: true });
     await Deno.mkdir(privateRoot, { recursive: true });
     for await (const _entry of Deno.readDir(privateRoot)) {
@@ -204,7 +213,16 @@ export async function runClaimsAttempt(
       ],
       evidenceDir,
       "prepare",
+      remainingMs(),
+      input.signal,
     );
+    if (prepared.stopReason) {
+      return failure(
+        "prepare",
+        `prepare ${prepared.stopReason}`,
+        "interrupted",
+      );
+    }
     if (prepared.exitCode !== 0) {
       return failure("prepare", prepared.stderr || prepared.stdout);
     }
@@ -227,14 +245,27 @@ export async function runClaimsAttempt(
         "invalid preparation or reused interpretation units",
       );
     }
+    if (remainingMs() <= 0) {
+      return failure("child", "attempt timeout", "interrupted");
+    }
     agent = await input.interpret(
       preparationDir,
       `${evidenceDir}/child`,
+      remainingMs(),
     );
     if (agent.status !== "completed" || !agent.finalResponsePath) {
-      return failure("child", agent.error ?? `child ${agent.status}`);
+      return failure(
+        "child",
+        agent.error ?? `child ${agent.status}`,
+        agent.status === "timeout" || agent.status === "cancelled"
+          ? "interrupted"
+          : "failed",
+      );
     }
     const artifact = await Deno.readFile(agent.finalResponsePath);
+    if (remainingMs() <= 0) {
+      return failure("ingest", "attempt timeout", "interrupted");
+    }
     const ingested = await invoke(
       input.executable,
       [
@@ -250,14 +281,22 @@ export async function runClaimsAttempt(
       ],
       evidenceDir,
       "ingest",
+      remainingMs(),
+      input.signal,
     );
+    if (ingested.stopReason) {
+      return failure("ingest", `ingest ${ingested.stopReason}`, "interrupted");
+    }
     if (ingested.exitCode !== 0 && ingested.exitCode !== 1) {
       return failure("ingest", ingested.stderr || ingested.stdout);
     }
     try {
       ingestResult = object(JSON.parse(ingested.stdout));
     } catch {
-      return failure("ingest", "ingest returned no structured result");
+      return failure(
+        "ingest",
+        ingested.stderr.trim() || "ingest returned no structured result",
+      );
     }
     if (
       !ingestResult || !inside(privateRoot, ingestResult.report) ||
@@ -312,9 +351,10 @@ export async function runClaimsAttempt(
   function failure(
     step: Exclude<ClaimsAttemptResult["failureStep"], null>,
     message: string,
+    status: "failed" | "interrupted" = "failed",
   ): ClaimsAttemptResult {
     return {
-      status: "failed",
+      status,
       failureStep: step,
       error: message,
       state: null,
@@ -335,19 +375,89 @@ async function invoke(
   args: string[],
   evidenceDir: string,
   name: string,
-): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  const output = await new Deno.Command(executable, {
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<{
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+  stopReason: "timeout" | "cancelled" | null;
+}> {
+  const child = new Deno.Command(executable, {
     args,
     stdout: "piped",
     stderr: "piped",
-  }).output();
-  const stdout = new TextDecoder().decode(output.stdout);
-  const stderr = new TextDecoder().decode(output.stderr);
-  await Promise.all([
-    Deno.writeFile(`${evidenceDir}/${name}.stdout.txt`, output.stdout),
-    Deno.writeFile(`${evidenceDir}/${name}.stderr.txt`, output.stderr),
+    detached: Deno.build.os !== "windows",
+  }).spawn();
+  const stdoutCapture = captureStream(child.stdout);
+  const stderrCapture = captureStream(child.stderr);
+  const outputDone = Promise.all([
+    stdoutCapture.done,
+    stderrCapture.done,
   ]);
-  return { exitCode: output.code, stdout, stderr };
+  const processState: { status: Deno.CommandStatus | null } = { status: null };
+  const processDone = child.status.then((status) => {
+    processState.status = status;
+  });
+  let stopReason: "timeout" | "cancelled" | null = null;
+  let resolveStop!: (reason: "timeout" | "cancelled") => void;
+  const stopped = new Promise<"timeout" | "cancelled">((resolve) => {
+    resolveStop = resolve;
+  });
+  const stop = (reason: "timeout" | "cancelled") => {
+    if (stopReason !== null) return;
+    stopReason = reason;
+    resolveStop(reason);
+    void signalOwnedProcess(child, "SIGTERM");
+  };
+  const timer = setTimeout(() => stop("timeout"), timeoutMs);
+  const onAbort = () => stop("cancelled");
+  signal?.addEventListener("abort", onAbort, { once: true });
+  if (signal?.aborted) stop("cancelled");
+
+  try {
+    const first = await Promise.race([
+      processDone.then(() => ({ processExited: true as const })),
+      stopped.then((reason) => ({ reason })),
+    ]);
+    if ("reason" in first) {
+      const exited = await settleWithin(processDone, 2_250);
+      if (!exited) {
+        await signalOwnedProcess(child, "SIGKILL");
+        await settleWithin(processDone, 1_000);
+      }
+    }
+    const drained = await settleWithin(outputDone, 1_000);
+    if (!drained) {
+      await signalOwnedProcess(child, "SIGTERM");
+      if (!await settleWithin(outputDone, 1_000)) {
+        await signalOwnedProcess(child, "SIGKILL");
+        await settleWithin(outputDone, 1_000);
+      }
+    }
+    if (!await settleWithin(outputDone, 250)) {
+      stdoutCapture.cancel();
+      stderrCapture.cancel();
+      await settleWithin(outputDone, 250);
+    }
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", onAbort);
+  }
+  const stdoutBytes = stdoutCapture.read();
+  const stderrBytes = stderrCapture.read();
+  const stdout = new TextDecoder().decode(stdoutBytes);
+  const stderr = new TextDecoder().decode(stderrBytes);
+  await Promise.all([
+    Deno.writeFile(`${evidenceDir}/${name}.stdout.txt`, stdoutBytes),
+    Deno.writeFile(`${evidenceDir}/${name}.stderr.txt`, stderrBytes),
+  ]);
+  return {
+    exitCode: processState.status?.code ?? null,
+    stdout,
+    stderr,
+    stopReason,
+  };
 }
 
 function object(value: unknown): JsonObject | null {

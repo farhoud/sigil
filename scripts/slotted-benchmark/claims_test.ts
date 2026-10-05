@@ -156,7 +156,12 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   const frontendPath = `${scratch}/frontend.json`;
   await Deno.writeFile(frontendPath, exported.stdout);
 
-  async function attempt(name: string, omitLast: boolean) {
+  async function attempt(
+    name: string,
+    omitLast: boolean,
+    childStatus: AgentRunResult["status"] = "completed",
+    malformed = false,
+  ) {
     const dir = `${scratch}/${name}`;
     const path = (value: string) =>
       name === "full" ? relative(Deno.cwd(), value) : value;
@@ -167,14 +172,24 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
       privateRoot: path(`${dir}/private`),
       preparationDir: path(`${dir}/prepared`),
       evidenceDir: path(`${dir}/evidence`),
+      timeoutMs: 10_000,
       interpret: async (preparationDir, evidenceDir) => {
         await Deno.mkdir(evidenceDir, { recursive: true });
+        if (childStatus !== "completed") {
+          return {
+            status: childStatus,
+            finalResponsePath: null,
+            error: `child ${childStatus}`,
+          } as AgentRunResult;
+        }
         const request = JSON.parse(
           await Deno.readTextFile(`${preparationDir}/request.json`),
         );
-        const rows = (request.rows as { facet: string }[]).map((row) =>
-          `(reading ${JSON.stringify(row.facet)} "no-commitment")`
-        );
+        const rows = malformed
+          ? ["not a claims row"]
+          : (request.rows as { facet: string }[]).map((row) =>
+            `(reading ${JSON.stringify(row.facet)} "no-commitment")`
+          );
         if (omitLast) rows.pop();
         const finalResponsePath = `${evidenceDir}/final-response.txt`;
         await Deno.writeTextFile(finalResponsePath, `${rows.join("\n")}\n`);
@@ -201,6 +216,23 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
     true,
     "native ingest still accepted the partial artifact",
   );
+  const timeout = await attempt("timeout", false, "timeout");
+  equal(timeout.status, "interrupted");
+  equal(timeout.failureStep, "child");
+  equal(timeout.error, "child timeout");
+  equal(timeout.state, null);
+  const cancelled = await attempt("cancelled", false, "cancelled");
+  equal(cancelled.status, "interrupted");
+  equal(cancelled.failureStep, "child");
+  const refused = await attempt("refused", false, "completed", true);
+  equal(refused.status, "failed");
+  equal(refused.failureStep, "ingest");
+  equal(
+    Boolean(
+      refused.error && refused.error !== "ingest returned no structured result",
+    ),
+    true,
+  );
 });
 
 Deno.test("a nonempty private root stops before prepare or child launch", async () => {
@@ -216,6 +248,7 @@ Deno.test("a nonempty private root stops before prepare or child launch", async 
     privateRoot,
     preparationDir: `${scratch}/prepared`,
     evidenceDir: `${scratch}/evidence`,
+    timeoutMs: 1_000,
     interpret: () => {
       launched = true;
       throw new Error("should not launch");
@@ -224,4 +257,108 @@ Deno.test("a nonempty private root stops before prepare or child launch", async 
   equal(checked.status, "failed");
   equal(checked.failureStep, "prepare");
   equal(launched, false);
+});
+
+Deno.test("native prepare timeout interrupts without blocking the batch", async () => {
+  const scratch = await Deno.makeTempDir({ prefix: "slotted-claims-timeout-" });
+  const executable = `${scratch}/slow-claims.py`;
+  const marker = `${scratch}/started`;
+  await Deno.writeTextFile(
+    executable,
+    `#!/usr/bin/env python3
+import pathlib, time
+pathlib.Path(${JSON.stringify(marker)}).write_text('started')
+print('prepare started', flush=True)
+time.sleep(30)
+`,
+  );
+  await Deno.chmod(executable, 0o755);
+  let childLaunched = false;
+  const startedAt = Date.now();
+  try {
+    const pending = runClaimsAttempt({
+      executable,
+      frontendPath: `${scratch}/frontend.json`,
+      source: "identity.sigil",
+      privateRoot: `${scratch}/private`,
+      preparationDir: `${scratch}/prepared`,
+      evidenceDir: `${scratch}/evidence`,
+      timeoutMs: 500,
+      interpret: () => {
+        childLaunched = true;
+        throw new Error("timed out prepare must not launch an agent");
+      },
+    });
+    const deadline = Date.now() + 5_000;
+    while (Date.now() < deadline) {
+      try {
+        await Deno.stat(marker);
+        break;
+      } catch (cause) {
+        if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    }
+    await Deno.stat(marker);
+    const result = await pending;
+    equal(result.status, "interrupted");
+    equal(result.failureStep, "prepare");
+    equal(result.error, "prepare timeout");
+    equal(childLaunched, false);
+    equal(Date.now() - startedAt < 5_000, true);
+    equal(
+      await Deno.readTextFile(`${scratch}/evidence/prepare.stdout.txt`),
+      "prepare started\n",
+    );
+    await Deno.stat(`${scratch}/evidence/prepare.stderr.txt`);
+  } finally {
+    await Deno.remove(scratch, { recursive: true });
+  }
+});
+
+Deno.test("the configured timeout covers preparation and interpretation together", async () => {
+  const scratch = await Deno.makeTempDir({ prefix: "slotted-total-timeout-" });
+  const executable = `${scratch}/slow-prepare.py`;
+  await Deno.writeTextFile(
+    executable,
+    `#!/usr/bin/env python3
+import json, os, sys, time
+args = sys.argv
+out = args[args.index('--out') + 1]
+time.sleep(0.25)
+os.makedirs(out, exist_ok=True)
+open(os.path.join(out, 'binding.json'), 'w').write('{}')
+open(os.path.join(out, 'request.json'), 'w').write('{"rows": []}')
+print(json.dumps({'reusedUnits': 0, 'facets': 0}))
+`,
+  );
+  await Deno.chmod(executable, 0o755);
+  let childBudget = 0;
+  const startedAt = Date.now();
+  try {
+    const result = await runClaimsAttempt({
+      executable,
+      frontendPath: `${scratch}/frontend.json`,
+      source: "identity.sigil",
+      privateRoot: `${scratch}/private`,
+      preparationDir: `${scratch}/prepared`,
+      evidenceDir: `${scratch}/evidence`,
+      timeoutMs: 1_000,
+      interpret: async (_prepared, _evidence, timeoutMs) => {
+        childBudget = timeoutMs;
+        await new Promise((resolve) => setTimeout(resolve, timeoutMs));
+        return {
+          status: "timeout",
+          finalResponsePath: null,
+          error: "child timeout",
+        } as AgentRunResult;
+      },
+    });
+    equal(result.status, "interrupted");
+    equal(result.failureStep, "child");
+    equal(childBudget > 0 && childBudget < 900, true);
+    equal(Date.now() - startedAt < 2_500, true);
+  } finally {
+    await Deno.remove(scratch, { recursive: true });
+  }
 });

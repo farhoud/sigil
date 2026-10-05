@@ -1,4 +1,4 @@
-import { join, relative, resolve, sep } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { type AttemptRecord, type BatchManifest, readBatch } from "./batch.ts";
 import type { IssuePreflight } from "./fixture.ts";
 
@@ -13,6 +13,7 @@ interface FindingAnalysis {
   readonly matched: ReadonlyMap<string, readonly number[]>;
   readonly extra: readonly number[];
   readonly findings: readonly JsonObject[];
+  readonly claimFacet: ReadonlyMap<string, string>;
 }
 
 /** Rebuild the report from durable records and artifacts without any model call. */
@@ -34,11 +35,47 @@ export async function writeReport(batchDir: string): Promise<string> {
       }
       const child = object(outcome?.agent);
       if (typeof child?.finalResponsePath === "string") {
-        try {
-          rowsText = await Deno.readTextFile(child.finalResponsePath);
-        } catch {
-          // An absent child file does not erase its scheduled attempt.
-        }
+        const canonicalPath = resolve(
+          batchDir,
+          "attempts",
+          record.id,
+          "evidence",
+          "child",
+          "final-response.txt",
+        );
+        const canonicalRows = await readFileIfPresent(canonicalPath);
+        rowsText = canonicalRows?.text ?? null;
+        outcome = {
+          ...outcome!,
+          agent: {
+            ...child,
+            finalResponsePath: canonicalRows?.path ?? null,
+          },
+        };
+      }
+      const ingest = object(outcome?.ingestResult);
+      if (ingest) {
+        const privateClaimsDir = resolve(
+          batchDir,
+          "attempts",
+          record.id,
+          "private",
+          ".sigil",
+          "claims",
+        );
+        const reportPath = join(privateClaimsDir, `${record.source}.json`);
+        const contextPath = join(
+          privateClaimsDir,
+          `${record.source}.context.json`,
+        );
+        const report = await pathExists(reportPath) ? reportPath : null;
+        const judgmentContext = await pathExists(contextPath)
+          ? contextPath
+          : null;
+        outcome = {
+          ...outcome!,
+          ingestResult: { ...ingest, report, judgmentContext },
+        };
       }
     }
     const hasEvidence = outcome && object(outcome.report) &&
@@ -58,8 +95,43 @@ export async function writeReport(batchDir: string): Promise<string> {
     });
   }
   const path = join(batchDir, "report.md");
-  await Deno.writeTextFile(path, renderReport(manifest, attempts, batchDir));
+  await writeReportFile(
+    path,
+    renderReport(manifest, attempts, batchDir),
+  );
   return path;
+}
+
+async function writeReportFile(path: string, contents: string): Promise<void> {
+  const temporaryPath = join(
+    dirname(path),
+    `.${basename(path)}.${crypto.randomUUID()}.tmp`,
+  );
+  try {
+    const temporary = await Deno.open(temporaryPath, {
+      write: true,
+      createNew: true,
+    });
+    try {
+      await temporary.write(new TextEncoder().encode(contents));
+      await temporary.sync();
+    } finally {
+      temporary.close();
+    }
+    try {
+      await Deno.remove(path);
+    } catch (cause) {
+      if (!(cause instanceof Deno.errors.NotFound)) throw cause;
+    }
+    await Deno.rename(temporaryPath, path);
+  } catch (cause) {
+    try {
+      await Deno.remove(temporaryPath);
+    } catch (cleanupError) {
+      if (!(cleanupError instanceof Deno.errors.NotFound)) throw cleanupError;
+    }
+    throw cause;
+  }
 }
 
 export function renderReport(
@@ -213,15 +285,21 @@ export function renderReport(
     "",
     "Counts are observations on this captured Slotted snapshot. Detection, additional findings, and repeatability are separate measures; there is no overall rank.",
     "",
-    "| Agent | Requested model | Observed model | Source | Scheduled | Valid | Failed / invalid / interrupted / pending | States among valid | Planted problem detection | Additional findings | Facet coverage |",
+    "| Agent | Requested model | Observed model | Source | Scheduled | Valid | Failed / invalid / interrupted / pending | States among valid | Planted problem detection | Additional finding frequencies (identity runs/valid) | Facet coverage |",
     "| --- | --- | --- | --- | ---: | ---: | --- | --- | --- | --- | ---: |",
   );
   for (const group of groups) {
     const valid = group.filter((attempt) => attempt.record.status === "valid");
     const sample = group[0].record;
-    const counts = ["failed", "invalid", "running", "pending"].map((status) =>
-      group.filter((attempt) => attempt.record.status === status).length
-    );
+    const counts = [
+      group.filter((attempt) => attempt.record.status === "failed").length,
+      group.filter((attempt) => attempt.record.status === "invalid").length,
+      group.filter((attempt) =>
+        attempt.record.status === "interrupted" ||
+        attempt.record.status === "running"
+      ).length,
+      group.filter((attempt) => attempt.record.status === "pending").length,
+    ];
     const states = ["coherent", "loose", "disjoint"].map((state) =>
       `${state} ${
         valid.filter((attempt) => attempt.record.state === state).length
@@ -243,9 +321,7 @@ export function renderReport(
     ).join("; ") || "—";
     const extraTotal = valid.reduce((sum, attempt) =>
       sum + analysis.get(attempt.record.id)!.extra.length, 0);
-    const extraRuns = valid.filter((attempt) =>
-      analysis.get(attempt.record.id)!.extra.length > 0
-    ).length;
+    const extraFrequencies = additionalFindingFrequencies(valid, analysis);
     const covered = group.reduce((sum, attempt) =>
       sum + (attempt.record.coveredFacets ?? 0), 0);
     const presented = group.reduce((sum, attempt) =>
@@ -255,11 +331,13 @@ export function renderReport(
         observed(sample)
       } | \`${sample.source}\` | ${group.length} | ${valid.length} | ${
         counts.join(" / ")
-      } | ${states} | ${
-        cell(detections)
-      } | ${extraTotal} findings in ${extraRuns}/${valid.length} valid runs | ${
-        presented ? `${covered}/${presented}` : "—"
-      } |`,
+      } | ${states} | ${cell(detections)} | ${
+        cell(
+          `${extraTotal} total; ${
+            extraFrequencies.join("; ") || "no additional findings"
+          }`,
+        )
+      } | ${presented ? `${covered}/${presented}` : "—"} |`,
     );
   }
 
@@ -361,7 +439,12 @@ function analyze(
   const findings = array(object(attempt.outcome?.report)?.findings).map(object)
     .filter((entry): entry is JsonObject => entry !== null);
   if (attempt.record.status !== "valid") {
-    return { matched: new Map(), extra: [], findings };
+    return {
+      matched: new Map(),
+      extra: [],
+      findings,
+      claimFacet: new Map(),
+    };
   }
   const claimFacet = new Map<string, string>();
   for (const unit of array(object(attempt.outcome?.context)?.units)) {
@@ -394,6 +477,49 @@ function analyze(
       !consumed.has(index)
     ),
     findings,
+    claimFacet,
+  };
+}
+
+function additionalFindingFrequencies(
+  valid: readonly ReportAttempt[],
+  analysis: ReadonlyMap<string, FindingAnalysis>,
+): string[] {
+  const frequencies = new Map<
+    string,
+    { display: string; attempts: Set<string> }
+  >();
+  for (const attempt of valid) {
+    const findings = analysis.get(attempt.record.id)!;
+    for (const index of findings.extra) {
+      const finding = findings.findings[index];
+      const identity = extraFindingIdentity(finding, findings.claimFacet);
+      const entry = frequencies.get(identity.key) ?? {
+        display: identity.display,
+        attempts: new Set<string>(),
+      };
+      entry.attempts.add(attempt.record.id);
+      frequencies.set(identity.key, entry);
+    }
+  }
+  return [...frequencies.values()]
+    .sort((left, right) => left.display.localeCompare(right.display))
+    .map((entry) => `${entry.display}: ${entry.attempts.size}/${valid.length}`);
+}
+
+function extraFindingIdentity(
+  finding: JsonObject,
+  claimFacet: ReadonlyMap<string, string>,
+): { key: string; display: string } {
+  const findingClass = String(finding.class ?? "unknown");
+  const law = String(finding.law ?? "unknown");
+  const rawSubject = String(finding.subject ?? "unknown");
+  const subjectFacet = claimFacet.get(rawSubject);
+  const subject = subjectFacet ? `Facet ${subjectFacet}` : rawSubject;
+  const object = String(finding.object ?? "unknown");
+  return {
+    key: JSON.stringify([findingClass, law, subject, object]),
+    display: `${findingClass} / ${law} / ${subject} / ${object}`,
   };
 }
 
@@ -503,4 +629,25 @@ function relativeLink(batchDir: string, value: unknown): string | null {
   if (typeof value !== "string") return null;
   const rel = relative(resolve(batchDir), resolve(value));
   return rel && rel !== ".." && !rel.startsWith(`..${sep}`) ? rel : null;
+}
+
+async function readFileIfPresent(
+  path: string,
+): Promise<{ path: string; text: string } | null> {
+  try {
+    return { path, text: await Deno.readTextFile(path) };
+  } catch (cause) {
+    if (cause instanceof Deno.errors.NotFound) return null;
+    throw cause;
+  }
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await Deno.stat(path);
+    return true;
+  } catch (cause) {
+    if (cause instanceof Deno.errors.NotFound) return false;
+    throw cause;
+  }
 }

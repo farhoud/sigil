@@ -25,7 +25,13 @@ export interface ScheduledAttempt extends BatchSelection {
 }
 
 export interface AttemptRecord extends ScheduledAttempt {
-  readonly status: "pending" | "running" | "valid" | "invalid" | "failed";
+  readonly status:
+    | "pending"
+    | "running"
+    | "valid"
+    | "invalid"
+    | "failed"
+    | "interrupted";
   readonly startedAt: string | null;
   readonly finishedAt: string | null;
   readonly state: "coherent" | "loose" | "disjoint" | null;
@@ -346,14 +352,16 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
         privateRoot: join(attemptDir, "private"),
         preparationDir: join(attemptDir, "prepared"),
         evidenceDir: join(attemptDir, "evidence"),
-        interpret: (preparationDir, evidenceDir) =>
+        timeoutMs: options.timeoutMs,
+        signal: options.signal,
+        interpret: (preparationDir, evidenceDir, timeoutMs) =>
           runInterpretationAgent({
             agent: planned.agent,
             requestedModel: planned.model,
             preparationDir,
             evidenceDir,
             skillDirs: pinnedSkills,
-            timeoutMs: options.timeoutMs,
+            timeoutMs,
             signal: options.signal,
             executable: options.agentExecutables?.[planned.agent],
           }),

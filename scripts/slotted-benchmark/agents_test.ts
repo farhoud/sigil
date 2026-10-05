@@ -262,6 +262,138 @@ printf '%s\\n' '{"type":"result","result":"unexpected"}'
   }
 });
 
+Deno.test("staging consumes the timeout budget before any host probe", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-stage-deadline-" });
+  try {
+    const options = await context(root);
+    await Deno.writeFile(
+      `${options.skillDirs.understandDir}/references/large.bin`,
+      new Uint8Array(8 * 1024 * 1024),
+    );
+    const calls = `${root}/host-calls`;
+    const executable = `${root}/slow-version.sh`;
+    await Deno.writeTextFile(
+      executable,
+      `#!/bin/sh
+echo called >> ${calls}
+if [ "$1" = "--version" ]; then sleep 1; exit 0; fi
+exit 1
+`,
+    );
+    await Deno.chmod(executable, 0o755);
+    const result = await runInterpretationAgent({
+      ...options,
+      agent: "claude",
+      requestedModel: "sonnet",
+      executable,
+      timeoutMs: 1,
+    });
+    assert(result.status === "timeout", JSON.stringify(result));
+    try {
+      await Deno.stat(calls);
+      throw new Error("host probe ran after staging exhausted the deadline");
+    } catch (cause) {
+      assert(cause instanceof Deno.errors.NotFound, String(cause));
+    }
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("a version probe's descendant cannot hold its output open", async () => {
+  const root = await Deno.makeTempDir({
+    prefix: "slotted-version-child-test-",
+  });
+  try {
+    const options = await context(root);
+    const executable = `${root}/host.sh`;
+    await Deno.writeTextFile(
+      executable,
+      `#!/bin/sh
+if [ "$1" = "--version" ]; then sleep 8 & printf 'fake 1.2.3\\n'; exit 0; fi
+printf '%s\\n' '{"type":"result","result":"[]"}'
+`,
+    );
+    await Deno.chmod(executable, 0o755);
+    const started = Date.now();
+    const result = await runInterpretationAgent({
+      ...options,
+      agent: "claude",
+      requestedModel: "fake",
+      executable,
+      timeoutMs: 5_000,
+    });
+    assert(result.status === "completed", JSON.stringify(result));
+    assert(result.hostVersion === "fake 1.2.3", "version output was lost");
+    assert(
+      Date.now() - started < 3_000,
+      "version descendant stalled the attempt",
+    );
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("a host's descendant cannot hold output pipes open for the next attempt", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-descendant-test-" });
+  try {
+    const options = await context(root);
+    const executable = await fakeHost(
+      root,
+      `if [ ! -e descendant-started ]; then touch descendant-started; sleep 8 & fi\nprintf '%s\\n' '{"type":"result","result":"[]"}'`,
+    );
+    const started = Date.now();
+    const first = await runInterpretationAgent({
+      ...options,
+      agent: "claude",
+      requestedModel: "first",
+      executable,
+      timeoutMs: 5_000,
+    });
+    assert(first.status === "completed", JSON.stringify(first));
+    assert(
+      Date.now() - started < 3_000,
+      "descendant kept the first attempt open",
+    );
+
+    const second = await runInterpretationAgent({
+      ...options,
+      evidenceDir: `${root}/second-evidence`,
+      agent: "claude",
+      requestedModel: "second",
+      executable,
+      timeoutMs: 5_000,
+    });
+    assert(second.status === "completed", "later attempt did not proceed");
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("cancellation remains active while child output drains", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-drain-cancel-test-" });
+  try {
+    const options = await context(root);
+    const executable = await fakeHost(
+      root,
+      `if [ "$1" = "--version" ]; then exit 0; fi\n(trap '' TERM; while :; do sleep 1; done) &\nprintf '%s\\n' '{"type":"result","result":"[]"}'`,
+    );
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 700);
+    const result = await runInterpretationAgent({
+      ...options,
+      agent: "claude",
+      requestedModel: "cancel-during-drain",
+      executable,
+      timeoutMs: 5_000,
+      signal: controller.signal,
+    });
+    assert(result.status === "cancelled", `wrong status: ${result.status}`);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
 for (const termination of ["timeout", "cancelled"] as const) {
   Deno.test(`${termination} ends child and retains partial output`, async () => {
     const root = await Deno.makeTempDir({ prefix: "slotted-agent-test-" });

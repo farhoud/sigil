@@ -267,7 +267,27 @@ export function preflightSlottedFixture(
   const issues = SLOTTED_FIXTURE.issues.map((issue): IssuePreflight => {
     const facets: string[] = [];
     let reason: string | null = null;
+
+    const fixedReferences = [
+      issue.findingEvidence.subject === "cited-claim"
+        ? null
+        : issue.findingEvidence.subject,
+      issue.findingEvidence.object,
+    ].filter((id): id is string => id !== null);
+    const fixedComponents: string[] = [];
+    for (const id of fixedReferences) {
+      const expectedType = id.includes(":tag:") ? "Tag" : "Component";
+      const entity = design.entities.find((candidate) => candidate.id === id);
+      if (!entity || !entity.valid || entity.type !== expectedType) {
+        reason =
+          `fixed ${expectedType} entity ${id} is missing, invalid, or has the wrong type`;
+        break;
+      }
+      if (expectedType === "Component") fixedComponents.push(id);
+    }
+
     for (const anchor of issue.anchors) {
+      if (reason) break;
       const matches = design.units.filter((unit) =>
         unit.valid && unit.source === anchor.source &&
         unit.section === anchor.section &&
@@ -281,6 +301,16 @@ export function preflightSlottedFixture(
         break;
       }
       const unit = matches[0];
+      const expectedOwner = fixedComponents.find((id) =>
+        design.entities.find((entity) => entity.id === id)?.source ===
+          anchor.source
+      );
+      if (!expectedOwner || unit.owner !== expectedOwner) {
+        reason = `anchor Facet owner drift for ${anchor.source}: expected ${
+          expectedOwner ?? "no fixed component"
+        }, found ${unit.owner}`;
+        break;
+      }
       const prose = proseOf(
         design,
         unit.source,
@@ -301,6 +331,39 @@ export function preflightSlottedFixture(
       }
       facets.push(unit.id);
     }
+    if (!reason) {
+      const scoringSource = issue.anchors[0].source;
+      const scoringRequests = prepared.filter((request) =>
+        request.binding.source === scoringSource
+      );
+      if (scoringRequests.length !== 1) {
+        reason =
+          `prepared ${scoringSource} scoring request is not unique for all anchor Facets`;
+      } else {
+        const scoringRequest = scoringRequests[0];
+        for (let index = 0; index < issue.anchors.length; index++) {
+          const anchor = issue.anchors[index];
+          const unit = design.units.find((candidate) =>
+            candidate.id === facets[index]
+          );
+          const prose = unit && proseOf(
+            design,
+            unit.source,
+            unit.proseRange.start,
+            unit.proseRange.end,
+          );
+          const rows = scoringRequest.rows.filter((row) =>
+            row.facet === facets[index] && row.source === anchor.source &&
+            row.section === anchor.section && row.prose === prose
+          );
+          if (!unit || rows.length !== 1) {
+            reason =
+              `${scoringSource} scoring request does not include all anchor Facets exactly once`;
+            break;
+          }
+        }
+      }
+    }
     if (!reason && issue.requiresAbsentIdentityDisplayNameProvider) {
       const provider = design.units.some((unit) => {
         if (!unit.valid || unit.source !== "identity.sigil") return false;
@@ -310,11 +373,9 @@ export function preflightSlottedFixture(
           unit.proseRange.start,
           unit.proseRange.end,
         );
-        return prose !== null &&
-          /\b(?:provides|supplies|exposes|returns|offers)\b[^.!?]*\bdisplay[- ]name\b/i
-            .test(prose);
+        return prose !== null && hasDisplayNameProvider(prose);
       });
-      if (provider) reason = "Identity now supplies a display-name provider";
+      if (provider) reason = "Identity now describes a display-name provider";
     }
     return {
       ...issue,
@@ -324,4 +385,28 @@ export function preflightSlottedFixture(
     };
   });
   return { canSchedule, sourceDrift, issues };
+}
+
+function hasDisplayNameProvider(prose: string): boolean {
+  const positiveProvider =
+    /\b(?:provides?|supplies?|exposes?|returns?|offers?|keeps?|stores?|contains?|has|have)\b([^.!?]{0,100})\bdisplay[- ]name\b/gi;
+  const clauses = prose
+    .split(/[.!?]\s*|\b(?:but|however|although)\b/i)
+    .map((clause) => clause.trim());
+  for (const clause of clauses) {
+    positiveProvider.lastIndex = 0;
+    for (const match of clause.matchAll(positiveProvider)) {
+      const verbStart = match.index!;
+      const prefix = clause.slice(Math.max(0, verbStart - 48), verbStart);
+      const between = match[1] ?? "";
+      if (/\bnot\b(?!\s+only)|\b(?:never|cannot|can't|won't)\b/i.test(prefix)) {
+        continue;
+      }
+      if (/\b(?:no|not|without|never|cannot|can't|won't)\b/i.test(between)) {
+        continue;
+      }
+      return true;
+    }
+  }
+  return false;
 }

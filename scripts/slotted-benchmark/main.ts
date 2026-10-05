@@ -24,6 +24,7 @@ analyze-demo/slotted-runs/benchmarks/ by default.
 export interface CommandDependencies {
   /** Test and diagnostic override; normal CLI use resolves the installed agents. */
   readonly agentExecutables?: Partial<Record<AgentName, string>>;
+  readonly signal?: AbortSignal;
 }
 
 export interface CommandResult {
@@ -32,6 +33,7 @@ export interface CommandResult {
   readonly scheduled: number;
   readonly valid: number;
   readonly failed: number;
+  readonly interrupted: number;
   readonly unfinished: number;
 }
 
@@ -104,6 +106,7 @@ export async function executeCommand(
     outputDir: destination,
     timeoutMs,
     agentExecutables: dependencies.agentExecutables,
+    signal: dependencies.signal,
   });
   const reportPath = await writeReport(destination);
   const { records } = await readBatch(destination);
@@ -124,6 +127,8 @@ function summarize(
       records.filter((record) =>
         record.status === "failed" || record.status === "invalid"
       ).length,
+    interrupted: records.filter((record) => record.status === "interrupted")
+      .length,
     unfinished:
       records.filter((record) =>
         record.status === "pending" || record.status === "running"
@@ -137,14 +142,23 @@ if (import.meta.main) {
   ) {
     console.log(HELP);
   } else {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    Deno.addSignalListener("SIGINT", abort);
+    Deno.addSignalListener("SIGTERM", abort);
     try {
-      const result = await executeCommand(Deno.args);
+      const result = await executeCommand(Deno.args, {
+        signal: controller.signal,
+      });
       console.log(
-        `Report: ${result.reportPath}\nScheduled: ${result.scheduled}; valid: ${result.valid}; failed or invalid: ${result.failed}; unfinished: ${result.unfinished}`,
+        `Report: ${result.reportPath}\nScheduled: ${result.scheduled}; valid: ${result.valid}; failed or invalid: ${result.failed}; interrupted: ${result.interrupted}; unfinished: ${result.unfinished}`,
       );
     } catch (cause) {
       console.error(String(cause));
       Deno.exitCode = 1;
+    } finally {
+      Deno.removeSignalListener("SIGINT", abort);
+      Deno.removeSignalListener("SIGTERM", abort);
     }
   }
 }

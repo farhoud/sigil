@@ -1,8 +1,18 @@
 import { join } from "node:path";
+import {
+  type CapturedStream,
+  captureStream,
+  settleWithin,
+  signalOwnedProcess,
+} from "./process.ts";
 
 export type AgentName = "claude" | "codex" | "pi";
 export type AgentStatus = "completed" | "failed" | "timeout" | "cancelled";
 export type ModelVerification = "observed" | "unverified" | "mixed";
+
+const OUTPUT_DRAIN_GRACE_MS = 500;
+const TERMINATION_GRACE_MS = 2_000;
+const PROBE_TIMEOUT_MS = 5_000;
 
 export interface AgentRunRequest {
   readonly agent: AgentName;
@@ -50,6 +60,7 @@ export const INTERPRETATION_PROMPT =
 export async function runInterpretationAgent(
   request: AgentRunRequest,
 ): Promise<AgentRunResult> {
+  const deadline = Date.now() + request.timeoutMs;
   await Deno.mkdir(request.evidenceDir, { recursive: true });
   const promptPath = join(request.evidenceDir, "prompt.txt");
   const stdoutPath = join(request.evidenceDir, "stdout.jsonl");
@@ -85,90 +96,88 @@ export async function runInterpretationAgent(
     );
     const outputFile = join(stagedWorkspace, "codex-final-response.txt");
     settings = commandArgs(request.agent, request.requestedModel, outputFile);
-    const deadline = Date.now() + request.timeoutMs;
-    hostVersion = await probeVersion(
-      executable,
-      request.timeoutMs,
-      request.signal,
-    );
     if (request.signal?.aborted) {
       status = "cancelled";
     } else if (Date.now() >= deadline) {
       status = "timeout";
     } else {
-      let child: Deno.ChildProcess;
-      try {
-        child = new Deno.Command(executable, {
-          args: [...settings, INTERPRETATION_PROMPT],
-          cwd: stagedWorkspace,
-          stdin: "null",
-          stdout: "piped",
-          stderr: "piped",
-        }).spawn();
-      } catch (cause) {
-        failureStep = "launch";
-        error = String(cause);
-        return buildResult();
-      }
-      const stdoutDone = drain(child.stdout, stdoutPath);
-      const stderrDone = drain(child.stderr, stderrPath);
-      let stopped: "timeout" | "cancelled" | null = null;
-      let exited = false;
-      let forceTimer: ReturnType<typeof setTimeout> | undefined;
-      const stop = (reason: "timeout" | "cancelled") => {
-        if (stopped || exited) return;
-        stopped = reason;
-        try {
-          child.kill("SIGTERM");
-        } catch {
-          // The child may have exited between the status check and the signal.
-        }
-        forceTimer = setTimeout(() => {
-          if (!exited) {
-            try {
-              child.kill("SIGKILL");
-            } catch {
-              // Already exited.
-            }
-          }
-        }, 2_000);
-      };
-      const timeout = setTimeout(
-        () => stop("timeout"),
+      hostVersion = await probeVersion(
+        executable,
         Math.max(0, deadline - Date.now()),
+        request.signal,
       );
-      const onAbort = () => stop("cancelled");
-      request.signal?.addEventListener("abort", onAbort, { once: true });
-      try {
-        const result = await child.status;
-        exited = true;
-        exitCode = result.code;
-        await Promise.all([stdoutDone, stderrDone]);
-      } finally {
-        clearTimeout(timeout);
-        if (forceTimer !== undefined) clearTimeout(forceTimer);
-        request.signal?.removeEventListener("abort", onAbort);
-      }
-      if (stopped) {
-        status = stopped;
-      } else if (exitCode !== 0) {
-        status = "failed";
-        failureStep = "child";
-        error = `Agent exited ${exitCode}`;
+      if (request.signal?.aborted) {
+        status = "cancelled";
+      } else if (Date.now() >= deadline) {
+        status = "timeout";
       } else {
-        const final = await extractFinalResponse(
-          request.agent,
-          stdoutPath,
-          outputFile,
+        let child: Deno.ChildProcess;
+        try {
+          child = new Deno.Command(executable, {
+            args: [...settings, INTERPRETATION_PROMPT],
+            cwd: stagedWorkspace,
+            stdin: "null",
+            stdout: "piped",
+            stderr: "piped",
+            // On POSIX this gives the child a process group of its own. The
+            // group can then be terminated even if the host exits before one of
+            // its descendants closes the captured output streams.
+            detached: true,
+          }).spawn();
+        } catch (cause) {
+          failureStep = "launch";
+          error = String(cause);
+          return buildResult();
+        }
+        const stdoutDrain = startDrain(child.stdout, stdoutPath);
+        const stderrDrain = startDrain(child.stderr, stderrPath);
+        let stopped: "timeout" | "cancelled" | null = null;
+        let forceTimer: ReturnType<typeof setTimeout> | undefined;
+        const stop = (reason: "timeout" | "cancelled") => {
+          if (stopped) return;
+          stopped = reason;
+          void signalOwnedProcess(child, "SIGTERM");
+          forceTimer = setTimeout(() => {
+            void signalOwnedProcess(child, "SIGKILL");
+          }, TERMINATION_GRACE_MS);
+        };
+        const timeout = setTimeout(
+          () => stop("timeout"),
+          Math.max(0, deadline - Date.now()),
         );
-        if (final === null) {
+        const onAbort = () => stop("cancelled");
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        if (request.signal?.aborted) onAbort();
+        try {
+          const result = await child.status;
+          exitCode = result.code;
+          await finishDrains(child, [stdoutDrain, stderrDrain], () => stopped);
+        } finally {
+          clearTimeout(timeout);
+          if (forceTimer !== undefined) clearTimeout(forceTimer);
+          request.signal?.removeEventListener("abort", onAbort);
+        }
+        if (stopped) {
+          status = stopped;
+        } else if (exitCode !== 0) {
           status = "failed";
-          failureStep = "artifact";
-          error = "Agent completed without a final response";
+          failureStep = "child";
+          error = `Agent exited ${exitCode}`;
         } else {
-          await Deno.writeFile(finalPath, final);
-          finalResponsePath = finalPath;
-          status = "completed";
+          const final = await extractFinalResponse(
+            request.agent,
+            stdoutPath,
+            outputFile,
+          );
+          if (final === null) {
+            status = "failed";
+            failureStep = "artifact";
+            error = "Agent completed without a final response";
+          } else {
+            await Deno.writeFile(finalPath, final);
+            finalResponsePath = finalPath;
+            status = "completed";
+          }
         }
       }
     }
@@ -288,43 +297,68 @@ async function probeVersion(
 ): Promise<string | null> {
   if (signal?.aborted) return null;
   let forceTimer: ReturnType<typeof setTimeout> | undefined;
-  let expired = false;
-  let exited = false;
+  let stopped = false;
+  let child: Deno.ChildProcess | undefined;
+  const state: { status: Deno.CommandStatus | null } = { status: null };
+  let stopResolve: (() => void) | undefined;
   try {
-    const child = new Deno.Command(executable, {
+    child = new Deno.Command(executable, {
       args: ["--version"],
       stdout: "piped",
       stderr: "null",
+      detached: true,
     }).spawn();
+    const output = captureStream(child.stdout, 16_384);
+    const statusDone = child.status.then((result) => {
+      state.status = result;
+    });
+    const stopPromise = new Promise<void>((resolve) => {
+      stopResolve = resolve;
+    });
     const stop = () => {
-      if (exited) return;
-      expired = true;
-      try {
-        child.kill("SIGTERM");
-      } catch { /* The process already exited. */ }
+      if (stopped) return;
+      stopped = true;
+      void signalOwnedProcess(child!, "SIGTERM");
+      stopResolve?.();
       forceTimer = setTimeout(() => {
-        if (!exited) {
-          try {
-            child.kill("SIGKILL");
-          } catch { /* The process already exited. */ }
-        }
-      }, 500);
+        void signalOwnedProcess(child!, "SIGKILL");
+      }, OUTPUT_DRAIN_GRACE_MS);
     };
-    const timer = setTimeout(stop, Math.min(timeoutMs, 5_000));
+    const timer = setTimeout(
+      stop,
+      Math.max(0, Math.min(timeoutMs, PROBE_TIMEOUT_MS)),
+    );
     signal?.addEventListener("abort", stop, { once: true });
+    if (signal?.aborted) stop();
     try {
-      const result = await child.output();
-      exited = true;
-      return !expired && result.success
-        ? new TextDecoder().decode(result.stdout).trim()
+      await Promise.race([statusDone, stopPromise]);
+      if (state.status === null) {
+        await settleWithin(statusDone, TERMINATION_GRACE_MS + 250);
+        if (state.status === null) {
+          await signalOwnedProcess(child, "SIGKILL");
+          await settleWithin(statusDone, OUTPUT_DRAIN_GRACE_MS);
+        }
+      }
+      const outputFinished = await finishProbeOutput(
+        child,
+        output,
+        () => stopped,
+      );
+      const probeStatus = state.status;
+      return !stopped && outputFinished && probeStatus?.success
+        ? new TextDecoder().decode(output.read()).trim()
         : null;
     } finally {
-      exited = true;
       clearTimeout(timer);
       if (forceTimer !== undefined) clearTimeout(forceTimer);
       signal?.removeEventListener("abort", stop);
     }
   } catch {
+    if (child) {
+      try {
+        await signalOwnedProcess(child, "SIGKILL");
+      } catch { /* Best effort cleanup after a failed probe. */ }
+    }
     return null;
   }
 }
@@ -353,21 +387,94 @@ async function copyTree(source: string, destination: string): Promise<void> {
   }
 }
 
-async function drain(
+interface StreamDrain {
+  readonly done: Promise<void>;
+  cancel(): void;
+}
+
+function startDrain(
   stream: ReadableStream<Uint8Array>,
   path: string,
-): Promise<void> {
-  const file = await Deno.open(path, { write: true, truncate: true });
-  try {
-    for await (const chunk of stream) {
-      let offset = 0;
-      while (offset < chunk.length) {
-        offset += await file.write(chunk.subarray(offset));
+): StreamDrain {
+  const reader = stream.getReader();
+  const done = (async () => {
+    const file = await Deno.open(path, { write: true, truncate: true });
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        let offset = 0;
+        while (offset < value.length) {
+          offset += await file.write(value.subarray(offset));
+        }
       }
+    } finally {
+      reader.releaseLock();
+      file.close();
     }
-  } finally {
-    file.close();
+  })();
+  return {
+    done,
+    cancel() {
+      try {
+        void reader.cancel().catch(() => {});
+      } catch {
+        /* The reader may have completed between the check and cancel. */
+      }
+    },
+  };
+}
+
+async function finishDrains(
+  child: Deno.ChildProcess,
+  drains: readonly StreamDrain[],
+  wasStopped: () => "timeout" | "cancelled" | null,
+): Promise<void> {
+  const allDone = Promise.all(drains.map((drain) => drain.done));
+  if (await settleWithin(allDone, OUTPUT_DRAIN_GRACE_MS)) {
+    await allDone;
+    return;
   }
+
+  // A host can exit while a descendant still owns stdout or stderr. Signal
+  // the detached process group even though the host status promise has ended.
+  if (wasStopped() === null) {
+    await signalOwnedProcess(child, "SIGTERM");
+    const forceTimer = setTimeout(
+      () => void signalOwnedProcess(child, "SIGKILL"),
+      OUTPUT_DRAIN_GRACE_MS,
+    );
+    const ended = await settleWithin(allDone, OUTPUT_DRAIN_GRACE_MS + 100);
+    if (!ended) await signalOwnedProcess(child, "SIGKILL");
+    clearTimeout(forceTimer);
+  } else {
+    // Let the timeout/cancellation's existing SIGKILL grace elapse, but never
+    // wait indefinitely for a descendant to close an inherited pipe.
+    const ended = await settleWithin(allDone, TERMINATION_GRACE_MS + 250);
+    if (!ended) await signalOwnedProcess(child, "SIGKILL");
+  }
+
+  if (await settleWithin(allDone, OUTPUT_DRAIN_GRACE_MS)) {
+    await allDone;
+    return;
+  }
+  for (const drain of drains) drain.cancel();
+  if (await settleWithin(allDone, OUTPUT_DRAIN_GRACE_MS)) await allDone;
+}
+
+async function finishProbeOutput(
+  child: Deno.ChildProcess,
+  output: CapturedStream,
+  wasStopped: () => boolean,
+): Promise<boolean> {
+  const ended = await settleWithin(output.done, OUTPUT_DRAIN_GRACE_MS);
+  if (ended) return true;
+  if (!wasStopped()) await signalOwnedProcess(child, "SIGTERM");
+  await settleWithin(output.done, OUTPUT_DRAIN_GRACE_MS);
+  if (!output.isDone()) await signalOwnedProcess(child, "SIGKILL");
+  if (await settleWithin(output.done, OUTPUT_DRAIN_GRACE_MS)) return true;
+  output.cancel();
+  return await settleWithin(output.done, OUTPUT_DRAIN_GRACE_MS);
 }
 
 async function extractFinalResponse(

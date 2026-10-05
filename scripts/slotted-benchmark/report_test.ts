@@ -1,7 +1,7 @@
 import { match as matches, ok as assert } from "node:assert/strict";
 import type { AttemptRecord, BatchManifest } from "./batch.ts";
 import { SLOTTED_FIXTURE } from "./fixture.ts";
-import { renderReport, type ReportAttempt } from "./report.ts";
+import { renderReport, type ReportAttempt, writeReport } from "./report.ts";
 
 const fixtureIssues = SLOTTED_FIXTURE.issues.map((issue, index) => ({
   ...issue,
@@ -51,8 +51,21 @@ function attempt(
   status: AttemptRecord["status"],
   findings: unknown[],
   rowsText: string,
+  attemptManifest: BatchManifest = manifest,
+  context: Record<string, unknown> = {
+    units: [
+      {
+        facet: "F-range-interface",
+        asserted: [{ claim: "witness-1", body: { kind: "claim" } }],
+      },
+      {
+        facet: "F-range-constraint",
+        asserted: [{ claim: "witness-2", body: { kind: "claim" } }],
+      },
+    ],
+  },
 ): ReportAttempt {
-  const planned = manifest.schedule.find((row) => row.id === id)!;
+  const planned = attemptManifest.schedule.find((row) => row.id === id)!;
   const record = {
     ...planned,
     status,
@@ -71,18 +84,7 @@ function attempt(
     status,
     state: record.state,
     report: { source: "booking.sigil", state: "disjoint", findings },
-    context: {
-      units: [
-        {
-          facet: "F-range-interface",
-          asserted: [{ claim: "witness-1", body: { kind: "claim" } }],
-        },
-        {
-          facet: "F-range-constraint",
-          asserted: [{ claim: "witness-2", body: { kind: "claim" } }],
-        },
-      ],
-    },
+    context,
     agent: {
       finalResponsePath: `attempts/${id}/evidence/child/final-response.txt`,
     },
@@ -127,6 +129,268 @@ Deno.test("same-state runs show evidence-based 1/2 detection, extras, and exact 
   assert(!report.includes("false positive"));
   assert(!report.includes("Overall rank"));
 });
+
+Deno.test("comparison reports the frequency of each distinct additional finding", () => {
+  const firstExtra = {
+    class: "flow",
+    law: "unreached-step",
+    subject: "witness-1",
+    object: "urn:example:first-effect",
+    claims: ["witness-1"],
+  };
+  const secondExtra = {
+    ...firstExtra,
+    subject: "witness-2",
+    object: "urn:example:second-effect",
+    claims: ["witness-2"],
+  };
+  const report = renderReport(manifest, [
+    attempt("000001", "valid", [firstExtra], ""),
+    attempt("000002", "valid", [secondExtra], ""),
+  ]);
+
+  matches(
+    report,
+    /Planted problem detection \| Additional finding frequencies/,
+  );
+  matches(
+    report,
+    /flow \/ unreached-step \/ Facet F-range-interface \/ urn:example:first-effect: 1\/2/,
+  );
+  matches(
+    report,
+    /flow \/ unreached-step \/ Facet F-range-constraint \/ urn:example:second-effect: 1\/2/,
+  );
+});
+
+Deno.test("Calendar planted findings require the intended facet and evidence identity", () => {
+  const calendarManifest = {
+    ...manifest,
+    schedule: [
+      {
+        id: "000004",
+        agent: "claude",
+        model: "sonnet",
+        pass: 1,
+        source: "calendar.sigil",
+      },
+    ],
+  } as unknown as BatchManifest;
+  const unmet = SLOTTED_FIXTURE.issues.find((issue) =>
+    issue.id === "calendar-display-name-unmet-obligation"
+  )!;
+  const flow = SLOTTED_FIXTURE.issues.find((issue) =>
+    issue.id === "calendar-owner-digest-unreached-step"
+  )!;
+  const calendarContext = {
+    units: [
+      {
+        facet: "F-display",
+        asserted: [{ claim: "display-claim" }],
+      },
+      {
+        facet: "F-digest",
+        asserted: [{ claim: "digest-claim" }],
+      },
+      {
+        facet: "F-unrelated",
+        asserted: [{ claim: "unrelated-claim" }],
+      },
+    ],
+  };
+  const obligation = {
+    class: unmet.findingClass,
+    law: unmet.laws[0],
+    subject: unmet.findingEvidence.subject,
+    object: unmet.findingEvidence.object,
+    claims: ["display-claim"],
+  };
+  const flowFinding = {
+    class: flow.findingClass,
+    law: flow.laws[0],
+    subject: "digest-claim",
+    object: flow.findingEvidence.object,
+    claims: ["digest-claim"],
+  };
+
+  const positive = renderReport(calendarManifest, [
+    attempt(
+      "000004",
+      "valid",
+      [obligation, flowFinding],
+      "",
+      calendarManifest,
+      calendarContext,
+    ),
+  ]);
+  matches(positive, /calendar-display-name-unmet-obligation: 1\/1/);
+  matches(positive, /calendar-owner-digest-unreached-step: 1\/1/);
+  matches(positive, /No additional findings in valid attempts\./);
+
+  const invalidFindings: Array<{ label: string; finding: unknown }> = [
+    {
+      label: "unrelated Facet witness",
+      finding: { ...obligation, claims: ["unrelated-claim"] },
+    },
+    {
+      label: "unknown Facet witness",
+      finding: { ...obligation, claims: ["unknown-claim"] },
+    },
+    {
+      label: "wrong obligation subject",
+      finding: { ...obligation, subject: "urn:example:wrong-subject" },
+    },
+    {
+      label: "wrong obligation object",
+      finding: { ...obligation, object: "urn:example:wrong-object" },
+    },
+    {
+      label: "wrong flow object",
+      finding: { ...flowFinding, object: "urn:example:wrong-object" },
+    },
+    {
+      label: "flow subject absent from cited claims",
+      finding: { ...flowFinding, subject: "other-claim" },
+    },
+  ];
+  for (const { label, finding } of invalidFindings) {
+    const report = renderReport(calendarManifest, [
+      attempt(
+        "000004",
+        "valid",
+        [finding],
+        "",
+        calendarManifest,
+        calendarContext,
+      ),
+    ]);
+    matches(
+      report,
+      /calendar-display-name-unmet-obligation: 0\/1/,
+      label,
+    );
+    matches(
+      report,
+      /calendar-owner-digest-unreached-step: 0\/1/,
+      label,
+    );
+    matches(report, /\| valid \| disjoint \| — \| 1 \|/u, label);
+    matches(report, /## Additional findings for review/);
+    matches(report, /- Attempt 000004, finding 1:/, label);
+  }
+});
+
+Deno.test("moved batch report uses retained rows and links inside the moved batch", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-report-move-" });
+  const originalDir = `${root}/original`;
+  const movedDir = `${root}/moved`;
+  const planned = manifest.schedule[0];
+  const base = attempt("000001", "valid", [
+    {
+      class: "contradiction",
+      law: "contradictory-claims",
+      subject: "urn:sigil:component:booking.sigil:Booking",
+      object: "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+      claims: ["witness-1"],
+    },
+  ], '(claim "F-range-interface" "A" "provides" "B" "required" "true")\n');
+  const oldReportPath =
+    `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.json`;
+  const oldContextPath =
+    `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.context.json`;
+  const outsideRowsPath = `${root}/outside-rows.txt`;
+  const batchManifest = { ...manifest, schedule: [planned] };
+  const record = {
+    ...base.record,
+    outcomePath: "attempts/000001/outcome.json",
+  };
+  const outcome = {
+    ...base.outcome,
+    agent: { finalResponsePath: outsideRowsPath },
+    ingestResult: {
+      report: oldReportPath,
+      judgmentContext: oldContextPath,
+    },
+  };
+
+  try {
+    await Deno.mkdir(`${originalDir}/records`, { recursive: true });
+    await Deno.mkdir(`${originalDir}/attempts/000001/evidence/child`, {
+      recursive: true,
+    });
+    await Deno.mkdir(`${originalDir}/attempts/000001/private/.sigil/claims`, {
+      recursive: true,
+    });
+    await Deno.writeTextFile(
+      `${originalDir}/manifest.json`,
+      JSON.stringify(batchManifest),
+    );
+    await Deno.writeTextFile(
+      `${originalDir}/records/000001.json`,
+      JSON.stringify(record),
+    );
+    await Deno.writeTextFile(
+      `${originalDir}/attempts/000001/outcome.json`,
+      JSON.stringify(outcome),
+    );
+    await Deno.writeTextFile(
+      `${originalDir}/attempts/000001/evidence/child/final-response.txt`,
+      base.rowsText!,
+    );
+    await Deno.writeTextFile(outsideRowsPath, base.rowsText!);
+    await Deno.writeTextFile(
+      `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.json`,
+      "{}\n",
+    );
+    await Deno.writeTextFile(
+      `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.context.json`,
+      "{}\n",
+    );
+    await Deno.rename(originalDir, movedDir);
+    const victim = `${root}/outside.md`;
+    await Deno.writeTextFile(victim, "keep this file intact\n");
+    await Deno.symlink(victim, `${movedDir}/report.md`);
+
+    const reportPath = await writeReport(movedDir);
+    const report = await Deno.readTextFile(reportPath);
+    assert(!(await Deno.lstat(reportPath)).isSymlink);
+    assert(await Deno.readTextFile(victim) === "keep this file intact\n");
+    assert(!(await pathExists(originalDir)), "old batch location still exists");
+    matches(report, /`booking\.sigil` \| valid \| disjoint \|/);
+    matches(report, /booking-pending-range-contradiction: 1\/1/);
+    matches(
+      report,
+      /\]\(attempts\/000001\/evidence\/child\/final-response\.txt\)/,
+    );
+    matches(
+      report,
+      /\]\(attempts\/000001\/private\/\.sigil\/claims\/booking\.sigil\.json\)/,
+    );
+    matches(
+      report,
+      /\]\(attempts\/000001\/private\/\.sigil\/claims\/booking\.sigil\.context\.json\)/,
+    );
+    await Deno.remove(
+      `${movedDir}/attempts/000001/evidence/child/final-response.txt`,
+    );
+    const evidenceMissing = await writeReport(movedDir);
+    const missingReport = await Deno.readTextFile(evidenceMissing);
+    matches(missingReport, /\| invalid \|/);
+    assert(!missingReport.includes("outside-rows.txt"));
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await Deno.stat(path);
+    return true;
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) return false;
+    throw error;
+  }
+}
 
 Deno.test("one ownership witness counts when both fixture anchors are intact", () => {
   const ownership = {
@@ -180,6 +444,19 @@ Deno.test("observed, unverified, and mixed model identities remain separate grou
   matches(report, /claude-sonnet-observed \(observed\)/);
   matches(report, /model-a, model-b \(mixed\)/);
   matches(report, /\| unverified \| `booking\.sigil` \|/);
+});
+
+Deno.test("interrupted attempts are counted separately from failures", () => {
+  const report = renderReport(manifest, [
+    attempt("000001", "interrupted", [], ""),
+    attempt("000002", "valid", [], ""),
+    attempt("000003", "valid", [], ""),
+  ]);
+  matches(
+    report,
+    /\| claude \| sonnet \| claude-sonnet-observed \(observed\) \| `booking\.sigil` \| 3 \| 2 \| 0 \/ 0 \/ 1 \/ 0 \|/,
+  );
+  matches(report, /\| 000001 \| claude \| sonnet \|.*\| interrupted \|/);
 });
 
 Deno.test("drift withholds one issue metric while states remain visible", () => {
