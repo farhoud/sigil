@@ -21,7 +21,13 @@ const binding = {
   vocabularyGeneration: 2,
   facets: ["facet:booking.sigil:1", "facet:rooms.sigil:1"],
 };
-const request = { binding, rows: binding.facets.map((facet) => ({ facet })) };
+const request = {
+  binding,
+  rows: binding.facets.map((facet, index) => ({
+    facet,
+    handle: `f${index + 1}`,
+  })),
+};
 const identity = {
   exportDigest: "export",
   guidanceFingerprint: "guidance",
@@ -90,6 +96,13 @@ Deno.test("omitted contextual Facet withholds state despite native ingest", () =
   equal(checked.valid, false);
   equal(checked.state, null);
   deepEqual(checked.missingFacets, ["facet:rooms.sigil:1"]);
+  equal(
+    checked.errors.includes(
+      "incomplete presented Facet coverage: f2 (facet:rooms.sigil:1)",
+    ),
+    true,
+    checked.errors.join("; "),
+  );
 });
 
 Deno.test("wrong artifact digest and path outside private root are rejected", () => {
@@ -182,14 +195,13 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
             error: `child ${childStatus}`,
           } as AgentRunResult;
         }
-        const request = JSON.parse(
-          await Deno.readTextFile(`${preparationDir}/request.json`),
+        const brief = await Deno.readTextFile(`${preparationDir}/brief.md`);
+        const handles = [...brief.matchAll(/^\[(f\d+)\] /gm)].map((line) =>
+          line[1]
         );
         const rows = malformed
           ? ["not a claims row"]
-          : (request.rows as { facet: string }[]).map((row) =>
-            `(reading ${JSON.stringify(row.facet)} "no-commitment")`
-          );
+          : handles.map((handle) => `(reading "${handle}" "no-commitment")`);
         if (omitLast) rows.pop();
         const finalResponsePath = `${evidenceDir}/final-response.txt`;
         await Deno.writeTextFile(finalResponsePath, `${rows.join("\n")}\n`);
@@ -211,6 +223,15 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   equal(partial.status, "invalid", partial.error ?? "");
   equal(partial.state, null);
   equal(partial.validation?.missingFacets.length, 1);
+  const omitted = (partial.request?.rows as { facet: string; handle: string }[])
+    .find((row) => row.facet === partial.validation?.missingFacets[0]);
+  equal(
+    partial.error?.includes(
+      `incomplete presented Facet coverage: ${omitted?.handle} (${omitted?.facet})`,
+    ),
+    true,
+    partial.error ?? "",
+  );
   equal(
     partial.ingestResult !== null,
     true,
