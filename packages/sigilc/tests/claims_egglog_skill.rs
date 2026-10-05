@@ -111,11 +111,11 @@ fn skill_and_guidance_agree_on_refusal_tokens() {
     );
     let rejected = bundle_text("rejected.md");
     assert!(
-        dialect.contains("did not issue"),
-        "skill dialect is missing the refusal of a handle the brief did not issue"
+        dialect.contains("numbers no Facet"),
+        "skill dialect is missing the refusal of a handle that numbers no Facet"
     );
     assert!(
-        rejected.contains("did not issue"),
+        rejected.contains("numbers no Facet"),
         "compiled rejected.md is missing the unissued-handle refusal while the skill teaches it"
     );
 }

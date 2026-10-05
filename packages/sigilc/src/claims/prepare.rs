@@ -492,7 +492,15 @@ pub fn brief(request: &Request) -> String {
             out.push_str(&format!("\n### {}\n\n", row.section));
             section = Some(row.section.as_str());
         }
-        let prose: Vec<&str> = row.prose.split_whitespace().collect();
+        // Fold line breaks and their indentation only: a Tag never spans a
+        // line, but one may hold repeated internal spaces that admission
+        // matches exactly.
+        let prose: Vec<&str> = row
+            .prose
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .collect();
         out.push_str(&format!("[{}] {}\n", row.handle, prose.join(" ")));
     }
     out.push_str("\nReturn rows for every `[fN]` line above, naming each Facet by its handle.\n");

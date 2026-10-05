@@ -597,6 +597,24 @@ fn a_handle_the_request_did_not_issue_is_refused_by_name() {
 }
 
 #[test]
+fn a_constraint_guard_naming_an_unissued_handle_is_refused_by_name() {
+    let (scratch, frontend, binding) = prepared("unissued-guard-handle");
+    let artifact = scratch.0.join("result.egg");
+    fs::write(
+        &artifact,
+        format!(
+            "{}(step \"f2\" \"1\")\n(guard \"f2\" \"1\" \"constraint\" \"f9\")\n",
+            handle_artifact()
+        ),
+    )
+    .unwrap();
+    let (code, _, stderr) = ingest(&frontend, &binding, &artifact, &scratch.0, &[]);
+    assert_eq!(code, 1, "{stderr}");
+    assert!(stderr.contains("\"f9\""), "{stderr}");
+    assert!(stderr.contains("numbers no Facet"), "{stderr}");
+}
+
+#[test]
 fn a_constraint_guard_resolves_its_handle_and_an_input_guard_keeps_its_literal() {
     let path = "flow.sigil";
     let text = "component Flow {\n  constraints {\n    Check the caller first.\n  }\n  logic {\n    Check then act.\n  }\n}\n";

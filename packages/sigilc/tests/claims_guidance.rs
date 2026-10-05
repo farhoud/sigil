@@ -214,8 +214,8 @@ fn guidance_describes_the_brief_and_never_the_json_request() {
     }
     let rejected = bundle_text("rejected.md");
     assert!(
-        rejected.contains("did not issue"),
-        "rejected.md must name the refusal of a handle the request did not issue"
+        rejected.contains("numbers no Facet"),
+        "rejected.md must name the refusal of a handle that numbers no Facet"
     );
 }
 

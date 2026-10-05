@@ -14,7 +14,7 @@ Do not restate column tables here. Copy row shapes from the guidance's `vocabula
 
 Return a plain list of S-expression rows and nothing else; every argument is a quoted string literal.
 
-These kinds exist: `claim`, `property`, `measure`, `reading`, `step`, `guard`. Nested expressions, arithmetic, and numbers that are not quoted strings are refused. A row names its Facet by the brief's handle, and a handle the brief did not issue is refused.
+These kinds exist: `claim`, `property`, `measure`, `reading`, `step`, `guard`. Nested expressions, arithmetic, and numbers that are not quoted strings are refused. A row names its Facet by the brief's handle, and a handle that numbers no Facet is refused.
 
 ## Whole-artifact refuse
 

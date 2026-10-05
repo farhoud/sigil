@@ -1009,7 +1009,12 @@ fn the_brief_lists_each_presented_facet_on_one_handle_line() {
         let line = format!(
             "[{}] {}",
             row.handle,
-            row.prose.split_whitespace().collect::<Vec<_>>().join(" ")
+            row.prose
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ")
         );
         assert!(
             brief.lines().any(|l| l == line),
@@ -1106,4 +1111,49 @@ fn a_brief_with_nothing_stale_says_so() {
     let brief = prepare::brief(&prepare::presenting(&request, &[]));
     assert!(!brief.contains("[f"));
     assert!(brief.contains("Nothing to interpret"));
+}
+
+#[test]
+fn folding_a_facet_onto_one_line_keeps_a_tags_internal_spacing() {
+    // A Tag name may hold repeated internal spaces and admission matches it
+    // exactly, so only line breaks and indentation are folded.
+    let mut request = prepare::project(&shared_input(), BASE).unwrap();
+    request.rows[0].prose = "Keep the room  owner\n      in sync.\n".into();
+    let brief = prepare::brief(&request);
+    let line = format!("[{}] Keep the room  owner in sync.", request.rows[0].handle);
+    assert!(brief.lines().any(|l| l == line), "{brief}");
+}
+
+#[test]
+fn the_brief_lists_imports_and_entity_owners_by_label() {
+    let request = prepare::project(&shared_input(), CONSUMER).unwrap();
+    let brief = prepare::brief(&request);
+    assert!(brief.contains("\n## Imports\n"), "{brief}");
+    for source in &request.imports {
+        for from in &source.from {
+            let line = format!(
+                "- {} imports from {}: {}",
+                source.source,
+                from.component_label,
+                from.names.join(", ")
+            );
+            assert!(
+                brief.lines().any(|l| l == line),
+                "missing {line:?}:\n{brief}"
+            );
+        }
+    }
+    let owned = request.entities.iter().find(|e| e.owner.is_some()).unwrap();
+    let owner = request
+        .entities
+        .iter()
+        .find(|e| Some(&e.id) == owned.owner.as_ref())
+        .unwrap();
+    assert!(
+        brief.contains(&format!(
+            "- {} ({} of {})",
+            owned.label, owned.kind, owner.label
+        )),
+        "{brief}"
+    );
 }
