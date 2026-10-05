@@ -1,304 +1,85 @@
-# One worked Facet per contract role
+# One worked Facet per role
 
-Facet identities below are written `"f1"`, `"f2"` and so on for readability. In
-a real run you copy the identity out of the pre-filled row you were handed.
+## goal
 
-Entity names are written as they appear in the design. Use the identity the
-pre-filled row and the entity list give you, not a name you invent.
-
-## `goal`
-
-> Provide *record search*: find records matching a supplied query.
+> [f1] Provide *record search*: find records matching a supplied query.
 
 ```
 (claim "f1" "SearchService" "provides" "record search" "required" "true")
 ```
 
-Purpose becomes a capability the component provides. The Facet says what the
-component is for, so the commitment is `required`.
+## interface
 
-## `interface`
-
-> Accept a *query* as search text and return *search results* as matching
-> records. A *cached result* may be returned when the query is unchanged.
+> [f2] Return *search results*. A *cached result* may be returned.
 
 ```
-(claim "f2" "SearchService" "provides" "query" "required" "true")
 (claim "f2" "SearchService" "provides" "search results" "required" "true")
 (claim "f2" "SearchService" "provides" "cached result" "permitted" "true")
 ```
 
-Three claims from one Facet, because it offers three distinct promises. The
-cache is offered, not promised, so it is `permitted`. Note what is *not* here:
-nothing says the panel depends on the service. That would be a deduction.
+## state
 
-## `state`
-
-> The *active request* is the only one whose results may be published.
+> [f3] The *active request* is the only one whose results may be published.
 
 ```
 (claim "f3" "SearchPanel" "owns" "active request" "required" "true")
 (property "f3" "active request" "exclusive" "true")
 ```
 
-An ownership claim plus the property that makes it exclusive. The exclusivity is
-a property of the state, so it travels on a `property` row.
+Write the `exclusive` row whenever a Facet says only it may change the state.
 
-> The *draft lock* is held by one editor, and the panel is the only one that may
-> set or clear it.
+## logic
 
-```
-(claim "f10" "SearchPanel" "owns" "draft lock" "required" "true")
-(property "f10" "draft lock" "exclusive" "true")
-```
-
-"Only one that may set or clear it" is the same exclusivity as "the only one
-whose results may be published". Without the `property` row, two components
-that both claim to own the state do not conflict and the overlap goes
-unreported. Write the `property` row whenever a Facet says it alone may change
-the state.
-
-## A Tag the component already has
-
-> The panel keeps each cached result on screen until the query changes.
+> [f4] Step one reads the query length and rejects an over-long query.
+> [f5] Step two reads the *record store*, then step three updates the
+> *result digest*.
+> [f6] Step four returns the search results found by step two.
 
 ```
-(claim "f9" "SearchPanel" "uses" "cached result" "required" "true")
+(step "f4" "1")
+(step "f5" "2")
+(step "f5" "3")
+(step "f6" "4")
+(claim "f4" "step:1" "reads" "query length" "required" "true")
+(guard "f4" "1" "constraint" "f7")
+(claim "f5" "step:2" "reads" "record store" "required" "true")
+(claim "f5" "step:3" "writes" "result digest" "required" "true")
+(claim "f6" "step:4" "writes" "search results" "required" "true")
+(claim "f4" "step:1" "to" "step:2" "required" "true")
+(claim "f4" "step:1" "to" "graph" "required" "true")
+(claim "f5" "step:2" "to" "step:4" "required" "true")
+(claim "f6" "step:4" "to" "graph" "required" "true")
 ```
 
-`cached result` is written bare because the interface Facet above already
-introduced it. A Tag that exists is named exactly, with no asterisks, and the
-claim is grounded. Asterisks would define it a second time.
+Step one rejects, so it ends a branch; passing goes on to step two. "Then" is
+order, not use: step four consumes step two, and step three feeds and ends
+nothing, so it gets no edge. The guard names f7, the Constraints Facet step one
+checks; f7 introduces query length, so f4 writes it bare.
 
-## `logic`
+## constraints
 
-> Publishing results requires a *completed search*. A *superseded publication*
-> must not occur.
-
-```
-(claim "f4" "SearchPanel" "requires" "completed search" "required" "true")
-(claim "f4" "SearchPanel" "provides" "superseded publication" "required" "false")
-```
-
-The second claim's `expected` is `false`: the Facet asserts the relation must
-not hold. That is a prohibition, not an absence.
-
-### `logic` that describes a flow
-
-Logic prose that walks through a sequence of steps is returned as a graph
-instead. The Facets of one Logic section are presented together; number the
-steps across the whole section.
-
-> **f5** — Consume the loaded *WorkspaceModel* through *RelationshipResolution*
-> to obtain relationship data and diagnostics.
->
-> **f6** — Derive the workspace glossary projection through
-> *GlossaryInspection*, then construct the relationship graph through
-> *GraphConstruction*.
->
-> **f7** — Return one *ResolvedSigilWorkspace* containing resolution data,
-> graph data, glossary data, and merged diagnostics.
+> [f7] Search must answer within 200 milliseconds and stay within the *query
+> length* limit. The panel may not reach the record store directly.
 
 ```
-(step "f5" "1")
-(step "f6" "2")
-(step "f6" "3")
-(step "f7" "4")
-(claim "f5" "step:1" "reads" "WorkspaceModel" "required" "true")
-(claim "f5" "step:1" "invokes" "RelationshipResolution" "required" "true")
-(claim "f6" "step:2" "invokes" "GlossaryInspection" "required" "true")
-(claim "f6" "step:3" "invokes" "GraphConstruction" "required" "true")
-(claim "f7" "step:4" "invokes" "ResolvedSigilWorkspace" "required" "true")
-(claim "f5" "step:1" "to" "step:4" "required" "true")
-(claim "f6" "step:2" "to" "step:4" "required" "true")
-(claim "f6" "step:3" "to" "step:4" "required" "true")
-(claim "f7" "step:4" "to" "graph" "required" "true")
+(measure "f7" "SearchService" "latencyBudgetMs" "200")
+(claim "f7" "SearchService" "requires" "query length" "required" "true")
+(claim "f7" "SearchPanel" "uses" "record store" "required" "false")
 ```
 
-Read the edges carefully, because they are what the check rests on.
+## decisions
 
-**f6 sequences its two steps with "then", and that is not an edge.** The
-paragraph says construct the graph *after* deriving the glossary. It does not
-say the graph construction uses the glossary projection. So there is no edge
-from step 2 to step 3 — and it would be wrong to add one, because it would make
-step 2 reach the end through step 3 no matter what actually consumes the
-glossary.
-
-The edges that do exist come from **f7**, which names what the result contains:
-resolution data, graph data and glossary data. Each of those is something a
-step produced and this step consumes, so each is an edge.
-
-**Step 4 ends the flow**, because the prose says it returns the result, and its
-edge to `graph` is what says so. The edge is written because the prose declares
-the end. Nothing is inferred from what a step merely does.
-
-## `constraints`
-
-> Search must answer within 200 milliseconds. The panel may not reach the
-> *record store* directly.
+> [f8] We rejected a *result cache* in the panel. We assume the record store stays reachable.
 
 ```
-(measure "f5" "SearchService" "latencyBudgetMs" "200")
-(claim "f5" "SearchPanel" "uses" "record store" "required" "false")
+(claim "f8" "SearchPanel" "owns" "result cache" "permitted" "false")
+(claim "f8" "SearchService" "dependsOn" "record store" "assumed" "true")
 ```
 
-A bound becomes a measure. A prohibition becomes a claim whose `expected` is
-`false`. Both are `required`, because Constraints binds.
+## cases
 
-## `decisions`
-
-> We considered a *result cache* in the panel and rejected it, because two
-> caches would disagree. We assume the *record store* stays reachable.
+> [f9] Given an empty query, the service provides an *empty result*.
 
 ```
-(claim "f6" "SearchPanel" "owns" "result cache" "permitted" "false")
-(claim "f6" "SearchService" "dependsOn" "record store" "assumed" "true")
+(claim "f9" "SearchService" "provides" "empty result" "permitted" "true")
 ```
-
-The rejected alternative is recorded, not promoted: it is reported and passed to
-the judge, but a Decisions Facet raises no obligation and satisfies none. The
-assumption carries modality `assumed`.
-
-If a Decisions Facet is pure rationale with nothing to record — an explanation of
-why something was done, naming no entity relationship — return a reading row
-instead:
-
-```
-(reading "f6" "no-commitment")
-```
-
-### A flow whose checks can refuse
-
-> Checking a query takes two steps. Step one reads the *query length* and
-> rejects an empty query. Step two returns the *search results*.
-
-```
-(step "f11" "1")
-(step "f11" "2")
-(claim "f11" "step:1" "reads" "query length" "required" "true")
-(claim "f11" "step:2" "writes" "search results" "required" "true")
-(claim "f11" "step:1" "to" "step:2" "required" "true")
-(claim "f11" "step:1" "to" "graph" "required" "true")
-(claim "f11" "step:2" "to" "graph" "required" "true")
-```
-
-Step one has two edges: to step two when the query passes, and to `graph` when
-it rejects. The rejection is that branch's end. Without the second edge, a
-reader of the rows sees a check that feeds nothing and ends nowhere.
-
-### A step that never ends
-
-> Answering a query takes two steps. Step one reads the *query*, and step two
-> returns the *search results*. Refreshing the *result digest* takes one more
-> step: step three compares the result digest with the one kept from the last
-> refresh.
-
-```
-(step "f13" "1")
-(step "f13" "2")
-(step "f13" "3")
-(claim "f13" "step:1" "reads" "query" "required" "true")
-(claim "f13" "step:2" "writes" "search results" "required" "true")
-(claim "f13" "step:3" "reads" "result digest" "required" "true")
-(claim "f13" "step:1" "to" "step:2" "required" "true")
-(claim "f13" "step:2" "to" "graph" "required" "true")
-```
-
-Step two returns, so it ends the flow. Step three is the last step of its
-sentence, but the prose never says it returns or finishes, and nothing uses what
-it compares. It gets no edge. The tool reports it as an unreached step. That is
-a real gap in the design, and an edge to `graph` would hide it.
-
-### A constraint the flow satisfies
-
-> **f14** — A search must stay within the *query length* limit before it reaches
-> the *record store*.
->
-> **f15** — Searching takes two steps. Step one reads the query length and
-> rejects an over-long query. Step two reads the record store and returns the
-> search results.
-
-```
-(claim "f14" "SearchService" "requires" "query length" "required" "true")
-(step "f15" "1")
-(step "f15" "2")
-(claim "f15" "step:1" "reads" "query length" "required" "true")
-(claim "f15" "step:2" "reads" "record store" "required" "true")
-(claim "f15" "step:2" "writes" "search results" "required" "true")
-(guard "f15" "1" "constraint" "f14")
-(claim "f15" "step:1" "to" "step:2" "required" "true")
-(claim "f15" "step:1" "to" "graph" "required" "true")
-(claim "f15" "step:2" "to" "graph" "required" "true")
-```
-
-f14 is a constraint the flow touches, because step one reads the query length.
-The `guard` row ties step one to f14 by naming f14's Facet. The value is the
-Facet that authored the constraint, not a claim. Without the guard row, the tool
-reports the flow as not checking a requirement it touches.
-
-### A rule about what is refused
-
-> **f16** — The service must not accept a search from a *blocked user*.
-
-```
-(reading "f16" "no-commitment")
-```
-
-This sentence says what the service refuses. The step that checks for a blocked
-user is where the refusal happens. A claim that the service excludes the blocked
-user would be reported against that very step, because the step touches the
-blocked user. Return a reading, or write the positive requirement the flow meets.
-Do not write an exclusion for a rule about what is refused.
-
-### A module named in passing
-
-> **f17** — The panel may depend on the Archive module and the Billing module, and
-> no others.
-
-```
-(reading "f17" "no-commitment")
-```
-
-Archive and Billing appear in the entity list because they are in the closure.
-Suppose the panel's source has no entry for either in `imports`. A claim naming
-them would be refused as ungrounded, so this Facet returns a reading. If the
-source's `imports` did list Archive under `from`, a claim naming Archive would be
-grounded, and the Facet could return one.
-
-### A scoped exception
-
-> The panel provides the *history view* of a closed search, with no *search
-> results* in it.
-
-```
-(claim "f12" "SearchPanel" "provides" "history view" "required" "true")
-```
-
-One claim. The phrase "with no search results in it" holds only inside the
-history view. Writing `SearchPanel provides search results` as `false` would
-say the panel never provides results, and would contradict every Facet that
-promises them.
-
-## `cases`
-
-> Given an empty query, the service provides an *empty result* and reports no
-> error.
-
-```
-(claim "f7" "SearchService" "provides" "empty result" "permitted" "true")
-```
-
-One example, one permitted outcome. An example does not quantify over all
-inputs, so this is `permitted` rather than `required`. It does not become a
-general promise that every query returns something.
-
-## A Facet whose intent you cannot resolve
-
-> Results are ordered appropriately.
-
-```
-(reading "f8" "unresolved")
-```
-
-"Appropriately" leaves a consequential choice open and names no relationship.
-Do not invent a ranking rule. Say it is unresolved and let the judge ask.

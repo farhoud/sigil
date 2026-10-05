@@ -1,26 +1,26 @@
 # Claims dialect
 
-This note is language background for a claims interpreter. It does not replace the prepared request's guidance bundle.
+This note is language background for a claims interpreter. It does not replace the guidance beside the brief.
 
 ## Which side is binding
 
-- The prepared request's guidance is binding for row shapes and accepted names.
+- The guidance beside the brief is binding for row shapes and accepted names.
 - This skill is binding for egglog/datalog language (what a fact, relation, rule, or schedule is).
-- `sigil-understand` is binding for the Sigil design being read.
+- `sigil-understand` is optional background on the design language.
 
-Do not restate column tables here. Copy row shapes from the request's `vocabulary.md`.
+Do not restate column tables here. Copy row shapes from the guidance's `vocabulary.md`.
 
 ## Data only
 
-Return a plain list of S-expression rows and nothing else. A returned artifact is data-only rows with quoted string literals.
+Return a plain list of S-expression rows and nothing else; every argument is a quoted string literal.
 
-These kinds exist: `claim`, `property`, `measure`, `reading`, `step`, `guard`. Each call's arguments are quoted string literals. Nested expressions, arithmetic, and numbers that are not quoted strings are refused.
+These kinds exist: `claim`, `property`, `measure`, `reading`, `step`, `guard`. Nested expressions, arithmetic, and numbers that are not quoted strings are refused. A row names its Facet by the brief's handle, and a handle the brief did not issue is refused.
 
 ## Whole-artifact refuse
 
 A `rule`, `command`, `schedule`, or non-literal argument anywhere in the artifact is refused whole, including valid rows beside it. One `rule` declaration is enough.
 
-Rules are not data. They register inference; they are not claim rows. Do not return `(rule ...)`, `(ruleset ...)`, `(run ...)`, or a schedule.
+Rules register inference; they are not data. Do not return `(rule ...)`, `(ruleset ...)`, `(run ...)`, or a schedule.
 
 The tool decides acceptance alone. This skill does not widen what the binary accepts.
 
