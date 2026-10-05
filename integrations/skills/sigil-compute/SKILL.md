@@ -16,13 +16,13 @@ running the loop. It owns source selection, the captured input snapshot, the
 child handoff, recognizing a completed ingest, the failure path, and the
 result handoff.
 
-The loop's interpretation is one fresh child with no inherited conversation,
-loaded with the installed [understanding](../sigil-understand/SKILL.md) and
-[egglog](../sigil-egglog/SKILL.md) entrypoints. `sigil-understand` is the
-design-language authority, `sigil-egglog` is dialect background, and the
-prepared request's guidance is binding for row shapes and accepted names. The
-claims binary never reads skills and never launches a model; the child only
-interprets, and this skill runs the tool.
+The loop's interpretation is one fresh child with no inherited conversation.
+It reads the prepared brief and guidance and loads the installed
+[egglog](../sigil-egglog/SKILL.md) entrypoint, the claims dialect. The prepared
+guidance is binding for row shapes and accepted names. The installed
+[understanding](../sigil-understand/SKILL.md) entrypoint is optional background
+for the child, not required reading. The claims binary never reads skills and
+never launches a model; the child only interprets, and this skill runs the tool.
 
 The input is an existing Sigil 0.9 design that the tool can prepare — never a
 0.7 contract, never a greenfield design to be written first. This skill does
