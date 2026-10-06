@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
+    "npm:@noble/hashes@2.0.1": "2.0.1",
     "npm:ajv@8": "8.20.0",
     "npm:entities@7.0.0": "7.0.0"
   },
@@ -18,6 +19,9 @@
     }
   },
   "npm": {
+    "@noble/hashes@2.0.1": {
+      "integrity": "sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw=="
+    },
     "ajv@8.20.0": {
       "integrity": "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA==",
       "dependencies": [
@@ -44,6 +48,9 @@
     }
   },
   "workspace": {
+    "dependencies": [
+      "npm:@noble/hashes@2.0.1"
+    ],
     "members": {
       "packages/cli": {
         "dependencies": [

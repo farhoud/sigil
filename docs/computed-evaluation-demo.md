@@ -1,220 +1,147 @@
 # Slotted computed-evaluation demo
 
-Slotted is a room-booking design. People own rooms and rent other people's
-rooms, and the owner approves each request. This demo runs Sigil's computed
-claims loop on it and shows what the loop reports.
+Slotted is a room-booking design used to demonstrate Sigil's computed claims
+loop. The benchmark owns the current seven-source fixture, its four planted
+problems, the target state gradient, and the evidence anchors in
+[`scripts/slotted-benchmark/fixture.ts`](../scripts/slotted-benchmark/fixture.ts).
+The design files are in [`examples/slotted/`](../examples/slotted/). Keep the
+planted problems in the fixture when comparing interpretations.
 
-The design is seven plain-prose files. Four deliberate design mistakes are
-built into it. They are intentional demo content, so do not "fix" them. The
-expected results below are targets, not guarantees. The loop uses a model to
-read the prose, so fresh runs give different answers.
+## Run the current benchmark
 
-## The seven files
-
-| Source | What it owns | Imports from |
-| --- | --- | --- |
-| `slotted.sigil` | The app: module list, dependency rules, technology stack | Identity, Rooms, Availability, Booking, SharedKernel |
-| `identity.sigil` | User accounts, sessions, the signed-in user, `requireUser` | — |
-| `rooms.sigil` | Rooms, room owners, room timezone, archiving, the room lock | Identity |
-| `shared.sigil` | The kernel: clock, 30-minute grid, time conversion, domain errors | — |
-| `availability.sigil` | Weekly windows, blackouts, open time | Identity, Rooms, SharedKernel |
-| `booking.sigil` | Booking requests, their lifecycle, the no-overlap rule, owner workflows | Identity, Rooms, Availability, SharedKernel |
-| `calendar.sigil` | The room calendar, with masking by viewer | Rooms, Availability, Booking, SharedKernel |
-
-SharedKernel is a kernel, not a module. Any module may use it without a
-dependency edge. Every facet in these files names at least one Tag. Each Tag
-has one owning component, and other components reuse it through an import.
-
-## The four deliberate problems
-
-| Source | What the prose does | Intended finding | A remedy |
-| --- | --- | --- | --- |
-| `booking.sigil` | The interface says Booking provides a renter a *range change* of their own pending request. A constraint says Booking must not provide a range change of a pending request. | Contradiction | Decide whether a pending range may change. Then make the interface and the constraint agree. |
-| `booking.sigil` and `rooms.sigil` | Booking says it owns the archived room mark and is the only one that may set or clear it. Rooms says Rooms owns the archived room mark. | Ownership conflict | Keep the mark in Rooms. Reword Booking so its workflows only call Rooms' archive and unarchive mutations. |
-| `calendar.sigil` | A constraint requires the *renter display name* of each renter from Identity. Identity has no display name. | Unmet obligation | Give Identity a display name and an interface, or return the label from Booking, or use the email. |
-| `calendar.sigil` | A separate logic step compares an *owner digest* with the previous one. It writes nothing and returns nothing. | Flow warning (`unreached-step`) | Delete the step, or say what consumes its result. |
-
-For the ownership conflict, the evidence is two sentences: Booking's "owns the
-archived room mark, and Booking is the only one that may set or clear it", and
-Rooms' "Rooms owns the archived room mark".
-
-The target gradient is:
-
-- `slotted`, `identity`, `rooms`, `shared`, and `availability`: Coherent, exit 0.
-- `calendar`: Loose, exit 0, with the unmet-obligation and unreached-step warnings.
-- `booking`: Disjoint, exit 1, with the contradiction and ownership-conflict findings.
-
-## Run the claims loop
-
-`sigil-claims` never launches a model. The host captures an export, prepares
-one exact source, gives the prepared request to one fresh interpretation child,
-captures the child's rows, and ingests those exact bytes. Keep run files and
-the private store outside `examples/slotted`. Use a new empty private root,
-preparation directory, and fresh child for every source in every pass. If the
-workspace has a `.sigil/claims/interpretations` folder, copy it into the private
-root first. This workspace has none.
-
-Build the binaries if they are missing, then prepare one source. Run this from
-the repository root:
+Build the two local tools, then select one or more coding-agent/model combinations
+and a positive pass count. Replace `MODEL` with a model selector available in
+each installed agent. The runner starts a fresh child for each source attempt
+and keeps an isolated claims store per attempt.
 
 ```sh
 deno task build:cli
 deno task build:sigilc
-
-RUN="$(mktemp -d "${TMPDIR:-/tmp}/slotted-booking.XXXXXX")"
-mkdir -p "$RUN/private-root"
-
-build/sigil export design examples/slotted --root examples/slotted --format json \
-  > "$RUN/frontend.json"
-
-packages/sigilc/target/debug/sigil-claims prepare \
-  --frontend "$RUN/frontend.json" \
-  --source booking.sigil \
-  --out "$RUN/prepared" \
-  --root "$RUN/private-root"
+deno task slotted-benchmark run --agent claude:MODEL --agent codex:MODEL --agent pi:PROVIDER/MODEL --passes 3
 ```
 
-Take the source name from the export's `sources[].path`. The seven values are
-`slotted.sigil`, `identity.sigil`, `rooms.sigil`, `shared.sigil`,
-`availability.sigil`, `calendar.sigil`, and `booking.sigil`.
+Use `--out DIR` to name the batch directory and `--timeout-ms N` to set a
+per-attempt timeout. The default output is a new directory under
+`analyze-demo/slotted-runs/benchmarks/`, which Git ignores. The command prints
+its report path and completion counts. The directory keeps the captured export,
+fixture check, prepared requests, exact child rows, raw agent events, native
+reports, and one record for every scheduled attempt, including failures.
 
-Start a fresh child with no earlier conversation. Give it `request.json`,
-`binding.json`, every prepared guidance file, the installed `sigil-understand`
-and `sigil-egglog` skills, and one file to write, such as `$RUN/child-result.egg`.
-The child returns only data rows. It does not run `sigil-claims` and does not
-edit the design. Then ingest the exact bytes:
+Rebuild a report from saved evidence without starting any agent:
 
 ```sh
-packages/sigilc/target/debug/sigil-claims ingest \
-  --frontend "$RUN/frontend.json" \
-  --binding "$RUN/prepared/binding.json" \
-  --claims "$RUN/child-result.egg" \
-  --root "$RUN/private-root"
+deno task slotted-benchmark report analyze-demo/slotted-runs/benchmarks/BATCH_DIRECTORY
 ```
 
-Exit `0` means Coherent or Loose. Exit `1` means Disjoint, but only when the
-ingest also prints a matching structured result and report. A bare exit code is
-not a state.
+The report has a run table and an agent/model/source comparison table. It shows
+planted-problem detection, additional findings for review, and differences in
+Facet rows across repeated valid runs as separate views. It does not assign an
+overall rank. A requested model is labeled unverified when the host supplies no
+served-model identity.
 
-A result counts only when all of these hold:
-
-1. The report's source, state, and version match the ingest result.
-2. The report's export digest, guidance fingerprint, and vocabulary generation
-   match `binding.json`.
-3. The report's paths lie under that run's private root.
+The two-pass results below are historical observations from the manual workflow.
+They used earlier guidance and mixed or restarted model calls, so they are not
+an agent/model benchmark result. The fixture and current report are the authority
+for new comparisons.
 
 ## Two full runs against one export
 
 Both gradients used one export and separate empty private roots. Every source
-got a fresh child in each pass. The export has 7 sources and 534 resolved
+gets a fresh child in each pass. The export has 7 sources and 534 resolved
 references.
 
 - Semantic export digest: `28c0807eb0580274f6c08ba2daebbb2201c499ce11677dcd0a8add28f0fa8bd4`
 - Raw export SHA-256: `71aae38d7cd1e5f5e9ce1498573da427dd8b178d161eae2421381cfd818b66eb`
 - Source-byte manifest SHA-256: `615b2a656166f6e4ee0d15e4ddb9fb2defa8c77e2f007cdfe6b62a99b7ccb916`
-- Guidance fingerprint: `3bb9b9f0d68ac6a1bf5f4a0a6ae4e65e834bf433b446ea4fa6dffb5b4513278a`
+- Guidance fingerprint: `f86262b80a4dd32a29df56a69e3aa234635b7f9f6fd164f28d9c15735ebd404f`
 
 The seven source files matched the manifest before both passes. Every prepare
-reused zero units. All 14 counted results passed the identity checks above. I
-did not recompute the per-artifact BLAKE3 digests.
+reused zero units. All 14 counted results passed the native identity checks
+used for that historical run.
 
 Limits of this run:
 
 1. The host limits were instruction-only. Each child was told to read only its
    prepared files and the two skill folders, and write only its own artifact.
-   No operating system sandbox was enforced. Every child reported reading
-   nothing outside those paths.
-2. All 14 children ran on the same model.
-3. One artifact was set aside and replaced. The first slotted pass-2 child
-   stopped early: its rows left out 111 of its facets, yet it reported full
-   coverage. I found the gap with a script, not from the report. The tool
-   accepted that artifact and reported five `uninterpreted-section` findings.
-   A fresh child covered every facet.
-4. In booking pass 2, one facet has no row: the Rooms goal, which is part of
-   booking's context and is not authored by booking. The tool marks it
-   uninterpreted but raises no finding against booking.
+   No operating system sandbox was enforced.
+2. Children ran on two models: Qwen3.8 and xai/grok-4.7. The grok children
+   failed with a 403 (credits exhausted) after partial progress; the affected
+   sources were restarted with Qwen3.8.
+3. One child (calendar pass 2) timed out after its artifact was complete;
+   the artifact was ingested as-is.
 
 | Source | Target | Pass 1 | Pass 2 | Facets presented |
 | --- | --- | --- | --- | ---: |
-| `slotted.sigil` | Coherent / 0 | Loose / 0, 1 unmet-obligation, 1 ungrounded-claim, 1 unguarded-flow | Loose / 0, 1 ungrounded-claim, 2 unguarded-flow | 169 |
-| `identity.sigil` | Coherent / 0 | Coherent / 0, none | Coherent / 0, none | 16 |
-| `rooms.sigil` | Coherent / 0 | Loose / 0, 1 ungrounded-claim, 1 uninterpreted-section, 1 unguarded-flow | Loose / 0, 4 unguarded-flow | 40 |
-| `shared.sigil` | Coherent / 0 | Loose / 0, 1 unguarded-flow | **Coherent / 0, none** | 18 |
-| `availability.sigil` | Coherent / 0 | Loose / 0, 2 unguarded-flow | Loose / 0, 1 unmet-obligation, 7 unguarded-flow | 81 |
-| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 1 unmet-obligation, 2 unreached-step, 2 unguarded-flow | Loose / 0, 1 unmet-obligation, 2 unreached-step, 2 unguarded-flow | 170 |
-| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 1 unmet-obligation, 1 ungrounded-claim, 1 uninterpreted-section, 13 unguarded-flow | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 1 unmet-obligation, 14 unguarded-flow | 145 |
+| `slotted.sigil` | Coherent / 0 | Loose / 0, 1 unmet-obligation, 3 interpretation, 3 flow | Loose / 0, 3 unmet-obligation, 8 interpretation, 2 flow | 169 |
+| `identity.sigil` | Coherent / 0 | Loose / 0, 1 flow | Loose / 0, 1 flow | 16 |
+| `rooms.sigil` | Coherent / 0 | Loose / 0, 2 unmet-obligation, 5 interpretation | Loose / 0, 1 unmet-obligation, 1 interpretation, 4 flow | 40 |
+| `shared.sigil` | Coherent / 0 | Loose / 0, 1 flow | Loose / 0, 2 flow | 18 |
+| `availability.sigil` | Coherent / 0 | Loose / 0, 3 interpretation, 7 flow | Loose / 0, 6 flow | 81 |
+| `calendar.sigil` | Loose / 0, unmet-obligation and unreached-step | Loose / 0, 3 unmet-obligation, 3 interpretation, 13 flow | Loose / 0, 2 unmet-obligation, 2 interpretation, 1 flow | 170 |
+| `booking.sigil` | Disjoint / 1, contradiction and ownership conflict | Disjoint / 1, 9 contradiction, 2 ownership-conflict, 12 unmet-obligation, 20 interpretation, 27 flow | Disjoint / 1, 3 contradiction, 2 ownership-conflict, 3 unmet-obligation, 3 interpretation, 39 flow | 145 |
 
 What the two runs show:
 
 1. **All four planted problems appeared in both passes.** Booking was
-   Disjoint with the contradiction (3 findings) and the ownership conflict
-   (2 findings). Calendar was Loose with the display-name warning and 2
-   `unreached-step` findings for the owner-digest steps.
-2. **Slotted's real unmet obligation is gone.** Slotted now says it depends on
-   Identity and SharedKernel, and no run reports the signed-in user or the
-   domain error as unmet. Its ungrounded claims fell from 4 and 5 to 1 and 1.
-   Both passes still name `module public entry`, a Tag Slotted defines but does
-   not import from anywhere, in a claim the tool refuses.
-3. **`shared.sigil` was Coherent in pass 2.** It is the first time a source other
-   than identity has been Coherent in a pass.
-4. **`unguarded-flow` is still the largest source of warnings.** Booking has 13
-   and 14, availability pass 2 has 7. Children write `guard` rows only
-   sometimes. None of these warnings gate.
-5. **Both booking passes report an unmet obligation on `exclusion constraint`.**
-   A child wrote that Booking requires an exclusion constraint, and nothing
-   provides it. The sentence says Booking must enforce its rule with one. This
-   is a modelling slip, not a design gap.
-6. **Only `identity.sigil` was Coherent in both passes.**
+   Disjoint with the contradiction (9 and 3 findings) and the ownership
+   conflict (2 findings in both passes). Calendar was Loose with unmet
+   obligations (3 and 2) and flow findings (13 and 1).
+2. **Identity is reproducible.** Both passes report exactly one flow finding
+   (step-negated-action), matching each other and the eighth run.
+3. **Flow findings dominate the warning count.** Booking has 27 and 39, and
+   availability has 7 and 6. Children write flow rows for steps that the
+   prose describes but does not fully ground in the design's entities.
+4. **Interpretation findings vary between passes.** Slotted reports 3 and 8,
+   rooms 5 and 1. The model reads the same prose differently on each fresh run.
+5. **No source reached Coherent in either pass.** Identity came closest with
+   a single flow finding in both passes.
 
 No future run is guaranteed to match any of this.
 
 ### Earlier runs
 
-Seven earlier pairs of gradients ran on the same export under older guidance or
+Eight earlier pairs of gradients ran on the same export under older guidance or
 an older design. `analyze-demo/slotted-runs/DIAGNOSIS.md` holds the analysis of
 why each changed. Each cell is pass 1 / pass 2.
 
-| Source | Old guidance | Corrected naming rule | Four fixes | End declared by the prose | Booking says "and commits" | Guard and refusal examples |
-| --- | --- | --- | --- | --- | --- | --- |
-| `slotted.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
-| `identity.sigil` | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent |
-| `rooms.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
-| `shared.sigil` | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
-| `availability.sigil` | Coherent / Coherent | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
-| `calendar.sigil` | Loose / Loose | Loose / Disjoint | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
-| `booking.sigil` | Disjoint / Coherent | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint |
+| Source | Old guidance | Corrected naming rule | Four fixes | End declared by the prose | Booking says "and commits" | Guard and refusal examples | Eighth run |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `slotted.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `identity.sigil` | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Coherent / Coherent | Loose / Loose |
+| `rooms.sigil` | Coherent / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `shared.sigil` | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Coherent |
+| `availability.sigil` | Coherent / Coherent | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `calendar.sigil` | Loose / Loose | Loose / Disjoint | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose | Loose / Loose |
+| `booking.sigil` | Disjoint / Coherent | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint | Disjoint / Disjoint |
 
 The guidance fingerprints were `29f869c7…`, `21f7aa54…`, `a0ce1299…`,
-`fbe42d67…` (twice), and `b100d025…`. The first run said a claim could only name
-an asterisk-marked Tag, which cannot be done for an existing Tag, and booking's
-planted problems came out in one pass of two. The third changed four readings:
-a Tag is never the subject of "requires", "the only one that may" writes an
-exclusive property, a rejection ends a flow, and a scoped exception is not a
-global ban. The fourth changed the rule for flow ends: an end is declared by the
-prose, never by position, and a commit counts as an end. The design then changed
-once, in the sixth run, when Booking's timezone and unarchive sentences were
-given "and commits". The seventh run added two examples, a guard row and a
-refusal rule as a reading. The latest run changed the design again, to resolve
-the six unplanted review findings and Slotted's dependency gap, and added a
-guidance rule that a name on the entity list is not grounded by being listed.
+`fbe42d67…` (twice), `b100d025…`, and `3bb9b9f0…`. The first run said a claim
+could only name an asterisk-marked Tag, which cannot be done for an existing
+Tag, and booking's planted problems came out in one pass of two. The third
+changed four readings: a Tag is never the subject of "requires", "the only one
+that may" writes an exclusive property, a rejection ends a flow, and a scoped
+exception is not a global ban. The fourth changed the rule for flow ends: an
+end is declared by the prose, never by position, and a commit counts as an end.
+The design then changed once, in the sixth run, when Booking's timezone and
+unarchive sentences were given "and commits". The seventh run added two
+examples, a guard row and a refusal rule as a reading. The eighth run changed
+the design again, to resolve the six unplanted review findings and Slotted's
+dependency gap, and added a guidance rule that a name on the entity list is not
+grounded by being listed. The ninth run (this one) changed the guidance again:
+finding classes were renamed from `unguarded-flow` to `flow`, `ungrounded-claim`
+to `interpretation`, and `uninterpreted-section` was retired; the guidance
+fingerprint is `f86262b8…`.
 
 The run records stay outside the repository, except the copies in
 `analyze-demo/slotted-runs/`, which are ignored by git.
 
-## Remedies and the expected return state
+## Interpreting the historical results
 
-The files keep the problems so you can rerun the demo. To try a repaired
-design, work in a scratch copy:
-
-1. Make Booking's interface and constraint agree about changing a pending range.
-2. Keep the archived room mark in Rooms. Reword Booking so its workflows only
-   call Rooms' archive and unarchive mutations.
-3. Give the renter display name a provider, or remove the requirement.
-4. Delete the owner digest step, or say what consumes it.
-
-If those are the only defects, the repaired sources should return to Coherent
-with no findings. The model may still report other findings, so run the loop on
-the repaired copy instead of assuming a result. No repaired copy is committed.
+The tool-owned fixture names the intended remedies and target state gradient.
+The historical tables above show what earlier interpretations returned, rather
+than a guarantee that a future model will reach those targets. Review the saved
+rows and cited findings in each new benchmark report before making a claim
+about an agent or model.
 
 ## Computed evaluation and advisory review
 
