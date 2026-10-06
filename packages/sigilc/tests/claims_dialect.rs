@@ -628,6 +628,7 @@ fn a_label_shared_by_two_entities_in_the_closure_is_refused_as_ambiguous() {
         },
         rows: vec![prepare::FacetRow {
             facet: "f1".into(),
+            handle: "f1".into(),
             component: "urn:e:Owner".into(),
             component_label: "Owner".into(),
             section: "interface".into(),
@@ -714,6 +715,56 @@ fn a_guard_names_its_step_by_ordinal_and_one_of_three_operands() {
 
     let err = dialect::parse(r#"(guard "f1" "2" "mood" "x")"#, Limits::default()).unwrap_err();
     assert!(err.contains("operand"), "got: {err}");
+}
+
+#[test]
+fn a_rows_facet_columns_are_its_facet_and_a_constraint_guards_value() {
+    // Ingest rewrites handles in exactly these columns, so an input or state
+    // literal that happens to look like a handle is never touched.
+    let mut rows = dialect::parse(
+        r#"(claim "f1" "Base" "provides" "value" "required" "true")
+           (property "f1" "Base" "exclusive" "true")
+           (measure "f1" "Base" "risk" "0.5")
+           (reading "f1" "no-commitment")
+           (step "f1" "1")
+           (guard "f1" "1" "constraint" "f2")
+           (guard "f1" "1" "input" "f3")
+           (guard "f1" "1" "state" "f4")"#,
+        Limits::default(),
+    )
+    .unwrap();
+    let named: Vec<Vec<String>> = rows
+        .iter_mut()
+        .map(|row| {
+            row.facet_columns_mut()
+                .into_iter()
+                .map(|c| c.clone())
+                .collect()
+        })
+        .collect();
+    let f1 = || vec!["f1".to_owned()];
+    assert_eq!(
+        named,
+        vec![
+            f1(),
+            f1(),
+            f1(),
+            f1(),
+            f1(),
+            vec!["f1".to_owned(), "f2".to_owned()],
+            f1(),
+            f1(),
+        ]
+    );
+
+    for row in &mut rows {
+        for column in row.facet_columns_mut() {
+            *column = format!("facet:{column}");
+        }
+    }
+    assert!(rows.iter().all(|row| row.facet() == "facet:f1"));
+    assert!(matches!(&rows[5], Row::Guard { value, .. } if value == "facet:f2"));
+    assert!(matches!(&rows[6], Row::Guard { value, .. } if value == "f3"));
 }
 
 #[test]

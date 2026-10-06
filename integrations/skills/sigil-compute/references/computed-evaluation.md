@@ -4,8 +4,8 @@ This is the shared protocol for running the claims loop on one selected Sigil
 0.9 design source. The host owns the loop: it runs the tool, captures one
 snapshot, delegates one interpretation, and recognizes one completed result.
 The tool never launches a model and never reads skills. The interpreter child
-only reads the prepared request and returns rows. The host supplies agent
-creation, cancellation, and any enforced restrictions; run records belong
+only reads the prepared brief and guidance and returns rows. The host supplies
+agent creation, cancellation, and any enforced restrictions; run records belong
 outside the design workspace under validation.
 
 Advisory design review is a different job, kept by `sigil-evaluate`. This loop's
@@ -28,14 +28,16 @@ verdict: a refused artifact exits 1 with an error message and no structured
 result, and only the result below plus its matching report decide a state.
 
 Prepare writes into a fresh, initially empty preparation directory — it
-refuses one that is not empty — the files `binding.json`, `request.json`, and
-the guidance bundle (`sections.md`, `vocabulary.md`, `examples.md`,
-`rejected.md`). Its structured result names the binding path, the written
-inputs, how many Facets were presented, how many units were reused from stored
-interpretations, and the binding digest. The binding carries `format`,
-`source`, `exportDigest`, `guidanceFingerprint`, `vocabularyGeneration`,
-`closure`, and `facets`: the identity of the request, which ingest recomputes
-and compares.
+refuses one that is not empty — the files `brief.md`, `request.json`,
+`binding.json`, and the guidance bundle (`sections.md`, `vocabulary.md`,
+`examples.md`, `rejected.md`). The brief is the interpreter's only request
+file; `request.json` and `binding.json` are tool-side records the child never
+reads. Its structured result names the binding path, the brief path, the
+written inputs, how many Facets were presented, how many units were reused
+from stored interpretations, and the binding digest. The binding carries
+`format`, `source`, `exportDigest`, `guidanceFingerprint`,
+`vocabularyGeneration`, `closure`, and `facets`: the identity of the request,
+which ingest recomputes and compares.
 
 Stored interpretations live under `<root>/.sigil/claims/interpretations`. The
 findings report and the judgment context are written under `<root>/.sigil/claims`.
@@ -88,32 +90,33 @@ Results describe the captured export and the seeded store, including when the
 workspace changes later. The result handoff carries the snapshot identity so a
 reader can tell what the state covers.
 
-## Hand one fresh child the prepared request
+## Hand one fresh child the prepared brief
 
 Interpretation is one fresh child with no inherited conversation. The child
-does not run the tool; it reads the prepared request and returns rows.
+does not run the tool; it reads the prepared brief and returns rows.
 
 | Field | Content |
 | --- | --- |
-| `task` | Read the prepared interpretation request and return data-only rows. This task overrides ordinary explanatory output. |
-| `skills` | Resolved installed entrypoint paths of the required `sigil-understand` and `sigil-egglog` skills. |
+| `task` | Read the prepared brief and return data-only rows. This task overrides ordinary explanatory output. |
+| `skills` | Resolved installed entrypoint path of the required `sigil-egglog` skill, and optionally of `sigil-understand` as background. |
 | `preparation` | The preparation directory, containing the files below. |
-| `request` | Path to `request.json`: the presented Facet rows, whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
-| `binding` | Path to `binding.json`, the request's identity. |
+| `brief` | Path to `brief.md`: the admissible entities, the components each source imports from, and one `[fN]` line per presented Facet with its exact prose, grouped by source, component, and contract role. Rows name each Facet by its handle. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
 | `artifact` | Where the host will read the returned rows. |
 | `completion` | The child states it finished. For a request that presents nothing, that statement says the returned artifact is empty on purpose. |
 
-The child loads `sigil-understand` for design meaning and `sigil-egglog` for
-the claims dialect; neither replaces the request's binding guidance. Capture
-the completed artifact verbatim and pass those exact bytes to ingest. Do not
-repair rows, strip prose, or substitute host interpretation. Preserve whole
-Logic groupings as presented, and do not reconstruct Facets prepare omitted.
+The child loads `sigil-egglog` for the claims dialect, and may load
+`sigil-understand` as background on design meaning; neither replaces the
+prepared guidance. The binding stays with the host: pass `binding.json` to
+ingest, never to the child. Capture the completed artifact verbatim and pass
+those exact bytes to ingest. Do not repair rows, strip prose, or substitute host
+interpretation. Preserve whole Logic groupings as presented, and do not
+reconstruct Facets prepare omitted.
 
-Even a request whose every unit was reused from the store — one that presents
-zero rows — goes through one fresh child, which returns an explicitly
-completed empty artifact. Missing delegation, a missing required skill, or
-interrupted output is a failure, not rows.
+Even a request whose every unit was reused from the store — one whose brief
+presents nothing and says so — goes through one fresh child, which returns an
+explicitly completed empty artifact. Missing delegation, a missing required
+skill, or interrupted output is a failure, not rows.
 
 ## Recognize a completed ingest
 
@@ -172,6 +175,6 @@ This loop evaluates an existing Sigil 0.9 design. It does not author, revise,
 or delete design files, and a 0.7 contract or a greenfield design is not its
 input. `sigil-write` still delegates its review to `sigil-evaluate`; this
 skill is not the writer's reviewer. The claims binary does not read skills:
-`sigil-understand` and `sigil-egglog` stay host-loaded for the child, as
-[design-language authority](../../sigil-understand/SKILL.md) and
-[claims-dialect background](../../sigil-egglog/SKILL.md).
+the host loads the [claims dialect](../../sigil-egglog/SKILL.md) for the child,
+and may add [design-language background](../../sigil-understand/SKILL.md) as
+optional reading.

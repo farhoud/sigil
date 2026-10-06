@@ -82,6 +82,31 @@ impl Row {
         }
     }
 
+    /// Every column that names a Facet: the row's own Facet, and the value of a
+    /// guard against a constraint. A guard's other values are literals or
+    /// entities, so a handle-shaped one is left as written.
+    pub fn facet_columns_mut(&mut self) -> Vec<&mut String> {
+        match self {
+            Row::Guard {
+                facet,
+                operand,
+                value,
+                ..
+            } => {
+                if operand == "constraint" {
+                    vec![facet, value]
+                } else {
+                    vec![facet]
+                }
+            }
+            Row::Claim { facet, .. }
+            | Row::Property { facet, .. }
+            | Row::Measure { facet, .. }
+            | Row::Reading { facet, .. }
+            | Row::Step { facet, .. } => vec![facet],
+        }
+    }
+
     pub fn relation_name(&self) -> &'static str {
         match self {
             Row::Claim { .. } => "claim",

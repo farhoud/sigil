@@ -70,12 +70,17 @@ component SigilComputedClaims {
 
     InterpretationRequest {
       Project one design source and its resolved closure into an interpretation
-      directory. Carry each Facet's exact prose slice with the contract role its
-      unit belongs to, taken from ResolvedDesignInput rather than inferred, and
-      emit one pre-filled row per Facet identifying that Facet alone. Write an
-      immutable binding over the export digest, the selected source, the guidance
+      directory. Write a plain-text *interpretation brief* that presents each
+      Facet's exact prose slice under the contract role its unit belongs to,
+      taken from ResolvedDesignInput rather than inferred. Write an immutable
+      binding over the export digest, the selected source, the guidance
       fingerprint and the vocabulary generation. The caller keeps the directory
       and produces claims independently.
+
+      The interpretation brief names each Facet by a short *Facet handle*.
+      Handles are numbered across the whole closure in source order, so the
+      closure alone fixes them, and a Facet whose unit is not presented keeps
+      its handle.
 
       The *selected source closure* presents every Facet, not only the selected
       source.
@@ -90,9 +95,8 @@ component SigilComputedClaims {
       against the current closure, so a claim naming an entity that has since
       left it is refused like any other.
 
-      Logic is the exception to presenting each Facet alone: a component's Logic
-      Facets are presented together, in source order, each keeping its own row,
-      identity and prose slice.
+      A component's Logic Facets are presented together, in source order, each
+      keeping its own Facet handle, identity and prose slice.
     }
 
     ReturnedClaims {
@@ -104,6 +108,11 @@ component SigilComputedClaims {
       interpreter read and found no commitment in, or whose intent is
       unresolved. The tool mints every identity and refuses any the
       interpretation declares, and any entity outside the resolved closure.
+
+      A returned row names a Facet by its Facet handle or by its Facet identity.
+      A Facet handle is resolved to that identity on admission, so a stored
+      interpretation never holds one. A Facet handle that numbers no Facet in
+      the whole closure is refused.
 
       A component's Logic prose describing a *sequence* of steps is interpreted as
       one flow graph spanning that section's Facets.
@@ -320,6 +329,13 @@ component SigilComputedClaims {
       measured declares exactly one component, so a claim had no dependency
       graph to reach. Storing interpretations is what keeps that widening from
       re-reading every shared dependency once per dependent.
+
+      The interpretation brief replaced a request of pre-filled rows because a
+      small interpreter spent its whole output budget on a request ten times
+      the size of its source. A Facet handle is numbered across the whole
+      closure, not only the presented units, because the stored
+      interpretations can change between preparation and ingestion; numbering
+      what was presented could bind a row to the wrong Facet.
     }
   }
 }

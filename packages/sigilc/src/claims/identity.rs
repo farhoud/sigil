@@ -417,6 +417,16 @@ pub fn admit(request: &Request, input: &DesignInput, rows: &[Row]) -> Result<Vec
     Ok(facts)
 }
 
+/// Labels two or more closure entities share. A row naming one of these by
+/// label alone is refused as ambiguous, so the brief shows their identities.
+pub fn ambiguous_labels(request: &Request) -> BTreeSet<String> {
+    EntityNames::build(request)
+        .by_label
+        .into_iter()
+        .filter_map(|(label, id)| id.is_none().then_some(label))
+        .collect()
+}
+
 /// Entity names a claim may use, and what they resolve to.
 ///
 /// The interpreter reads labels, so labels are accepted and resolved to the

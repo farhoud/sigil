@@ -17,7 +17,10 @@ const PROBE_TIMEOUT_MS = 5_000;
 export interface AgentRunRequest {
   readonly agent: AgentName;
   readonly requestedModel: string;
-  /** Fresh native prepare directory. It is copied, never exposed in place. */
+  /**
+   * Fresh native prepare directory. Only its brief and guidance are copied
+   * into the child workspace; it is never exposed in place.
+   */
   readonly preparationDir: string;
   /** Attempt-specific retained directory under the batch. */
   readonly evidenceDir: string;
@@ -53,8 +56,20 @@ export interface AgentRunResult {
   readonly finalResponsePath: string | null;
 }
 
+/**
+ * The prepared files a child may read. `request.json` and `binding.json` stay
+ * on the controller side for coverage checks and ingest.
+ */
+export const STAGED_PREPARATION = [
+  "brief.md",
+  "sections.md",
+  "vocabulary.md",
+  "examples.md",
+  "rejected.md",
+] as const;
+
 export const INTERPRETATION_PROMPT =
-  `Interpret the Sigil claims preparation in this workspace. This is one fresh interpretation task.\n\nRead preparation/request.json, preparation/binding.json, and every guidance file in preparation/. Read skills/sigil-understand/SKILL.md, skills/sigil-understand/references/understanding.md, skills/sigil-egglog/SKILL.md, and skills/sigil-egglog/references/dialect.md. Read other skill references only when a presented Facet needs a specific rule. The prepared guidance controls the accepted row format and names.\n\nReturn only the complete data rows for every presented Facet, including contextual Facets. An explicit reading row is appropriate when a Facet asserts no claim. Preserve whole Logic groupings. Do not run sigil-claims or inspect any repository or prior attempt. No explanation, markdown fence, or repaired summary. Your final message must be the exact claims artifact.\n`;
+  `Interpret the Sigil claims preparation in this workspace. This is one fresh interpretation task.\n\nRead preparation/brief.md, every guidance file in preparation/, skills/sigil-egglog/SKILL.md, and skills/sigil-egglog/references/dialect.md. Read other skill references only when a presented Facet needs a specific rule. skills/sigil-understand/ is optional background. The prepared guidance controls the accepted row format and names.\n\nReturn only the complete data rows for every [fN] line in the brief, including contextual Facets. Name each Facet by its [fN] handle, such as "f1". An explicit reading row is appropriate when a Facet asserts no claim. Preserve whole Logic groupings. Do not run sigil-claims or inspect any repository or prior attempt. No explanation, markdown fence, or repaired summary. Your final message must be the exact claims artifact.\n`;
 
 /** Launches one isolated interpretation process and retains its raw evidence. */
 export async function runInterpretationAgent(
@@ -82,7 +97,7 @@ export async function runInterpretationAgent(
   let exitCode: number | null = null;
   let finalResponsePath: string | null = null;
   try {
-    await copyTree(
+    await stagePreparation(
       request.preparationDir,
       join(stagedWorkspace, "preparation"),
     );
@@ -360,6 +375,16 @@ async function probeVersion(
       } catch { /* Best effort cleanup after a failed probe. */ }
     }
     return null;
+  }
+}
+
+async function stagePreparation(
+  source: string,
+  destination: string,
+): Promise<void> {
+  await Deno.mkdir(destination, { recursive: true });
+  for (const name of STAGED_PREPARATION) {
+    await Deno.copyFile(join(source, name), join(destination, name));
   }
 }
 

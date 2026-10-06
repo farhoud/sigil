@@ -1,9 +1,7 @@
-# Contract roles, and what to assert from each
+# Contract roles
 
-Every Facet you read belongs to exactly one of seven contract roles. You are not
-told the role in the row you complete, and you must not restate it: the tool
-fills that column from the design export, which is the only thing that knows it.
-What the role changes is *what kind of claim the Facet can support*.
+Each `### <role>` heading in the brief names the role of the lines under it.
+Never write the role in a row.
 
 | Role | Read it as |
 | --- | --- |
@@ -15,109 +13,38 @@ What the role changes is *what kind of claim the Facet can support*.
 | `decisions` | Rationale, assumptions, alternatives, trade-offs, and revisit conditions. |
 | `cases` | Starting situations, actions, and expected observations in examples or families. |
 
-These readings are the language's own, not this tool's. `goal` and `interface`
-are required of every component; the other five are optional and may be empty.
-
 ## Assert only what the Facet authored
 
-This is the rule the whole pipeline rests on. Three kinds of statement are easy
-to confuse, and only the first is yours to assert.
-
-**An authored commitment** is something the Facet says. Assert it. If the Facet
-says a component provides a capability, return that claim.
-
-**A supported deduction** is something that follows from what the Facet says.
-Do not assert it. The laws derive consequences themselves — reachability through
-dependencies, capability through delegation, a contradiction between two
-commitments. Asserting a deduction as though it were authored inflates the
-design with facts nobody wrote, and the tool cannot tell them apart afterwards.
-
-**Unresolved intent** is a consequential choice the Facet leaves open, or
-material you cannot see. Do not guess it and do not assert it as fact. Return a
-`reading` row with outcome `unresolved`.
-
-A Facet you read and drew no commitment from is not a failure, and it is not
-silence either. Return a `reading` row with outcome `no-commitment`. That is how
-the tool tells a Facet you considered from one you never looked at — a Facet
-that yields nothing at all is reported as a gap in the interpretation, and
-rationale-only prose in a `decisions` Facet is a normal, correct `no-commitment`.
-
-## Modality
-
-Every claim carries one of three modalities, and getting it wrong changes what
-the tool computes.
-
-- `required` — the Facet states this must hold. Only a required claim raises an
-  obligation that something else has to satisfy.
-- `permitted` — the Facet allows it without demanding it. Raises no obligation.
-- `assumed` — the Facet depends on it without promising it. Raises an
-  assumption obligation rather than a capability one.
-
-"Must return a result" is `required`. "May return a cached result" is
-`permitted`. "Assumes the store is reachable" is `assumed`.
+- An authored commitment is what the Facet says. Assert it.
+- A supported deduction follows from what it says. Do not assert it; the laws
+  derive it.
+- Unresolved intent is a consequential choice left open, or material you
+  cannot see. Return a `reading` with `unresolved`.
+- A Facet that commits to nothing returns a `reading` with `no-commitment`.
+  Pure rationale in `decisions` is a normal `no-commitment`.
 
 ## Naming what a claim is about
 
-A claim's subject and object must each be one of three things:
+A subject or object is one of: the Facet's own component (its `##` heading);
+a component that the Imports list shows the Facet's source importing from; a
+Tag written in that Facet's own line, spelled exactly. `*Asterisks*` introduce
+a new Tag. An existing Tag is written bare; never add asterisks to it.
 
-1. the Facet's own component;
-2. a component its source imports from;
-3. a Tag that appears in this exact Facet's own prose, spelled exactly as the
-   Tag is named.
+The Entities list spans the whole closure, and being listed grounds nothing.
+A Tag found only in another Facet's line, a changed plural or case, or a
+component the source does not import is refused as ungrounded: return a
+`reading` instead. An entity listed with a backticked id has a shared label;
+write the id.
 
-The third case covers two ways a Tag reaches the prose. A Tag the Facet
-introduces is marked with asterisks: `*a name like this*`. A Tag that already
-exists, whether the component defines it elsewhere or imports it, is written
-bare, with no asterisks: `a name like this`. Both are grounded.
+For `requires`, `provides`, `owns` and `dependsOn` the subject is a component
+or a step, never a Tag.
 
-An asterisk defines a new Tag. Never put asterisks around a Tag that already
-exists. Doing so declares a second definition and the design fails its check.
+An exception scoped to one case ("a closed search, with no results") is not a
+global ban: claim only the positive part. A rule about what is refused
+("must not accept X") is not an exclusion: return a `reading`.
 
-A claim about anything else is rejected as ungrounded, even though the row is
-otherwise well-formed. That includes a Tag that appears only in a different
-Facet's prose, a plural or differently cased form that does not match the
-Tag's name, and a Tag owned by a source this one does not import. If a Facet's
-prose does not name a Tag, do not invent a claim about it. Return a `reading`
-row instead.
+## What the role does
 
-**The entity list is wider than what a Facet may name.** The request's
-`entities` lists every component and Tag in the whole closure, including ones a
-source never imports. Being on that list does not ground a name. The request's
-`imports` list says, for each source, which components it imports from and which
-Tag names it takes from each. A Facet may name another component only if its own
-source appears in `imports` with that component under `from`. Look the source up
-there before you write the claim. When a Facet names a module only in passing,
-such as in a list of allowed dependencies, and that module is not in the source's
-`imports`, return a `reading` for that part instead of a claim the tool refuses
-as ungrounded.
-
-**Who does the requiring.** For `requires`, `provides`, `owns`, and `dependsOn`,
-the subject is a component (or a step, for a flow). Never a Tag. A Tag cannot
-provide anything, so `booking request requires open time` can never be
-satisfied and reports an obligation that nothing could meet. When a Facet says
-a *booking request* must lie inside open time, the requirement belongs to the
-component that handles it: `Booking requires open time`.
-
-**A scoped exception is not a global ban.** When a Facet says something is
-absent only in one case, such as "the view of a closed search, with no search
-results in it", assert the positive part and stop. Do not write the exception
-as `expected` `false` about the whole component. The claim format cannot say
-"only here", so a global `false` contradicts every Facet that promises the
-thing in general. Write the positive claim and leave the exception unclaimed.
-
-**A rule about what is refused is not an exclusion.** "Must not accept a request
-from X" says what a flow refuses. The step that checks X is where the refusal
-happens, so a claim that the component excludes X is reported against that step.
-Return a `reading` for such a rule, or the positive requirement the flow meets.
-
-## What the role does to a claim
-
-A `decisions` Facet's claims are retained and reported, and are passed to the
-judge, but they raise no obligation and satisfy none. Rationale does not convert
-a rejected alternative or an unaccepted proposal into a commitment. Return the
-claims anyway — being able to see what a Decisions Facet argued is the point —
-but do not promote a considered option into a promise.
-
-A `cases` Facet describes examples. An example does not silently quantify over
-all inputs; required and permitted outcomes differ. Prefer `permitted` unless
-the Facet states the case as a general rule.
+`decisions` claims are reported but raise and satisfy no obligation; never
+promote a rejected option. `cases` are examples: use `permitted` unless the
+Facet states a general rule.

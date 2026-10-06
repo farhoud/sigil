@@ -1,180 +1,62 @@
 # The rows you may return
 
-Return a plain list of S-expression rows and nothing else. No rules, no
-commands, no schedules, no nested expressions, no arithmetic — every argument is
-a quoted string literal. One rule declaration anywhere in the artifact and the
-whole thing is refused, including the valid rows beside it.
+Return only S-expression rows. Every argument is a quoted string literal: no
+rules, commands, schedules, nested expressions or arithmetic. One rule anywhere
+and the whole artifact is refused, valid rows included.
 
-Four row shapes exist. Each begins with the identity of the Facet it came from,
-which you copy from the pre-filled row you were given.
-
-## `claim` — six columns
+Each row's `facet` is the handle of the brief line it came from, such as f12.
 
 ```
 (claim "<facet>" "<subject>" "<relation>" "<object>" "<modality>" "<expected>")
-```
-
-| Column | Meaning |
-| --- | --- |
-| `facet` | The Facet this claim was read from. Copy it; never invent one. |
-| `subject` | The entity the claim is about. |
-| `relation` | One of the relation names below. |
-| `object` | The entity the subject stands in that relation to. |
-| `modality` | `required`, `permitted`, or `assumed`. |
-| `expected` | `true` if the Facet asserts the relation holds, `false` if it asserts it must not. |
-
-## `property` — four columns
-
-```
 (property "<facet>" "<subject>" "<property>" "<value>")
-```
-
-For the boolean properties below. `value` is `true` or `false`.
-
-## `measure` — four columns
-
-```
 (measure "<facet>" "<subject>" "<property>" "<number>")
-```
-
-For the numeric properties below. `number` is a finite, non-negative decimal
-written as a string. `risk` is between zero and one.
-
-## `reading` — two columns
-
-```
 (reading "<facet>" "<outcome>")
-```
-
-`outcome` is `no-commitment` when you read the Facet and it authored nothing to
-assert, or `unresolved` when a consequential choice is left open or the material
-you would need is unavailable. Return one for every Facet that yields no claim.
-
-## `step` — two columns
-
-```
 (step "<facet>" "<ordinal>")
+(guard "<facet>" "<step>" "<operand>" "<value>")
 ```
 
-Declares one step of a flow. `ordinal` is the step's position across the whole
-Logic section, counting from `1`, in the order the prose describes the steps —
-not its position within one paragraph. Two steps in a section never share an
-ordinal.
+- `claim`: `subject` stands in `relation` to `object`. `modality` is `required`
+  (must hold; raises an obligation), `permitted` (allowed, not demanded) or
+  `assumed` (depended on, not promised). `expected` is `true`, or `false` when
+  the relation must not hold.
+- `property`: a boolean property; `value` is `true` or `false`.
+- `measure`: a numeric property; `number` is a non-negative decimal. `risk`
+  lies between 0 and 1.
+- `reading`: `outcome` is `no-commitment` or `unresolved`, for a Facet that
+  yields no other row.
+- `step`: `ordinal` counts from `1` across the component's whole logic
+  section, in prose order, never repeating.
+- `guard`: `step` is the ordinal. `operand` is `state` (a declared Tag the step
+  reads), `input` (a literal text value) or `constraint` (`value` is the handle
+  of the Constraints Facet that authored it).
 
-The ordinal is how every other row refers to this step. You cannot name a step
-any other way: its identity is minted after your answer is read, so it does not
-exist yet when you write.
+## Flows
 
-## `guard` — four columns
+A component's logic lines sit together in source order. Read them as one
+section: a flow often spans several lines. Name a step `step:<ordinal>` and the
+flow `graph`. What a step `reads`, `writes` or `invokes`, and its `to` edges,
+are claims, always `required` and `true`.
 
-```
-(guard "<facet>" "<step ordinal>" "<operand>" "<value>")
-```
+- A `to` edge runs from a step to the later step or result that consumes what
+  it produced. "Then" states order, not consumption: no edge.
+- An edge to `graph` declares an end. Write one only where the prose ends the
+  flow: the step returns, refuses, rejects, commits or saves. Each refusing
+  branch is its own end. Being last, writing state or calling out is not an
+  end. A flow with no edge to `graph` is refused.
+- A step nothing consumes, whose prose declares no end, gets no edge. The tool
+  reports it.
+- Logic prose that is not a flow is an ordinary claim.
 
-`operand` is one of `state`, `input` or `constraint`, and `value` is what the
-guard compares against:
+## Names
 
-- `state` — a Tag the design declares, which the step reads.
-- `input` — a literal value, written as text. It is never resolved as an entity,
-  so an argument name that the design never declares is fine here.
-- `constraint` — the **Facet** that authored the constraint, not the claim.
-  Claim identities do not exist yet when you write.
+Relations: `owns`, `provides`, `requires`, `dependsOn`, `excludes`,
+`delegates`, `routesThrough`, `persistsAt`, `authorityFor`, `trusts`,
+`invokes`, `reads`, `writes`, `uses`, `hasContract`, `from`, `to`, `target`,
+`initialState`, `transitionsTo`
 
-## What a step does is an ordinary claim
+Boolean properties: `required`, `exclusive`, `assumed`, `expected`
 
-A step is an entity, so everything about it is a `claim`, not a row of its own:
+Numeric properties: `cost`, `latencyBudgetMs`, `latencyMs`, `risk`
 
-```
-(claim "<facet>" "step:2" "reads" "<tag>" "required" "true")
-(claim "<facet>" "step:2" "writes" "<tag>" "required" "true")
-(claim "<facet>" "step:2" "invokes" "<tag>" "required" "true")
-(claim "<facet>" "step:2" "to" "step:3" "required" "true")
-(claim "<facet>" "step:5" "to" "graph" "required" "true")
-```
-
-Write `step:<ordinal>` to name a step and `graph` to name the section's flow as
-a whole. A claim naming either is always `required` and `true`: a step either
-reads a state or it does not, and there is no permitted or assumed about it.
-
-An edge — the `to` relation — runs from a step to whatever the prose says
-consumes what that step produced: a later step, or the flow's result. What a
-step reads, writes and calls are claims about the step, not edge targets.
-
-**An edge to `graph` is what declares an end of the flow.** A flow with no such
-edge is refused. A branching flow declares one end per branch, so more than one
-edge to `graph` is normal.
-
-**A rejection is an end.** A step that refuses the request, returns an error, or
-stops because a check failed ends that branch of the flow, even when no later
-step consumes its result. Give it an edge to `graph`. A check that only gates a
-later step, such as "step one checks the grid, step two rejects a bad time", is
-not a dead end: each refusal declares its own end, and the passing path goes on
-to the next step.
-
-**An end is declared by the prose, never by position.** Give a step an edge to
-`graph` only when the prose says the flow ends there: the step returns a result,
-refuses, or the prose says the flow is finished. A step that commits, saves,
-or completes the command is an end, the same as a return: "step four commits"
-finishes that command. Being the last step of a paragraph is not an end. Writing
-state or calling outward is not an end either, unless the prose says that is
-where the flow stops. A step that only compares, reads, or checks, and says
-nothing about returning, refusing, or committing, is not an end.
-
-**A dead end is reported, not repaired.** A step whose result no later step uses,
-and whose prose declares no end, gets no outgoing edge at all. Do not add an edge
-to `graph` to close it. The tool reports that step as unreached, and finding it
-is the point.
-
-A paragraph saying "derive X, then construct Y" states an order, not a
-consumption: unless the prose says Y uses what X produced, there is no edge from
-X to Y.
-
-## Logic sections are presented whole
-
-Every other contract role is presented one Facet at a time. Logic is not.
-
-The request's `flows` list names each component's Logic section and lists its
-Facet identities **in source order**. Each of those Facets still has its own row
-in `rows`, with its own identity and its own prose — the grouping adds order and
-membership and takes nothing away.
-
-Read a section's Facets together. A Facet is a paragraph, and flow-shaped prose
-routinely runs across several of them: one real design states its first step in
-one paragraph, its middle two in a second, and its closing return in a third.
-Reading any one of those alone, you cannot see where the flow goes.
-
-A Logic section may also mix flow prose with prose that is not flow at all — a
-paragraph stating which component owns which result shape is an ordinary claim,
-not a step. Returning no step for such a Facet is correct, and does not make it
-uninterpreted.
-
-## Relation names
-
-A claim's relation is one of these, and nothing else:
-
-`owns`, `provides`, `requires`, `dependsOn`, `excludes`, `delegates`,
-`routesThrough`, `persistsAt`, `authorityFor`, `trusts`, `invokes`, `reads`,
-`writes`, `uses`, `hasContract`, `from`, `to`, `target`, `initialState`,
-`transitionsTo`
-
-## Boolean properties
-
-`required`, `exclusive`, `assumed`, `expected`
-
-## Numeric properties
-
-`cost`, `latencyBudgetMs`, `latencyMs`, `risk`
-
-## What you never supply
-
-**A section.** No row carries the contract role. The tool fills it from the
-export, because only the export knows it, and asking you to restate it would
-create drift the column exists to catch.
-
-**An identity.** The tool mints every claim identity. Do not declare a Component
-or a Tag — the frontend reserves those — and do not name an entity outside the
-design's resolved import closure.
-
-**A law.** The rules that derive contradictions, ownership conflicts and unmet
-obligations are compiled into the tool. You supply what the design says; the
-tool decides what follows from it.
+Never supply a contract role, a Component or Tag declaration, a claim
+identity, or a law. The tool owns all four.

@@ -124,10 +124,14 @@ sigil-claims ingest --frontend frontend.json \
 sigil-claims extract-guidance --out ./guidance
 ```
 
-`prepare` writes an immutable `binding.json`, a `request.json` carrying each
-Facet's exact prose slice with the contract role it belongs to, and the
-interpreter guidance. `ingest` recomputes the request from the current export
-and refuses a binding that does not match it, naming which input moved.
+`prepare` writes an immutable `binding.json`, a `brief.md` presenting each
+Facet's exact prose slice under a short handle (`[f1]`, `[f2]`, …), grouped by
+component and contract role, and the interpreter guidance. The brief is the
+only request file an interpreter reads; returned rows name Facets by handle.
+`request.json` is the tool-side record of the same rows, each with its handle.
+`ingest` recomputes the request from the current export, resolves handles to
+Facet ids, and refuses a binding that does not match it, naming which input
+moved.
 
 Claims come back as data-only egglog atoms. An artifact containing a rule,
 command, schedule or non-literal argument is refused whole. Relation and

@@ -4,7 +4,7 @@
 //! prose of each Facet, the guidance bundle, and an immutable binding that lets
 //! ingest refuse a mismatched pair. No `.sigil` file is read — the export
 //! already carries every source's full text.
-use super::{guidance, vocabulary};
+use super::{guidance, identity, vocabulary};
 use crate::{
     frontend::{DesignInput, ImportStatus, SelectionStatus, Unit},
     scope, sources,
@@ -26,10 +26,13 @@ use std::{
 /// spans the whole closure, so without `imports` an interpreter cannot tell a
 /// component a source imports from one it merely shares a closure with. A
 /// directory prepared under an earlier format lacks the field or carries a
-/// narrower Facet set and must be re-prepared.
-pub const REQUEST_FORMAT: u32 = 4;
+/// narrower Facet set and must be re-prepared. 5 presents the request as an
+/// interpretation brief and gives every Facet a handle a returned row may name
+/// it by; the brief's layout is not fingerprinted, so the format is what tells
+/// an older directory apart.
+pub const REQUEST_FORMAT: u32 = 5;
 
-/// One Facet handed to the interpreter, pre-filled with its own identity.
+/// One Facet handed to the interpreter.
 ///
 /// The contract role is present so the interpreter knows what kind of claim the
 /// Facet can support, but it is not a column of any row that comes back: the
@@ -37,8 +40,14 @@ pub const REQUEST_FORMAT: u32 = 4;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct FacetRow {
-    /// Copied verbatim into every row the interpreter returns for this Facet.
+    /// The Facet's identity. A returned row may name it, and ingest records it.
     pub facet: String,
+    /// The short name the brief shows, which a returned row may use instead of
+    /// the identity. Handles run `f1`, `f2`, … across the whole closure in
+    /// source order, so the closure alone fixes them: ingest rebuilds this
+    /// request from the export and must arrive at the same numbering even when
+    /// the stored interpretations changed in between.
+    pub handle: String,
     pub component: String,
     pub component_label: String,
     pub section: String,
@@ -203,6 +212,7 @@ pub fn project(input: &DesignInput, source: &str) -> Result<Request, String> {
     // identity embeds that offset as text, so sorting identities puts offset
     // 1000 before 999.
     let mut flows: BTreeMap<(String, String, String), Vec<(usize, String)>> = BTreeMap::new();
+    let mut placed = Vec::new();
     for unit in input.units.iter().filter(|u| closure.contains(&u.source)) {
         let Some(row) = facet_row(input, unit)? else {
             continue;
@@ -220,6 +230,12 @@ pub fn project(input: &DesignInput, source: &str) -> Result<Request, String> {
                 .or_default()
                 .push((unit.prose_range.start, row.facet.clone()));
         }
+        placed.push((unit.prose_range.start, row));
+    }
+    // Handles follow source, then offset, the same order the flows keep.
+    placed.sort_by(|(a_at, a), (b_at, b)| (&a.source, a_at).cmp(&(&b.source, b_at)));
+    for (number, (_, mut row)) in placed.into_iter().enumerate() {
+        row.handle = handle(number + 1);
         rows.push(row);
     }
     rows.sort_by(|a, b| a.facet.cmp(&b.facet));
@@ -344,6 +360,7 @@ fn facet_row(input: &DesignInput, unit: &Unit) -> Result<Option<FacetRow>, Strin
         .unwrap_or_default();
     Ok(Some(FacetRow {
         facet: unit.id.clone(),
+        handle: String::new(),
         component: owner.to_owned(),
         component_label: label,
         section: vocabulary::section_name(&unit.section).to_owned(),
@@ -383,10 +400,111 @@ pub fn write(request: &Request, out: &Path) -> Result<Vec<PathBuf>, String> {
     };
     emit("binding.json", &json(&request.binding)?)?;
     emit("request.json", &json(request)?)?;
+    emit(BRIEF, brief(request).as_bytes())?;
     for doc in guidance::BUNDLE {
         emit(doc.name, doc.text.as_bytes())?;
     }
     Ok(written)
+}
+
+/// The file the interpreter reads, beside the tool-side request and binding.
+pub const BRIEF: &str = "brief.md";
+
+/// The handle for a Facet's 1-based position in the closure.
+fn handle(number: usize) -> String {
+    format!("f{number}")
+}
+
+/// A handle's number, so `f10` orders after `f9`.
+pub fn handle_number(handle: &str) -> Option<usize> {
+    handle.strip_prefix('f')?.parse().ok()
+}
+
+/// Render the interpretation brief: what the interpreter reads instead of the
+/// request.
+///
+/// Each presented Facet is one line, its handle and then its prose with the
+/// line breaks folded, under its component and contract role. Entities and
+/// imports are listed by label; a label two entities share also shows the
+/// identities, since a row naming it by label alone is refused as ambiguous.
+// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::InterpretationRequest interface
+pub fn brief(request: &Request) -> String {
+    let mut out = String::from("# Interpretation brief\n\n");
+    if request.rows.is_empty() {
+        out.push_str(
+            "Nothing to interpret: every unit of this request is already stored. \
+             Return an empty artifact.\n",
+        );
+        return out;
+    }
+    out.push_str(
+        "Return rows for every `[fN]` line below. Name each Facet by its handle, \
+         such as `f1`.\n",
+    );
+
+    let labels: BTreeMap<&str, &str> = request
+        .entities
+        .iter()
+        .map(|e| (e.id.as_str(), e.label.as_str()))
+        .collect();
+    let ambiguous = identity::ambiguous_labels(request);
+    out.push_str("\n## Entities\n\n");
+    for entity in &request.entities {
+        out.push_str(&format!("- {} ({}", entity.label, entity.kind));
+        if let Some(owner) = &entity.owner {
+            out.push_str(&format!(
+                " of {}",
+                labels.get(owner.as_str()).unwrap_or(&owner.as_str())
+            ));
+        }
+        out.push(')');
+        if ambiguous.contains(&entity.label) {
+            out.push_str(&format!(" `{}`", entity.id));
+        }
+        out.push('\n');
+    }
+    if !request.imports.is_empty() {
+        out.push_str("\n## Imports\n\n");
+        for source in &request.imports {
+            for from in &source.from {
+                out.push_str(&format!(
+                    "- {} imports from {}: {}\n",
+                    source.source,
+                    from.component_label,
+                    from.names.join(", ")
+                ));
+            }
+        }
+    }
+
+    let mut rows: Vec<&FacetRow> = request.rows.iter().collect();
+    rows.sort_by_cached_key(|r| handle_number(&r.handle));
+    let mut component = None;
+    let mut section = None;
+    for row in rows {
+        let here = (row.component.as_str(), row.source.as_str());
+        if component != Some(here) {
+            out.push_str(&format!("\n## {} ({})\n", row.component_label, row.source));
+            component = Some(here);
+            section = None;
+        }
+        if section != Some(row.section.as_str()) {
+            out.push_str(&format!("\n### {}\n\n", row.section));
+            section = Some(row.section.as_str());
+        }
+        // Fold line breaks and their indentation only: a Tag never spans a
+        // line, but one may hold repeated internal spaces that admission
+        // matches exactly.
+        let prose: Vec<&str> = row
+            .prose
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .collect();
+        out.push_str(&format!("[{}] {}\n", row.handle, prose.join(" ")));
+    }
+    out.push_str("\nReturn rows for every `[fN]` line above, naming each Facet by its handle.\n");
+    out
 }
 
 fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {

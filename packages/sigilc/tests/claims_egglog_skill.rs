@@ -109,6 +109,41 @@ fn skill_and_guidance_agree_on_refusal_tokens() {
         published.contains("quoted string literal"),
         "compiled vocabulary.md is missing quoted string literal while the skill teaches it"
     );
+    let rejected = bundle_text("rejected.md");
+    assert!(
+        dialect.contains("numbers no Facet"),
+        "skill dialect is missing the refusal of a handle that numbers no Facet"
+    );
+    assert!(
+        rejected.contains("numbers no Facet"),
+        "compiled rejected.md is missing the unissued-handle refusal while the skill teaches it"
+    );
+}
+
+#[test]
+fn skill_keeps_sigil_understand_as_optional_background_for_the_brief() {
+    let entry = repo_root().join("integrations/skills/sigil-egglog/SKILL.md");
+    let entry = fs::read_to_string(&entry).unwrap_or_else(|e| panic!("{}: {e}", entry.display()));
+    let dialect = skill_text("dialect.md");
+    for (name, text) in [
+        ("SKILL.md", entry.as_str()),
+        ("dialect.md", dialect.as_str()),
+    ] {
+        assert!(
+            text.contains("optional background"),
+            "{name} must describe sigil-understand as optional background"
+        );
+        for stale in [
+            "design-language authority",
+            "`sigil-understand` is binding",
+            "prepared request",
+        ] {
+            assert!(
+                !text.contains(stale),
+                "{name} still says {stale:?}; the interpreter reads the brief and the guidance"
+            );
+        }
+    }
 }
 
 #[test]

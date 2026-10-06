@@ -14,6 +14,8 @@ async function fakeHost(root: string, body: string): Promise<string> {
   return path;
 }
 
+const GUIDANCE = ["sections.md", "vocabulary.md", "examples.md", "rejected.md"];
+
 async function context(
   root: string,
 ): Promise<Omit<AgentRunRequest, "agent" | "requestedModel" | "executable">> {
@@ -27,7 +29,14 @@ async function context(
     `${preparationDir}/binding.json`,
     '{"source":"identity.sigil"}\n',
   );
-  await Deno.writeTextFile(`${preparationDir}/sections.md`, "Rows guidance\n");
+  await Deno.writeTextFile(
+    `${preparationDir}/brief.md`,
+    "# Interpretation brief\n\n[f1] Prose.\n",
+  );
+  for (const name of GUIDANCE) {
+    await Deno.writeTextFile(`${preparationDir}/${name}`, "Rows guidance\n");
+  }
+  await Deno.writeTextFile(`${preparationDir}/notes.txt`, "not staged\n");
   for (const dir of [understandDir, egglogDir]) {
     await Deno.mkdir(`${dir}/references`, { recursive: true });
     await Deno.writeTextFile(`${dir}/SKILL.md`, "Pinned skill\n");
@@ -51,7 +60,13 @@ Deno.test("Claude adapter keeps exact final rows and served model event", async 
     const options = await context(root);
     const executable = await fakeHost(
       root,
-      `test -f preparation/request.json || exit 7
+      `test -f preparation/brief.md || exit 7
+for name in ${GUIDANCE.join(" ")}; do
+  test -f "preparation/$name" || exit 11
+done
+test ! -e preparation/request.json || exit 12
+test ! -e preparation/binding.json || exit 13
+test ! -e preparation/notes.txt || exit 14
 test -f skills/sigil-understand/SKILL.md || exit 8
 test -f skills/sigil-egglog/references/detail.md || exit 9
 test ! -e fixture-answer-key.json || exit 10
@@ -84,10 +99,26 @@ printf '%s\\n' '{"type":"result","result":"{\\\"facet\\\":\\\"F1\\\"}\\n"}'`,
       "raw event absent",
     );
     const prompt = await Deno.readTextFile(result.promptPath);
-    assert(
-      prompt.includes("request.json"),
-      "prepared request absent from prompt",
-    );
+    for (
+      const required of [
+        "preparation/brief.md",
+        "every guidance file in preparation/",
+        "skills/sigil-egglog/SKILL.md",
+        "skills/sigil-egglog/references/dialect.md",
+        "[fN]",
+      ]
+    ) {
+      assert(prompt.includes(required), `prompt omits ${required}`);
+    }
+    assert(!prompt.includes("request.json"), "prompt names request.json");
+    assert(!prompt.includes("binding.json"), "prompt names binding.json");
+    for (const sentence of prompt.split(/(?<=\.)\s+/)) {
+      assert(
+        !sentence.includes("sigil-understand") ||
+          sentence.toLowerCase().includes("optional"),
+        `prompt requires sigil-understand: ${sentence}`,
+      );
+    }
     assert(!prompt.includes("fixture-answer-key"), "answer key in prompt");
     assert(
       result.settings.includes("--restricted"),

@@ -27,7 +27,10 @@ export interface ClaimsValidation {
   readonly errors: readonly string[];
 }
 
-/** Validates native result identity and full first-reading coverage. */
+/**
+ * Validates native result identity and full first-reading coverage. Coverage
+ * is keyed on Facet ids: ingest has already resolved the child's handles.
+ */
 export function validateClaimsEvidence(
   input: ClaimsEvidenceInput,
 ): ClaimsValidation {
@@ -125,9 +128,12 @@ export function validateClaimsEvidence(
     errors.push("result path outside private root");
   }
   if (missingFacets.length) {
-    errors.push(
-      `incomplete presented Facet coverage: ${missingFacets.join(", ")}`,
-    );
+    const named = missingFacets.map((facet) => {
+      const handle = rows.map(object).find((row) => row?.facet === facet)
+        ?.handle;
+      return typeof handle === "string" ? `${handle} (${facet})` : facet;
+    });
+    errors.push(`incomplete presented Facet coverage: ${named.join(", ")}`);
   }
   if (new Set(facets).size !== facets.length) {
     errors.push("duplicate presented Facet");

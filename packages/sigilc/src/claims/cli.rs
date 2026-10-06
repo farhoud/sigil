@@ -116,6 +116,7 @@ pub fn run(args: &[&str]) -> Output {
                 &serde_json::json!({
                     "version": findings::REPORT_VERSION,
                     "binding": Path::new(&out).join("binding.json"),
+                    "brief": Path::new(&out).join(prepare::BRIEF),
                     "inputs": written,
                     "facets": asked.rows.len(),
                     "reusedUnits": reused.len(),
@@ -149,7 +150,8 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
 
     let limits = dialect::Limits::default();
     let first_text = artifact(&claims_path, limits)?;
-    let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
+    let mut supplied = dialect::parse(&first_text, limits).map_err(gate)?;
+    resolve_handles(&request, &mut supplied).map_err(gate)?;
     let requested_facets: BTreeSet<String> =
         request.rows.iter().map(|row| row.facet.clone()).collect();
     if let Some(row) = supplied
@@ -210,8 +212,24 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
     let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
 
-    // Only first readings of stale units are stored, and only after admission,
-    // so a refused artifact or second reading leaves the cache untouched.
+    let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
+    let mut comparisons = Vec::new();
+    if has_cached_second_reading {
+        comparisons.push(comparison_facts);
+    }
+    if let Some(path) = options.get("--claims-repeat") {
+        let text = artifact(path, limits)?;
+        digests.push(crate::sources::hash(text.as_bytes()));
+        let mut rows = dialect::parse(&text, limits).map_err(gate)?;
+        resolve_handles(&request, &mut rows).map_err(gate)?;
+        comparisons.push(identity::admit(&request, &input, &rows).map_err(gate)?);
+    }
+
+    let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
+
+    // Only first readings of stale units are stored, and only once the artifact,
+    // any repeat and saturation have all been accepted, so a refused artifact or
+    // second reading leaves the cache untouched.
     for unit in &stale {
         let mine: Vec<_> = supplied
             .iter()
@@ -223,19 +241,6 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
         }
     }
 
-    let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
-    let mut comparisons = Vec::new();
-    if has_cached_second_reading {
-        comparisons.push(comparison_facts);
-    }
-    if let Some(path) = options.get("--claims-repeat") {
-        let text = artifact(path, limits)?;
-        digests.push(crate::sources::hash(text.as_bytes()));
-        let rows = dialect::parse(&text, limits).map_err(gate)?;
-        comparisons.push(identity::admit(&request, &input, &rows).map_err(gate)?);
-    }
-
-    let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
     let mut report = findings::report(&request, &facts, &world, &digests);
     let mut disagreements = Vec::new();
     for repeat in &comparisons {
@@ -269,6 +274,37 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
             "guidanceFingerprint": report.identity.guidance_fingerprint,
         }),
     )
+}
+
+/// Rewrite every handle a row names to the Facet it numbers.
+///
+/// The table comes from the request rebuilt from the export, which spans the
+/// whole closure, so a handle of a reused unit's Facet resolves the same way
+/// the brief issued it. A full Facet id passes through unchanged. A token
+/// shaped like a handle that the closure does not number is refused rather
+/// than passed on, since it can only be a handle this request never issued.
+fn resolve_handles(request: &prepare::Request, rows: &mut [dialect::Row]) -> Result<(), String> {
+    let handles: BTreeMap<&str, &str> = request
+        .rows
+        .iter()
+        .map(|row| (row.handle.as_str(), row.facet.as_str()))
+        .collect();
+    let facets: BTreeSet<&str> = request.rows.iter().map(|row| row.facet.as_str()).collect();
+    for row in rows {
+        let relation = row.relation_name();
+        for column in row.facet_columns_mut() {
+            if let Some(facet) = handles.get(column.as_str()) {
+                *column = (*facet).to_owned();
+            } else if prepare::handle_number(column).is_some() && !facets.contains(column.as_str())
+            {
+                return Err(format!(
+                    "row ({relation} ...) names handle {column:?}, which numbers no Facet in this \
+                     request's closure"
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Name every field that differs, so a caller can see which input moved.

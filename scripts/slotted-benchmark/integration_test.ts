@@ -7,25 +7,39 @@ async function fakeClaude(root: string, planted = false): Promise<string> {
   await Deno.writeTextFile(
     path,
     `#!/usr/bin/env python3
-import json, sys
+import json, os, re, sys
 if '--version' in sys.argv:
     print('fake-claude 1.0')
     sys.exit(0)
-with open('preparation/request.json', encoding='utf8') as f:
-    request = json.load(f)
+for hidden in ('request.json', 'binding.json'):
+    if os.path.exists(os.path.join('preparation', hidden)):
+        sys.exit('staged tool-side ' + hidden)
+with open('preparation/brief.md', encoding='utf8') as f:
+    brief = f.read().splitlines()
 rows = []
-for row in request['rows']:
-    facet = json.dumps(row['facet'])
+section = None
+for line in brief:
+    if line.startswith('## '):
+        section = None
+    elif line.startswith('### '):
+        section = line[4:].strip()
+    match = re.match(r'\\[(f\\d+)\\] (.*)', line)
+    if not match:
+        continue
+    handle = json.dumps(match.group(1))
+    prose = match.group(2)
     if ${
       planted ? "True" : "False"
-    } and row['section'] == 'interface' and 'Booking provides a renter a *range change*' in row['prose']:
-        rows.append('(claim ' + facet + ' "Booking" "provides" "range change" "required" "true")')
+    } and section == 'interface' and 'Booking provides a renter a *range change*' in prose:
+        rows.append('(claim ' + handle + ' "Booking" "provides" "range change" "required" "true")')
     elif ${
       planted ? "True" : "False"
-    } and row['section'] == 'constraints' and 'Booking must not provide a range change' in row['prose']:
-        rows.append('(claim ' + facet + ' "Booking" "provides" "range change" "required" "false")')
+    } and section == 'constraints' and 'Booking must not provide a range change' in prose:
+        rows.append('(claim ' + handle + ' "Booking" "provides" "range change" "required" "false")')
     else:
-        rows.append('(reading ' + facet + ' "no-commitment")')
+        rows.append('(reading ' + handle + ' "no-commitment")')
+if not rows:
+    sys.exit('brief presented no handles')
 rows = '\\n'.join(rows) + '\\n'
 print(json.dumps({'type': 'assistant', 'message': {'model': 'served-fake-model'}}))
 print(json.dumps({'type': 'result', 'result': rows}))
