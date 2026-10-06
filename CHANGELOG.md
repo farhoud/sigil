@@ -1,5 +1,55 @@
 # Changelog
 
+## Unreleased
+
+- `sigil-claims` decomposes flow-shaped Logic prose into a checked graph. A
+  component's Logic section is presented whole, a step and its section's flow
+  are entities the tool mints, and what a step reads, writes, calls and leads to
+  are ordinary claims about them. Every graph is checked for a step whose edges
+  reach none of its declared ends, and that finding is a warning rather than a
+  gate failure: it rests on a model's reading of prose, and a misreading must
+  not fail a build. A defective row suppresses its whole graph's check rather
+  than being dropped alone, and the suppression is reported, because dropping
+  one edge would manufacture dead ends on well-formed steps upstream. The
+  accepted profile moves to 2 and the report to 2.
+
+- `sigil-claims` now owns the vocabulary it accepts instead of reading the
+  compiler's ontology at runtime. Its runtime identity no longer folds in that
+  ontology, so an edit to the compiler's predicate list no longer invalidates
+  every prepared interpretation directory. The accepted set is fixed in
+  `SigilClaimsVocabulary` and may diverge from the compiler's deliberately. This
+  moves the guidance fingerprint once: re-run `sigil-claims prepare` on any
+  directory prepared before this release.
+
+- Add `sigil-claims`, a second native binary that computes design findings from
+  an external model's reading of Facet prose. It prepares an interpretation
+  request from the existing Design export, accepts returned Datalog claims as
+  data only, saturates them against section-aware laws, and reports
+  contradictions, ownership conflicts and unmet promises with the claims and the
+  law behind each. Claims from a `decisions` Facet derive nothing, so rationale
+  no longer reads as a commitment. Alongside the report it emits a judgment
+  context covering every unit for a later judgment pass. The compiler's
+  commands, stored projections and world cache are unchanged.
+
+- Support language 0.8 across core, CLI, LSP, and VS Code, including exact
+  component-owned Tags, explicit provider imports, and preserved Facet ownership.
+  Activate the root workspace on 0.8; migrate older source using the
+  [migration guide](spec/migrating-to-0.8.md).
+- Preserve original UTF-8 source ranges through navigation, hover, formatting,
+  and native diagnostic projection, including Unicode, BOM, and CRLF input.
+  Reject stale editor results and recover from failed workspace reloads.
+- Use schema 2 for structural Design export and native reports. Retain the legacy
+  0.7 skill outside active discovery and reject incompatible stored evidence.
+  Package the CLI and VS Code extension with their Unicode data license.
+- Add separately callable Sigil 0.8 understanding, advisory design evaluation, and
+  compact writing skills. The writer delegates fresh review, applies corrections
+  supported by established intent, and preserves unresolved human decisions.
+- Bundle reproducible language authority for offline use and validate the complete
+  sibling catalog through installation and relocated releases. Keep legacy `sigil`
+  explicitly scoped to 0.7 native workflows.
+- Separate offline `test:skill` checks from `test:skill:native`, and document
+  observed agent behavior independently from package correctness.
+
 ## 0.7.1 - 2026-08-04
 
 - Advance the core, compiler, CLI, LSP, VS Code extension, and coding-agent

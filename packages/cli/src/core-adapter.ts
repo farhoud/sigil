@@ -3,15 +3,13 @@ import {
   agentDependencyContextFor,
   type AgentDependentContext,
   agentDependentContextFor,
-  type CollectedExpansion,
-  collectedExpansionFor,
+  compareScalarText,
   componentContracts,
   type ComponentContractView,
   type ComponentIdentity,
-  tagScopeFor,
   DEFAULT_SIGIL_EXCLUDES,
   DEFAULT_SIGIL_INCLUDES,
-  type DesignInput,
+  type DesignInputResult,
   diagnostic,
   discoverSigilWorkspace,
   formatSigilDocument,
@@ -27,6 +25,7 @@ import {
   loadDesignInput,
   loadSigilWorkspace,
   normalizePath,
+  orderDiagnostics,
   type OwnedImplementationProjection,
   ownedImplementationTargetsFor as coreOwnedImplementationTargetsFor,
   ownershipDiagnosticsFor as coreOwnershipDiagnosticsFor,
@@ -35,7 +34,6 @@ import {
   type PurposeRetrievalResult,
   type PurposeRetrievalTarget,
   relativePath,
-  type ResolvedTagScope,
   type ResolvedSigilWorkspace,
   resolveSigilWorkspace,
   type RetrievalPurpose,
@@ -49,6 +47,9 @@ import {
   type SigilDocument,
   type SigilFileSystem,
   type SigilWorkspace,
+  type TagNamespace,
+  tagNamespaceFor,
+  untaggedFacetDiagnostics as coreUntaggedFacetDiagnostics,
   type WorkspaceDiscoveryResult,
 } from "@qoherent/sigil-core";
 import { DenoSigilFileSystem } from "./fs-adapter.ts";
@@ -125,14 +126,17 @@ export class CoreAdapter {
     if (!discovery.config) {
       return { discovery, document: null, diagnostics: discovery.diagnostics };
     }
-    const source = await this.#fs.readTextFile(filePath);
+    const source = await this.#fs.readSourceFile(filePath);
     const parsed = parseSigilDocument(filePath, source, {
       sigilVersion: discovery.config.sigilVersion,
     });
     return {
       discovery,
       document: parsed.document,
-      diagnostics: [...discovery.diagnostics, ...parsed.diagnostics],
+      diagnostics: orderDiagnostics([
+        ...discovery.diagnostics,
+        ...parsed.diagnostics,
+      ]),
     };
   }
 
@@ -152,7 +156,7 @@ export class CoreAdapter {
   async exportDesign(
     path?: string,
     explicitRoot?: string,
-  ): Promise<{ root: string; bundle: DesignInput }> {
+  ): Promise<DesignInputResult> {
     return await loadDesignInput(this.#fs, {
       startPath: this.resolveTarget(path ?? this.#currentDirectory),
       explicitRoot: explicitRoot ? this.resolveTarget(explicitRoot) : undefined,
@@ -173,24 +177,56 @@ export class CoreAdapter {
    * @sigil implements packages/cli/_module.sigil::SigilCli::SourceFormatting logic,constraints,cases
    */
   async formatSources(
-    path: string | undefined,
+    paths: readonly string[],
     explicitRoot: string | undefined,
     check: boolean,
   ): Promise<FormatSourcesResult> {
-    const target = this.resolveTarget(path ?? this.#currentDirectory);
-    const workspace = await this.loadWorkspace(target, explicitRoot);
-    const resolved = resolveSigilWorkspace(workspace);
-    const selected = workspace.files.filter((file) =>
-      target.endsWith(".sigil")
-        ? normalizePath(file.path) === normalizePath(target)
-        : normalizePath(file.path).startsWith(
-          `${normalizePath(target).replace(/\/$/, "")}/`,
-        ) || normalizePath(target) === normalizePath(workspace.root)
-    );
-    if (selected.length === 0) {
-      throw new Error(`No Sigil source matched ${target}.`);
+    const targets = [
+      ...new Set(
+        (paths.length ? paths : [this.#currentDirectory]).map((path) =>
+          this.resolveTarget(path)
+        ),
+      ),
+    ];
+    const workspace = await this.loadWorkspace(targets[0], explicitRoot);
+    const selectedPaths = new Set<string>();
+    for (const target of targets) {
+      const prefix = `${target.replace(/\/$/, "")}/`;
+      const matches = workspace.files.filter((file) =>
+        target.endsWith(".sigil")
+          ? normalizePath(file.path) === target
+          : normalizePath(file.path).startsWith(prefix) ||
+            target === normalizePath(workspace.root)
+      );
+      if (matches.length === 0) {
+        throw new Error(`No Sigil source matched ${target}.`);
+      }
+      // An explicit root retains directory selection from its ancestors.
+      if (!(explicitRoot && workspace.root.startsWith(prefix))) {
+        const discovery = await discoverSigilWorkspace(this.#fs, {
+          startPath: target,
+          currentDirectory: this.#currentDirectory,
+        });
+        if (
+          !discovery.config ||
+          normalizePath(discovery.root) !== normalizePath(workspace.root)
+        ) {
+          throw new Error(
+            `Formatting target ${target} belongs to a different workspace than ${workspace.root}.`,
+          );
+        }
+      }
+      for (const file of matches) selectedPaths.add(file.path);
     }
-    if (resolved.diagnostics.some((item) => item.severity === "error")) {
+    const selected = workspace.files.filter((file) =>
+      selectedPaths.has(file.path)
+    );
+    const resolved = resolveSigilWorkspace(workspace);
+    if (
+      resolved.diagnostics.some((item) =>
+        item.severity === "error" && item.code !== "SIGIL_LINE_TOO_LONG"
+      )
+    ) {
       return {
         workspace,
         files: selected.map((file) => ({
@@ -201,17 +237,48 @@ export class CoreAdapter {
       };
     }
 
-    const prepared = await Promise.all(selected.map(async (file) => {
-      const source = await this.#fs.readTextFile(file.path);
-      const formatted = formatSigilDocument(file.document, source);
-      return { file, formatted };
-    }));
-    const diagnostics = [
-      ...resolved.diagnostics,
-      ...prepared.flatMap((item) => item.formatted.diagnostics).filter(
-        (diagnostic) => !resolved.diagnostics.includes(diagnostic),
+    const prepared = selected.map((file) => ({
+      file,
+      formatted: formatSigilDocument(
+        file.document,
+        file.source ?? "",
+        resolved,
       ),
-    ];
+    }));
+    let diagnostics: readonly SigilDiagnostic[] = orderDiagnostics(
+      prepared.flatMap((item) => item.formatted.diagnostics),
+    );
+    if (
+      prepared.every((item) => item.formatted.formattedSource !== undefined)
+    ) {
+      const replacements = new Map(
+        prepared.filter((item) => item.formatted.changed).map((item) => {
+          const source = item.formatted.formattedSource!;
+          return [item.file.path, {
+            path: item.file.path,
+            source,
+            document: parseSigilDocument(item.file.path, source, {
+              sigilVersion: workspace.config!.sigilVersion,
+            }).document,
+          }];
+        }),
+      );
+      const files = workspace.files.map((file) =>
+        replacements.get(file.path) ?? file
+      );
+      diagnostics = resolveSigilWorkspace({
+        ...workspace,
+        files,
+        diagnostics: [
+          ...workspace.diagnostics.filter((d) =>
+            !d.filePath || !replacements.has(d.filePath)
+          ),
+          ...[...replacements.values()].flatMap((file) =>
+            file.document.diagnostics
+          ),
+        ],
+      }).diagnostics;
+    }
     if (
       diagnostics.some((item) => item.severity === "error") ||
       prepared.some((item) => item.formatted.formattedSource === undefined)
@@ -337,12 +404,17 @@ export class CoreAdapter {
       sectionName,
     );
   }
-  // @sigil implements packages/cli/_module.sigil::SigilCli::OwnershipDiagnostics interface,logic,cases
+  // @sigil implements packages/cli/_module.sigil::SigilCli::CliOwnershipDiagnostics interface,logic,cases
   ownershipDiagnosticsFor(
     resolved: ResolvedSigilWorkspace,
     implementationSources: readonly ImplementationSource[],
   ): readonly SigilDiagnostic[] {
     return coreOwnershipDiagnosticsFor(resolved, implementationSources);
+  }
+  untaggedFacetDiagnostics(
+    resolved: ResolvedSigilWorkspace,
+  ): readonly SigilDiagnostic[] {
+    return coreUntaggedFacetDiagnostics(resolved);
   }
   // @sigil implements packages/cli/_module.sigil::SigilCli::OwnershipContext interface,logic,constraints,cases
   async implementationSourcesFor(
@@ -396,7 +468,10 @@ export class CoreAdapter {
     return {
       workspaceSnapshotIdentity: resolved.workspace.workspaceSnapshotIdentity,
       discoveryState: discovery.diagnostics.length ? "unavailable" : "complete",
-      sources: discovery.sources,
+      sources: discovery.sources.map((source) => ({
+        ...source,
+        filePath: relativePath(resolved.workspace.root, source.filePath),
+      })).sort((a, b) => compareScalarText(a.filePath, b.filePath)),
       diagnostics: discovery.diagnostics,
     };
   }
@@ -417,13 +492,6 @@ export class CoreAdapter {
       options,
     );
   }
-  // @sigil uses packages/core/src/projections.sigil::SigilProjections::ExpansionProjection interface,logic,cases
-  collectedExpansionFor(
-    resolved: ResolvedSigilWorkspace,
-    componentName: string,
-  ): CollectedExpansion | undefined {
-    return collectedExpansionFor(resolved, componentName);
-  }
   // @sigil uses packages/core/src/projections.sigil::SigilProjections::AgentDependencyContext interface,logic,constraints,cases
   agentDependencyContextFor(
     resolved: ResolvedSigilWorkspace,
@@ -438,15 +506,15 @@ export class CoreAdapter {
     return agentDependentContextFor(resolved, componentName);
   }
   // @sigil uses packages/core/src/projections.sigil::SigilProjections::TagScopeProjection interface,logic,cases
-  tagScopeFor(
+  tagNamespaceFor(
     resolved: ResolvedSigilWorkspace,
     componentName: string,
-  ): ResolvedTagScope | undefined {
-    return tagScopeFor(resolved, componentName);
+  ): TagNamespace | undefined {
+    return tagNamespaceFor(resolved, componentName);
   }
   /*
    * @sigil implements packages/cli/_module.sigil::SigilCli::GlossaryInspectionCommand interface
-   * @sigil implements packages/cli/_module.sigil::SigilCli::GlossaryInspection logic,cases
+   * @sigil implements packages/cli/_module.sigil::SigilCli::CliGlossaryInspection logic,cases
    */
   glossaryContextForFiles(
     projection: GlossaryProjection,

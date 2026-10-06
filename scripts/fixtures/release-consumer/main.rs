@@ -89,6 +89,23 @@ fn run() -> Result<(), String> {
             output_text(&compiler_version)
         ));
     }
+    let claims = distribution.join("bin").join(if cfg!(windows) {
+        "sigil-claims.exe"
+    } else {
+        "sigil-claims"
+    });
+    if !claims.is_file() {
+        return Err(format!("archive is missing {}", claims.display()));
+    }
+    let claims_version = run_cli(&claims, &["--version"], &unrelated, &environment)?;
+    if !claims_version.status.success()
+        || !stdout_text(&claims_version).starts_with("sigil-claims ")
+    {
+        return Err(format!(
+            "claims command version failed: {}",
+            output_text(&claims_version)
+        ));
+    }
     let target_text = path_string(&target);
     let exported = run_cli(
         &cli,
@@ -101,6 +118,12 @@ fn run() -> Result<(), String> {
             "structural Design export failed: {}",
             output_text(&exported)
         ));
+    }
+    let structural = compact(&stdout_text(&exported));
+    if !structural.contains("\"schemaVersion\":2")
+        || !structural.contains("\"languageVersion\":\"0.9.0\"")
+    {
+        return Err("expected Sigil 0.9 schema-2 structural export".into());
     }
     let frontend = unrelated.join("frontend.json");
     fs::write(&frontend, &exported.stdout).map_err(io_error)?;
@@ -159,7 +182,7 @@ fn run() -> Result<(), String> {
         }
     }
     println!(
-        "{{\"artifactConsumer\":true,\"version\":\"{version_text}\",\"design\":\"Loose\",\"comparison\":null,\"hostToolsInvoked\":false}}"
+        "{{\"artifactConsumer\":true,\"version\":\"{version_text}\",\"claimsCommand\":true,\"design\":\"Loose\",\"comparison\":null,\"hostToolsInvoked\":false}}"
     );
     Ok(())
 }

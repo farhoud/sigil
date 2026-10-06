@@ -1,0 +1,260 @@
+; Tool-owned laws for computed design validation. Data is re-emitted by the
+; host from parsed values; the interpreter supplies no rule and fills no table.
+;
+; The law shapes are ported from the compiler's kernel and design rules — the
+; obligation/filled/unresolved trio, the two-ruleset fixpoint, and a `because`
+; witness column — but the facts are n-ary claims rather than RDF triples, and
+; every claim carries the contract role it was authored under.
+
+; --- minted by the tool from the design export -------------------------------
+; A Facet: its identity, the component that owns it, its contract role, source.
+(relation facet (String String String String))
+; A contract role that declares at least one Facet on a component.
+(relation section-declared (String String))
+; A design entity. Kind is Component or Tag.
+(relation entity (String String String String String))
+; A contract role whose claims can carry a commitment.
+;
+; Rationale does not convert a rejected alternative into a promise, so the host
+; emits no row for `decisions`: its claims are retained and reported but derive
+; nothing. The gate lives in data so which roles commit is visible here rather
+; than buried in a rule.
+(relation commits (String))
+
+; --- re-emitted by the tool from validated interpreter output ----------------
+; claim id, facet, contract role, subject, relation, object, modality, expected.
+; The contract role is filled by the tool from the Facet, never by the interpreter.
+(relation claim (String String String String String String String String))
+; claim id, facet, contract role, subject, property, value.
+(relation property (String String String String String String))
+; claim id, facet, contract role, subject, property, number.
+(relation measure (String String String String String f64))
+; facet, outcome. Records a Facet the interpreter read but drew no commitment from.
+(relation reading (String String))
+
+; --- flow rows, re-emitted by the tool from admitted facts -------------------
+; A step, its owning component, and the Facet it was authored in. The step is
+; also an `entity` of kind Step, so the laws can read it either way; this
+; relation is the one that carries its authoring Facet.
+(relation flow-step (String String String))
+; A guard: its identity, the step ordinal it applies to, the operand kind
+; (state, input or constraint) and the operand itself.
+(relation flow-guard (String String String String))
+
+; --- derived ----------------------------------------------------------------
+; A step and the graph of the Logic section it belongs to.
+(relation in-graph (String String))
+; A step and something it reads, writes or calls -- what the step laws join on.
+(relation flow-touches (String String))
+; Whether a step's edges reach one of its graph's declared ends.
+;
+; A lattice, not a negation. Written as "no path exists" the rule cannot fire at
+; all: absence is not derivable here. Instead every step is set to 0 when it is
+; declared and to 1 when a path is found, merged on max, and `diagnostics` reads
+; the zeros once the closure has stopped growing -- the same shape the existing
+; obligation check uses.
+(function reaches-end (String) i64 :merge (max old new))
+; A step with no path to any end, and the component whose section it is in.
+(relation unreached-step (String String))
+; Whether a graph carries a defective row, which suppresses its whole check.
+;
+; Per-row exclusion is safe for a claim, which only ever adds a derivation:
+; dropping it can lose a finding but never invent one. This check inverts that.
+; Dropping one edge severs a path and manufactures dead ends on well-formed
+; steps upstream, so the whole graph's check is suppressed instead.
+(function graph-suppressed (String) i64 :merge (max old new))
+; A graph whose check did not run, so a reader learns that rather than only
+; that a row was flagged.
+(relation suppressed-graph (String))
+; A Constraints claim and a flow graph it reaches.
+(relation constraint-governs (String String))
+; A finding a step produced. Deliberately not `violation`: that table is classed
+; a contradiction or an ownership conflict and flips the design state to
+; disjoint, which would fail a build on a model's misreading of prose.
+(relation step-violation (String String String String))
+; A governing requirement a graph must guard on, and whether it does.
+(relation flow-obligation (String String String))
+(function flow-guarded (String String String) i64 :merge (max old new))
+(relation unguarded-flow (String String String))
+(relation holds (String String String))
+; subject, relation, object, law, witness: a claim id, or an intermediary entity.
+(relation because (String String String String String))
+(relation reachable (String String))
+; law, subject, object, witness claim id.
+(relation violation (String String String String))
+; obligation id, subject, relation, object.
+(relation obligation (String String String String))
+(function filled (String String String String) i64 :merge (max old new))
+(relation unmet-obligation (String String String String))
+; Two units asserting the same proposition; a candidate, never a verdict.
+(relation duplicate-proposition (String String))
+
+; eqval::fixedpoint steps exactly these two rulesets, by name, in this order
+; -- that driver is off-limits to edit here. A third ruleset would compile
+; and run clean but never actually step, silently deriving nothing.
+(ruleset closure)
+(ruleset diagnostics)
+
+; --- the flow graph ---------------------------------------------------------
+; A step belongs to the graph its own component's Logic section mints. Both are
+; entities, so this is an ordinary join rather than a shape of its own.
+(rule ((entity st "Step" l1 own s1) (entity g "Graph" l2 own s2))
+      ((in-graph st g)) :ruleset closure)
+
+; What a step does is already in `holds`: the claims are `step reads Tag`,
+; `step writes Tag`, `step invokes Tag`. No projection from bespoke rows is
+; needed, which is what removes the join every law would otherwise carry.
+(rule ((holds st rel obj) (entity st "Step" l own src))
+      ((flow-touches st obj)) :ruleset closure)
+
+; base: every declared step starts at zero, so the lattice has a value to read
+(rule ((entity st "Step" l own src)) ((set (reaches-end st) 0)) :ruleset closure)
+
+; an edge to the graph entity IS the declaration of an end. Nothing infers one:
+; a step that finishes the flow by writing state or calling outward declares
+; this edge like any other, which is what keeps a step that merely dangles
+; distinguishable from a step the prose says is finished.
+(rule ((holds st "to" g) (entity g "Graph" l own src))
+      ((set (reaches-end st) 1)
+       (because st "flow-end" g "flow-end-direct" g)) :ruleset closure)
+
+; reachability composes along edges between steps
+(rule ((holds a "to" b) (entity b "Step" l own src) (= (reaches-end b) 1))
+      ((set (reaches-end a) 1)
+       (because a "flow-end" b "flow-end-transitive" b)) :ruleset closure)
+
+; every graph starts unsuppressed; the host sets 1 where a row was defective
+(rule ((entity g "Graph" l own src)) ((set (graph-suppressed own) 0)) :ruleset closure)
+
+; read the zeros, once the closure has stabilized, and only for a graph whose
+; rows were all well formed
+(rule ((entity st "Step" l own src) (= (reaches-end st) 0) (= (graph-suppressed own) 0))
+      ((unreached-step st own)) :ruleset diagnostics)
+
+; the suppression is itself reported
+(rule ((entity g "Graph" l own src) (= (graph-suppressed own) 1))
+      ((suppressed-graph own)) :ruleset diagnostics)
+
+; --- governance: which graphs a Constraints claim reaches --------------------
+; Its own component's, and those of every component it transitively depends on.
+; Reach follows the dependency claims an interpretation emitted, not the
+; export's import graph: a real dependency no claim names is not reached.
+(rule ((claim id f "constraints" s p o m e) (facet f own sec src)
+       (entity g "Graph" l own gs))
+      ((constraint-governs id g)) :ruleset closure)
+(rule ((claim id f "constraints" s p o m e) (facet f own sec src)
+       (reachable own dep) (entity g "Graph" l dep gs))
+      ((constraint-governs id g)) :ruleset closure)
+
+; --- the three step laws ----------------------------------------------------
+; None writes to `violation`. Each rests on a model's reading of prose, which is
+; why the dead-end finding does not gate either.
+
+; 1. contradiction: a governed step does what a reaching constraint forbids
+(rule ((claim id f sec a "excludes" obj "required" "true") (commits sec)
+       (constraint-governs id g) (in-graph st g) (flow-touches st obj))
+      ((step-violation "step-excluded-action" st obj id)) :ruleset closure)
+(rule ((claim id f sec a rel obj "required" "false") (commits sec)
+       (constraint-governs id g) (in-graph st g) (holds st rel obj))
+      ((step-violation "step-negated-action" st obj id)) :ruleset closure)
+
+; 2. ownership: a step writes state a claim marks exclusive that its component
+; does not own. The marking claim is what makes this a contradiction rather than
+; a layering opinion: declaring state does not by itself say another component
+; may not write it, which is why the claim-level law needs the same marker. Not
+; gated by reach -- it cites the marking claim instead.
+(rule ((property id f sec obj "exclusive" "true") (commits sec)
+       (holds st "writes" obj) (entity st "Step" sl cmp ssrc)
+       (entity obj "Tag" ol owner osrc) (!= owner cmp) (!= owner ""))
+      ((step-violation "exclusive-foreign-write" st obj id)) :ruleset closure)
+
+; 3. obligation: a governing requirement the flow touches must be guarded on.
+; `requires` only: a prohibition is answered by the contradiction law above, and
+; raising an obligation for one would report the same problem twice.
+(rule ((claim id f "constraints" s "requires" obj "required" "true")
+       (constraint-governs id g) (in-graph st g) (flow-touches st obj))
+      ((flow-obligation id g obj)
+       (set (flow-guarded id g obj) 0)) :ruleset closure)
+; a guard names the constraint's FACET, not the claim: the tool mints claim
+; identities after the interpretation returns, so a row cannot carry one
+(rule ((flow-obligation id g obj) (claim id fct sec2 s2 p2 o2 m2 e2)
+       (in-graph st g) (flow-guard gid ord "constraint" fct))
+      ((set (flow-guarded id g obj) 1)) :ruleset closure)
+(rule ((flow-obligation id g obj) (= (flow-guarded id g obj) 0))
+      ((unguarded-flow id g obj)) :ruleset diagnostics)
+
+; --- what a claim commits its design to -------------------------------------
+; An authored commitment holds. An assumption does not: it is something the
+; design leans on rather than promises, so it raises an obligation instead.
+(rule ((claim id f sec s p o "required" "true") (commits sec))
+      ((holds s p o) (because s p o "asserted" id)) :ruleset closure)
+(rule ((claim id f sec s p o "permitted" "true") (commits sec))
+      ((holds s p o) (because s p o "asserted" id)) :ruleset closure)
+
+; --- consequences the laws derive, so the interpreter need not --------------
+(rule ((holds a "dependsOn" b))
+      ((reachable a b) (because a "reachable" b "dependency-direct" b)) :ruleset closure)
+(rule ((reachable a b) (holds b "dependsOn" c))
+      ((reachable a c) (because a "reachable" c "dependency-transitive" b)) :ruleset closure)
+(rule ((holds a "delegates" b) (holds b "provides" c))
+      ((holds a "provides" c) (because a "provides" c "delegated-capability" b)) :ruleset closure)
+
+; --- contradictions ---------------------------------------------------------
+; Two required claims on the same proposition, disagreeing on whether it holds.
+(rule ((claim i1 f1 sec1 s p o "required" "true")
+       (claim i2 f2 sec2 s p o "required" "false")
+       (commits sec1) (commits sec2))
+      ((violation "contradictory-claims" s o i1)
+       (violation "contradictory-claims" s o i2)) :ruleset closure)
+; A claim that the relation must not hold, where something asserts that it does.
+(rule ((claim id f sec s p o "required" "false") (commits sec) (holds s p o))
+      ((violation "negated-claim-holds" s o id)) :ruleset closure)
+; A prohibition contradicted by a derived or asserted capability or use.
+(rule ((claim id f sec a "excludes" c "required" "true") (commits sec) (holds a "provides" c))
+      ((violation "excluded-capability" a c id)) :ruleset closure)
+(rule ((claim id f sec a "excludes" c "required" "true") (commits sec) (holds a "uses" c))
+      ((violation "excluded-use" a c id)) :ruleset closure)
+; Two claims disagreeing about a property or a measure of the same entity.
+(rule ((property i1 f1 sec1 a p x) (property i2 f2 sec2 a p y)
+       (commits sec1) (commits sec2) (!= x y))
+      ((violation "conflicting-property" a p i1)) :ruleset closure)
+(rule ((measure i1 f1 sec1 a p x) (measure i2 f2 sec2 a p y)
+       (commits sec1) (commits sec2) (!= x y))
+      ((violation "conflicting-measure" a p i1)) :ruleset closure)
+
+; --- ownership conflicts ----------------------------------------------------
+; Exclusive state cannot have two independently observed owners.
+(rule ((property id f sec c "exclusive" "true") (commits sec)
+       (holds a "owns" c) (holds b "owns" c) (!= a b))
+      ((violation "exclusive-ownership" a b id)) :ruleset closure)
+
+; --- obligations ------------------------------------------------------------
+; Requiring a capability obliges the subject to provide it, directly or through
+; a dependency that does. This is the compiler's lowering, kept intact.
+(rule ((claim id f sec a "requires" c "required" "true") (commits sec))
+      ((obligation id a "provides" c)
+       (set (filled id a "provides" c) 0)) :ruleset closure)
+; An assumption obliges the design to state the thing it leans on.
+(rule ((claim id f sec s p o "assumed" "true") (commits sec))
+      ((obligation id s p o)
+       (set (filled id s p o) 0)) :ruleset closure)
+; Required state needs an owner.
+(rule ((property id f sec c "required" "true") (commits sec) (entity c "Tag" l ow src))
+      ((obligation id c "owns" c)
+       (set (filled id c "owns" c) 0)) :ruleset closure)
+
+(rule ((obligation id s p o) (holds s p o))
+      ((set (filled id s p o) 1)) :ruleset closure)
+(rule ((obligation id a "provides" c) (holds a "dependsOn" b) (holds b "provides" c))
+      ((set (filled id a "provides" c) 1)) :ruleset closure)
+(rule ((obligation id c "owns" c) (holds a "owns" c))
+      ((set (filled id c "owns" c) 1)) :ruleset closure)
+
+; --- read absence only after the closure has stopped growing ---------------
+(rule ((obligation id s p o) (= (filled id s p o) 0))
+      ((unmet-obligation id s p o)) :ruleset diagnostics)
+
+; Same proposition authored in two different Facets: a simplification
+; candidate for the judge, never a defect this tool rules on.
+(rule ((claim i1 f1 sec1 s p o m1 e1) (claim i2 f2 sec2 s p o m2 e2) (!= f1 f2))
+      ((duplicate-proposition i1 i2)) :ruleset diagnostics)

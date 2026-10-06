@@ -1,0 +1,367 @@
+//! The command boundary for computed design validation.
+//!
+//! Deterministic, like the compiler's: no process launchers and no model
+//! options. The external interpretation is an input the caller supplies and can
+//! supply again, which is what makes a run reproducible.
+use super::{context, dialect, findings, guidance, identity, memo, prepare, program, vocabulary};
+use crate::{cli::Output, eqval, frontend::DesignInput};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    path::Path,
+};
+
+const MAX_FRONTEND_BYTES: u64 = 64_000_000;
+const MAX_BINDING_BYTES: u64 = 16_000_000;
+
+pub fn help() -> String {
+    r#"sigil-claims — computed design validation
+
+Commands:
+  prepare --frontend FILE --source PATH --out NEW_DIR [--root DIR]
+  ingest --frontend FILE --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR]
+  extract-guidance --out DIR [--root DIR]
+
+Flow:
+  1. Export structural input:  sigil export design . > frontend.json
+  2. Prepare one source:       sigil-claims prepare --frontend frontend.json \
+                                 --source a.sigil --out claims-a
+  3. An external interpreter reads claims-a and writes Datalog claims.
+  4. Ingest the result:        sigil-claims ingest --frontend frontend.json \
+                                 --binding claims-a/binding.json --claims claims-a/result.egg
+
+This command never launches a model. Step 3 is the caller's, and passing the
+same artifact again reproduces the same report.
+
+Gate exits: 0 = pass or warning, 1 = a gate failure (a computed Disjoint
+verdict, a refused artifact, or a saturation-limit breach), 2 = usage,
+3 = operational failure.
+"#
+    .into()
+}
+
+/// Parse and run one invocation.
+// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ClaimsCommands interface,constraints
+pub fn run(args: &[&str]) -> Output {
+    let (command, tail) = match args {
+        [] => return Err((2, "Expected a command. Run sigil-claims --help.".into())),
+        ["--help"] | ["-h"] => return Ok((0, help())),
+        ["--version"] => {
+            return Ok((0, format!("sigil-claims {}\n", env!("CARGO_PKG_VERSION"))));
+        }
+        [
+            command @ ("prepare" | "ingest" | "extract-guidance"),
+            tail @ ..,
+        ] => (*command, tail),
+        _ => return Err((2, "Invalid command. Run sigil-claims --help.".into())),
+    };
+
+    let allowed: &[&str] = match command {
+        // `--root` reaches prepare too: the store of past interpretations lives
+        // under it, and prepare is what decides which units are still stale.
+        "prepare" => &["--frontend", "--source", "--out", "--root"],
+        "ingest" => &[
+            "--frontend",
+            "--binding",
+            "--claims",
+            "--claims-repeat",
+            "--root",
+        ],
+        _ => &["--out", "--root"],
+    };
+    let options = parse(tail, allowed)?;
+    if options.values().filter(|v| v.as_str() == "-").count() > 1 {
+        return Err((2, "only one input may read standard input".into()));
+    }
+    let required = |flag: &str| required_in(&options, flag);
+    let root = options
+        .get("--root")
+        .cloned()
+        .unwrap_or_else(|| ".".to_string());
+
+    match command {
+        "extract-guidance" => {
+            let out = required("--out")?;
+            let written = guidance::extract(Path::new(&out), Path::new(&root)).map_err(usage)?;
+            json(
+                0,
+                &serde_json::json!({
+                    "version": findings::REPORT_VERSION,
+                    "guidanceFingerprint": guidance::fingerprint(),
+                    "written": written,
+                }),
+            )
+        }
+        "prepare" => {
+            // Every required flag is resolved before anything is opened, so a
+            // missing option is a usage error rather than whatever the
+            // filesystem happens to say about the file that was supplied.
+            let (frontend_path, source, out) = (
+                required("--frontend")?,
+                required("--source")?,
+                required("--out")?,
+            );
+            let input = frontend(&frontend_path)?;
+            let request = prepare::project(&input, &source).map_err(usage)?;
+
+            // Ask only for what is stale. The binding is left whole: it is what
+            // ingest recomputes and compares, so narrowing it would make every
+            // prepared directory fail its own check. Only the presentation
+            // narrows, and a request with nothing stale is valid and asks for
+            // nothing.
+            let (stale, reused) = memo::split(&request, Path::new(&root));
+            let asked = prepare::presenting(&request, &stale);
+            let written = prepare::write(&asked, Path::new(&out)).map_err(operational)?;
+            json(
+                0,
+                &serde_json::json!({
+                    "version": findings::REPORT_VERSION,
+                    "binding": Path::new(&out).join("binding.json"),
+                    "inputs": written,
+                    "facets": asked.rows.len(),
+                    "reusedUnits": reused.len(),
+                    "bindingDigest": request.binding.digest(),
+                }),
+            )
+        }
+        _ => ingest(&options, &root),
+    }
+}
+
+fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
+    let (frontend_path, binding_path, claims_path) = (
+        required_in(options, "--frontend")?,
+        required_in(options, "--binding")?,
+        required_in(options, "--claims")?,
+    );
+    let input = frontend(&frontend_path)?;
+    let supplied: prepare::Binding = serde_json::from_slice(
+        &crate::cli::read(&binding_path, MAX_BINDING_BYTES).map_err(operational)?,
+    )
+    .map_err(|e| operational(format!("{binding_path}: {e}")))?;
+
+    // The request is recomputed from the export now, and the supplied binding
+    // has to match it exactly. A stale binding cannot be paired with a fresh
+    // export, and a guidance change invalidates the pair the same way.
+    let request = prepare::project(&input, &supplied.source).map_err(usage)?;
+    if request.binding != supplied {
+        return Err((2, mismatch(&request.binding, &supplied)));
+    }
+
+    let limits = dialect::Limits::default();
+    let first_text = artifact(&claims_path, limits)?;
+    let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
+    let requested_facets: BTreeSet<String> =
+        request.rows.iter().map(|row| row.facet.clone()).collect();
+    if let Some(row) = supplied
+        .iter()
+        .find(|row| !requested_facets.contains(row.facet()))
+    {
+        return Err(gate(format!(
+            "row ({} ...) names {:?}, which this request did not ask about",
+            row.relation_name(),
+            row.facet()
+        )));
+    }
+
+    // Stored rows join first readings before admission, so the closure sees the
+    // whole design. A supplied reading for a cached unit is composed with the
+    // other units' first readings before admission, then compared against that
+    // stored answer; it never replaces the cache. Reused rows are re-admitted:
+    // grounding runs here, so a stored claim naming an entity that has since
+    // left the closure is refused like any other.
+    let all_units = memo::units(&request);
+    let (stale, reused) = memo::split(&request, Path::new(root));
+    let stale_keys: BTreeSet<String> = stale.iter().map(|unit| unit.key.clone()).collect();
+    let reused: BTreeMap<String, Vec<dialect::Row>> = reused
+        .into_iter()
+        .map(|(unit, rows)| (unit.key, rows))
+        .collect();
+    let mut rows = Vec::new();
+    let mut comparison_rows = Vec::new();
+    let mut has_cached_second_reading = false;
+    for unit in &all_units {
+        let mine: Vec<_> = supplied
+            .iter()
+            .filter(|row| unit.facets.iter().any(|facet| facet == row.facet()))
+            .cloned()
+            .collect();
+        if stale_keys.contains(&unit.key) {
+            rows.extend(mine.iter().cloned());
+            comparison_rows.extend(mine);
+        } else if let Some(stored) = reused.get(&unit.key) {
+            rows.extend(stored.iter().cloned());
+            if mine.is_empty() {
+                comparison_rows.extend(stored.iter().cloned());
+            } else {
+                comparison_rows.extend(mine);
+                has_cached_second_reading = true;
+            }
+        } else {
+            return Err(operational(format!(
+                "memo did not classify interpretation unit {}",
+                unit.key
+            )));
+        }
+    }
+    rows.sort();
+    rows.dedup();
+    comparison_rows.sort();
+    comparison_rows.dedup();
+    let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
+    let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
+
+    // Only first readings of stale units are stored, and only after admission,
+    // so a refused artifact or second reading leaves the cache untouched.
+    for unit in &stale {
+        let mine: Vec<_> = supplied
+            .iter()
+            .filter(|r| unit.facets.iter().any(|f| f == r.facet()))
+            .cloned()
+            .collect();
+        if !mine.is_empty() {
+            memo::save(Path::new(root), &request, unit, &mine).map_err(operational)?;
+        }
+    }
+
+    let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
+    let mut comparisons = Vec::new();
+    if has_cached_second_reading {
+        comparisons.push(comparison_facts);
+    }
+    if let Some(path) = options.get("--claims-repeat") {
+        let text = artifact(path, limits)?;
+        digests.push(crate::sources::hash(text.as_bytes()));
+        let rows = dialect::parse(&text, limits).map_err(gate)?;
+        comparisons.push(identity::admit(&request, &input, &rows).map_err(gate)?);
+    }
+
+    let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
+    let mut report = findings::report(&request, &facts, &world, &digests);
+    let mut disagreements = Vec::new();
+    for repeat in &comparisons {
+        disagreements.extend(findings::disagreements(&facts, repeat));
+    }
+    if !comparisons.is_empty() {
+        disagreements.sort();
+        disagreements.dedup();
+        findings::attach(&mut report, disagreements);
+    }
+    let context = context::build(&request, &facts, &world, report.identity.clone());
+
+    let report_path = findings::write(&report, Path::new(root)).map_err(operational)?;
+    let context_path = findings::store(&context, Path::new(root), &context.source, context::SUFFIX)
+        .map_err(operational)?;
+
+    let code = match report.state {
+        findings::State::Disjoint => 1,
+        _ => 0,
+    };
+    json(
+        code,
+        &serde_json::json!({
+            "version": report.version,
+            "source": report.source,
+            "state": report.state,
+            "findings": report.findings.len(),
+            "report": report_path,
+            "judgmentContext": context_path,
+            "vocabularyGeneration": vocabulary::VOCABULARY_GENERATION,
+            "guidanceFingerprint": report.identity.guidance_fingerprint,
+        }),
+    )
+}
+
+/// Name every field that differs, so a caller can see which input moved.
+fn mismatch(current: &prepare::Binding, supplied: &prepare::Binding) -> String {
+    let mut differences = Vec::new();
+    let mut note = |name: &str, a: &str, b: &str| {
+        if a != b {
+            differences.push(format!("{name} (binding {b}, current {a})"));
+        }
+    };
+    note(
+        "export digest",
+        &current.export_digest,
+        &supplied.export_digest,
+    );
+    note(
+        "guidance fingerprint",
+        &current.guidance_fingerprint,
+        &supplied.guidance_fingerprint,
+    );
+    note(
+        "vocabulary generation",
+        &current.vocabulary_generation.to_string(),
+        &supplied.vocabulary_generation.to_string(),
+    );
+    note(
+        "format",
+        &current.format.to_string(),
+        &supplied.format.to_string(),
+    );
+    if current.closure != supplied.closure {
+        differences.push("resolved closure".into());
+    }
+    if current.facets != supplied.facets {
+        differences.push("declared Facets".into());
+    }
+    if differences.is_empty() {
+        differences.push("binding contents".into());
+    }
+    format!(
+        "binding does not match the supplied export: {}. Prepare a new directory.",
+        differences.join(", ")
+    )
+}
+
+fn frontend(path: &str) -> Result<DesignInput, (u8, String)> {
+    let bytes = crate::cli::read(path, MAX_FRONTEND_BYTES).map_err(operational)?;
+    DesignInput::parse(&bytes).map_err(operational)
+}
+
+fn artifact(path: &str, limits: dialect::Limits) -> Result<String, (u8, String)> {
+    let bytes = crate::cli::read(path, limits.max_document_bytes as u64).map_err(operational)?;
+    String::from_utf8(bytes).map_err(|_| gate("claims artifact is not valid UTF-8".to_string()))
+}
+
+fn required_in(options: &BTreeMap<String, String>, flag: &str) -> Result<String, (u8, String)> {
+    options
+        .get(flag)
+        .cloned()
+        .ok_or_else(|| (2, format!("missing required option: {flag}")))
+}
+
+fn parse(tail: &[&str], allowed: &[&str]) -> Result<BTreeMap<String, String>, (u8, String)> {
+    let mut options = BTreeMap::new();
+    let mut rest = tail;
+    while let Some((flag, next)) = rest.split_first() {
+        if !allowed.contains(flag) || options.contains_key(*flag) {
+            return Err((2, format!("unknown or duplicate option: {flag}")));
+        }
+        let Some((value, remaining)) = next.split_first() else {
+            return Err((2, format!("missing value for {flag}")));
+        };
+        options.insert((*flag).to_string(), (*value).to_string());
+        rest = remaining;
+    }
+    Ok(options)
+}
+
+fn usage(message: String) -> (u8, String) {
+    (2, message)
+}
+
+fn gate(message: String) -> (u8, String) {
+    (1, message)
+}
+
+fn operational(message: String) -> (u8, String) {
+    (3, message)
+}
+
+fn json(code: u8, value: &impl serde::Serialize) -> Output {
+    Ok((
+        code,
+        serde_json::to_string_pretty(value).map_err(|e| operational(e.to_string()))? + "\n",
+    ))
+}

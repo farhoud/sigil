@@ -5,21 +5,7 @@ component Promise {
     Let callers chain reactions without knowing when the value arrives.
   }
 
-  interface {
-    new Promise<T>(executor)
-
-    then(onResolved, onRejected?) returns Promise
-
-    catch(onRejected) returns Promise
-
-    Promise.resolve(value)
-
-    Promise.reject(reason)
-
-    Promise.try(handler)
-  }
-
-    state {
+  state {
     Pending
 
     Resolved(value)
@@ -56,6 +42,20 @@ component Promise {
     Resolving with a PromiseLike value adopts its eventual result.
 
     Rejecting with a PromiseLike value does not unwrap it.
+  }
+
+  interface {
+    new Promise<T>(executor)
+
+    then(onResolved, onRejected?) returns Promise
+
+    catch(onRejected) returns Promise
+
+    Promise.resolve(value)
+
+    Promise.reject(reason)
+
+    Promise.try(handler)
   }
 
 }
