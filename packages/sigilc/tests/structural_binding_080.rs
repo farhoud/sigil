@@ -1,80 +1,116 @@
 mod support;
 use serde_json::{Value, json};
-use sigilc::{frontend::DesignInput, inputs::DesignSnapshot, scope::Scope};
+use sigilc::{inputs::DesignSnapshot, scope::Scope};
 use support::Workspace;
-fn fixture() -> Value {
-    serde_json::from_str(include_str!(
-        "../../core/tests/fixtures/design-input-080.json"
-    ))
-    .unwrap()
+
+fn edit(root: &Workspace, path: &str, from: &str, to: &str) {
+    let text = std::fs::read_to_string(root.0.join(path)).unwrap();
+    assert!(text.contains(from), "{from} is in {path}");
+    root.write(path, text.replacen(from, to, 1).as_bytes());
 }
-fn capture(root: &Workspace, value: &Value) -> DesignSnapshot {
-    for s in value["sources"]
+
+#[test]
+fn preparation_presents_own_tree_and_only_the_imported_interface() {
+    let root = support::shared_workspace();
+    let snapshot = root.snapshot();
+    let preparation = snapshot.preparation("consumer.sigil").unwrap();
+    let input = snapshot.input();
+    let own = |source: &str| source == "consumer.sigil";
+    // The consumer's own rows are all there.
+    for (field, count) in [
+        (
+            "units",
+            input.units.iter().filter(|u| own(&u.source)).count(),
+        ),
+        (
+            "references",
+            input.references.iter().filter(|r| own(&r.source)).count(),
+        ),
+        ("links", 1),
+        ("imports", 1),
+    ] {
+        assert_eq!(
+            preparation[field].as_array().unwrap().len(),
+            count,
+            "{field}"
+        );
+    }
+    assert!(
+        preparation["target"]["text"]
+            .as_str()
+            .unwrap()
+            .contains("Serve the caller.")
+    );
+    // Of Base, the interface alone: its Facet, its text, its Tags.
+    let dependency = &preparation["dependencies"][0];
+    assert_eq!(dependency["source"], "base.sigil");
+    let units = dependency["units"].as_array().unwrap();
+    assert_eq!(units.len(), 1);
+    assert_eq!(units[0]["id"], support::base_interface());
+    assert!(
+        units[0]["text"]
+            .as_str()
+            .unwrap()
+            .contains("A *value* and *result* exist.")
+    );
+    assert!(!dependency["interfaceHash"].as_array().unwrap().is_empty());
+    let mut entities: Vec<&str> = preparation["entities"]
         .as_array()
         .unwrap()
         .iter()
-        .chain(value["context"].as_array().unwrap())
-    {
-        if let Some(text) = s["text"].as_str() {
-            root.write(s["path"].as_str().unwrap(), text.as_bytes());
-        }
+        .filter(|e| e["source"] == "base.sigil")
+        .map(|e| e["label"].as_str().unwrap())
+        .collect();
+    entities.sort();
+    assert_eq!(entities, ["Base", "result", "value"]);
+    let rendered = preparation.to_string();
+    for private in [support::base_goal(), support::base_constraints()] {
+        assert!(!rendered.contains(private), "{private}");
     }
-    DesignSnapshot::capture(
-        &root.0,
-        DesignInput::parse(&serde_json::to_vec(value).unwrap()).unwrap(),
-        100_000,
-    )
-    .unwrap()
+    assert!(!rendered.contains("Own provider vocabulary."));
+    assert!(!rendered.contains("Preserve value and result."));
 }
+
 #[test]
-fn preparation_and_scope_retain_all_selected_provider_provenance() {
-    let root = Workspace::new();
-    let value = fixture();
-    let snapshot = capture(&root, &value);
-    let preparation = snapshot.preparation("consumer.sigil").unwrap();
-    for field in [
-        "entities",
-        "units",
-        "imports",
-        "groups",
-        "introductions",
-        "references",
-        "links",
+fn a_dependency_private_edit_leaves_the_preparation_and_binding_untouched() {
+    let root = support::shared_workspace();
+    let before = root.snapshot();
+    edit(
+        &root,
+        "base.sigil",
+        "Preserve value and result.",
+        "Preserve both.",
+    );
+    let after = root.snapshot();
+    assert_eq!(
+        before.binding("consumer.sigil").unwrap(),
+        after.binding("consumer.sigil").unwrap()
+    );
+    assert_eq!(
+        before.preparation("consumer.sigil").unwrap(),
+        after.preparation("consumer.sigil").unwrap()
+    );
+}
+
+#[test]
+fn structural_changes_invalidate_prepared_binding() {
+    let first = support::shared_workspace()
+        .snapshot()
+        .binding("consumer.sigil")
+        .unwrap();
+    for (field, from, to) in [
+        (
+            "link",
+            "(./notes.md)",
+            "(./notes.md \"additional interpretation evidence\")",
+        ),
+        ("selection", "import { value, result }", "import { value }"),
     ] {
-        assert_eq!(preparation[field], value[field], "{field}");
-    }
-    let mut input = DesignInput::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
-    let scope: Scope = serde_json::from_value(json!({"version":1,"design":{"paths":["consumer.sigil"]},"implementation":{"paths":[],"allowEmpty":true}})).unwrap();
-    scope.resolve(&root.0, &mut input).unwrap();
-    input.validate().unwrap();
-    assert_eq!(input.references.len(), 4);
-    assert_eq!(input.links.len(), 1);
-}
-#[test]
-fn structural_only_changes_invalidate_prepared_binding() {
-    let root = Workspace::new();
-    let original = fixture();
-    let first = capture(&root, &original).binding("consumer.sigil").unwrap();
-    for field in ["link", "reference", "selection"] {
-        let mut value = original.clone();
-        match field {
-            "link" => value["links"][0]["title"] = json!("additional interpretation evidence"),
-            "reference" => {
-                value["references"][2]["status"] = json!("ambiguous");
-                value["references"][2]["tag"] = Value::Null;
-                value["imports"][0]["names"][0]["uses"] = json!([]);
-            }
-            "selection" => {
-                value["imports"][0]["names"][0]["status"] = json!("ambiguous");
-                value["imports"][0]["names"][0]["uses"] = json!([]);
-                value["references"][2]["status"] = json!("ambiguous");
-                value["references"][2]["tag"] = Value::Null;
-            }
-            _ => unreachable!(),
-        }
+        let root = support::shared_workspace();
+        edit(&root, "consumer.sigil", from, to);
         assert_ne!(
             first,
-            capture(&root, &value).binding("consumer.sigil").unwrap(),
+            root.snapshot().binding("consumer.sigil").unwrap(),
             "{field}"
         );
     }
@@ -88,9 +124,8 @@ fn compilation_carries_descriptive_relations_without_turning_imports_into_calls(
         store::{LockedStore, StoreLimits},
         turtle::{self, TurtleLimits},
     };
-    let root = Workspace::new();
-    let value = fixture();
-    let snapshot = capture(&root, &value);
+    let root = support::shared_workspace();
+    let snapshot = root.snapshot();
     let mut store = LockedStore::open(&root.0, StoreLimits::default()).unwrap();
     for source in &snapshot.input().sources {
         let mut body = "@prefix s: <https://sigil.dev/ontology/1#> .\n".to_owned();
@@ -111,20 +146,36 @@ fn compilation_carries_descriptive_relations_without_turning_imports_into_calls(
     let report = design::compile(&snapshot, &store, Limits::default(), false).unwrap();
     assert_eq!(report.world.state, DesignState::Coherent);
     let structure = report.world.structure.as_ref().unwrap();
-    for field in [
-        "imports",
-        "groups",
-        "introductions",
-        "references",
-        "links",
-        "units",
+    let input = snapshot.input();
+    for (field, count) in [
+        ("imports", input.imports.len()),
+        ("groups", input.groups.len()),
+        ("introductions", input.introductions.len()),
+        ("references", input.references.len()),
+        ("links", input.links.len()),
+        ("units", input.units.len()),
     ] {
-        assert_eq!(structure[field], value[field]);
+        assert_eq!(structure[field].as_array().unwrap().len(), count, "{field}");
     }
     assert!(
         !report.world.closure.tables["known"]
             .iter()
             .any(|r| r[1] == "dependsOn" || r[1] == "invokes")
+    );
+}
+
+#[test]
+fn scoping_to_the_consumer_keeps_the_provider_and_its_bindings() {
+    let root = support::shared_workspace();
+    let (mut input, basis) = root.load();
+    let scope: Scope = serde_json::from_value(json!({"version":1,"design":{"paths":["consumer.sigil"]},"implementation":{"paths":[],"allowEmpty":true}})).unwrap();
+    scope.resolve(&root.0, &mut input).unwrap();
+    let scoped = DesignSnapshot::new(input, basis).unwrap();
+    assert_eq!(scoped.input().references.len(), 4);
+    assert_eq!(scoped.input().links.len(), 1);
+    assert_eq!(
+        scoped.binding("consumer.sigil").unwrap(),
+        root.snapshot().binding("consumer.sigil").unwrap()
     );
 }
 
@@ -136,15 +187,16 @@ fn frontend_implementation_locations_retain_captured_source_digest() {
         report,
         store::{LockedStore, StoreLimits},
     };
-    let root = Workspace::new();
-    let mut value = fixture();
-    value["diagnostics"] = json!([{
+    let root = support::shared_workspace();
+    let (mut input, basis) = root.load();
+    let diagnostic: Value = json!({
         "code": "OWNERSHIP_UNKNOWN_TAG", "message": "Unknown Tag", "severity": "warning",
         "stage": "host", "filePath": "implementation.ts", "related": [],
         "sourceDigest": "a".repeat(64),
         "implementationRange": {"start": {"line": 1, "column": 1}, "end": {"line": 1, "column": 4}}
-    }]);
-    let snapshot = capture(&root, &value);
+    });
+    input.diagnostics = vec![serde_json::from_value(diagnostic).unwrap()];
+    let snapshot = DesignSnapshot::new(input, basis).unwrap();
     let store = LockedStore::open(&root.0, StoreLimits::default()).unwrap();
     let compiled = design::compile(&snapshot, &store, Limits::default(), false).unwrap();
     let diagnostics = report::design(snapshot.input(), &compiled.world, &[], &Default::default());

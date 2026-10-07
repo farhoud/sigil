@@ -7,7 +7,7 @@ use crate::{
     scope::{ResolvedScope, Scope},
     sources::{self, Selection},
     store::{Freshness, LockedStore, PreparedBinding, StoreLimits},
-    tree::design_input::load_design_input,
+    tree::design_input::load_design,
     turtle::{self, TurtleLimits},
 };
 use serde::Serialize;
@@ -30,6 +30,9 @@ pub fn store_dir(root: &Path, store: Option<&str>) -> PathBuf {
 
 // @sigil implements packages/sigilc/store.sigil::SigilProjectionStore::DesignCommands interface
 pub fn run(args: &[&str]) -> Output {
+    if args.first() == Some(&"tree") {
+        return crate::tree::command::run(&args[1..]);
+    }
     if args.first() == Some(&"clean") {
         let (root, store) = match args {
             ["clean"] => (".", None),
@@ -161,7 +164,7 @@ pub fn run(args: &[&str]) -> Output {
         .unwrap_or_default();
     let store_limits = StoreLimits::default();
     let mut store = LockedStore::open_in(&root, &store_path, store_limits).map_err(runtime)?;
-    let mut input = load_design_input(&root, &store_path).map_err(runtime)?;
+    let (mut input, basis) = load_design(&root, &store_path).map_err(runtime)?;
     let scope = options
         .get("--scope")
         .map(|path| {
@@ -192,8 +195,7 @@ pub fn run(args: &[&str]) -> Output {
             }
         }
     }
-    let snapshot =
-        DesignSnapshot::capture(&root, input, store_limits.max_source_bytes).map_err(runtime)?;
+    let snapshot = DesignSnapshot::new(input, basis).map_err(runtime)?;
     if command == "scope" {
         let scope = scope.unwrap();
         return json(
@@ -219,8 +221,8 @@ pub fn run(args: &[&str]) -> Output {
     } else {
         match command {
             "prepare" => {
-                design::valid_frontend(&snapshot).map_err(runtime)?;
                 let source = source.unwrap();
+                snapshot.require_valid(source).map_err(runtime)?;
                 let binding = store
                     .prepare(snapshot.binding(source).map_err(runtime)?)
                     .map_err(runtime)?;
@@ -245,8 +247,8 @@ pub fn run(args: &[&str]) -> Output {
                 )
             }
             "ingest" => {
-                design::valid_frontend(&snapshot).map_err(runtime)?;
                 let source = source.unwrap();
+                snapshot.require_valid(source).map_err(runtime)?;
                 let binding_ref = binding_path.unwrap();
                 let turtle_ref = turtle_path.unwrap();
                 let binding: PreparedBinding =

@@ -2,7 +2,11 @@
 //! Workspaces on disk. Every fixture is a real `.sigil` workspace in a
 //! tempdir: the tests read it the way the commands do, through the trees.
 use serde_json::Value;
-use sigilc::{frontend::DesignInput, tree::design_input::load_design_input};
+use sigilc::{
+    frontend::DesignInput,
+    inputs::{DesignBasis, DesignSnapshot},
+    tree::design_input::{load_design, load_design_input},
+};
 use std::{
     fs,
     path::PathBuf,
@@ -47,6 +51,14 @@ impl Workspace {
                 self.write(item["path"].as_str().unwrap(), text.as_bytes());
             }
         }
+    }
+    /// The binding snapshot of this workspace as it is on disk now.
+    pub fn snapshot(&self) -> DesignSnapshot {
+        DesignSnapshot::load(&self.0, &self.0.join(".sigil")).unwrap()
+    }
+    /// The structural input and binding basis, before any scope narrows them.
+    pub fn load(&self) -> (DesignInput, DesignBasis) {
+        load_design(&self.0, &self.0.join(".sigil")).unwrap()
     }
     /// The structural input of this workspace as it is on disk now.
     pub fn design_input(&self) -> DesignInput {

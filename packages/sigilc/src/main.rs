@@ -20,11 +20,16 @@ Commands (every command that reads a workspace takes [--root DIR] [--store DIR])
   stale implementation (--selection FILE | --scope FILE)
   compile implementation (--selection FILE | --scope FILE)
   compare (--selection FILE | --scope FILE) [--limits FILE]
+  tree [--source PATH] [--diff] [--root DIR] [--store DIR]
   clean [--root DIR] [--store DIR]
 
 --root DIR is the workspace: sigilc reads its .sigil configuration, glossary and
 sources directly (default: the current directory). --store DIR holds the
 disposable projections and tree cache (default: ROOT/.sigil).
+
+`tree` prints the resolved Merkle trees as deterministic JSON, for one source or
+every source; --diff prints the Facets added, removed and changed since the
+previous tree recorded for each source.
 
 Scope and semantic compilation flow:
   1. Resolve ordered roots: sigilc scope --root . --scope scope.json

@@ -38,7 +38,6 @@ pub struct DesignMembership {
     pub focus_order: Vec<String>,
     pub sources: BTreeSet<String>,
     pub dependencies: BTreeSet<Dependency>,
-    pub conservative_full_bundle: bool,
     pub intentional_empty: bool,
 }
 
@@ -135,8 +134,9 @@ impl Scope {
     }
 }
 
-// Both callers operate on validated frontend structure. Share this closure with
-// per-source binding so changing focus cannot hide a semantic dependency.
+// Both callers operate on validated frontend structure. An import that does not
+// resolve contributes nothing here: it makes its own source invalid, and never
+// widens another source's closure.
 /*
  * @sigil implements packages/sigilc/scope.sigil::SigilComparisonScope::DesignMembership interface
  * @sigil implements packages/sigilc/scope.sigil::SigilComparisonScope::FocusOrder interface
@@ -147,14 +147,6 @@ pub(crate) fn design_membership<'a>(
 ) -> DesignMembership {
     let roots: Vec<_> = roots.into_iter().map(str::to_owned).collect();
     let mut pending: Vec<_> = roots.iter().map(String::as_str).collect();
-    let conservative_full_bundle = !roots.is_empty()
-        && input
-            .imports
-            .iter()
-            .any(|i| i.target.is_none() || i.names.iter().any(|n| n.entity.is_none()));
-    if conservative_full_bundle {
-        pending.extend(input.sources.iter().map(|s| s.path.as_str()));
-    }
     let entities: BTreeMap<_, _> = input
         .entities
         .iter()
@@ -215,6 +207,5 @@ pub(crate) fn design_membership<'a>(
         intentional_empty: sources.is_empty(),
         sources,
         dependencies,
-        conservative_full_bundle,
     }
 }

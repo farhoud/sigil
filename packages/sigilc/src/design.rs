@@ -43,7 +43,11 @@ pub fn inspect(
         .map(|source| {
             Ok(SourceStatus {
                 source: source.path.clone(),
-                status: store.inspect(&snapshot.binding(&source.path)?)?.status,
+                status: if snapshot.invalid(&source.path).is_some() {
+                    Freshness::Invalid
+                } else {
+                    store.inspect(&snapshot.binding(&source.path)?)?.status
+                },
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
@@ -201,30 +205,7 @@ pub fn valid_frontend(snapshot: &DesignSnapshot) -> Result<(), String> {
     {
         return Err(format!("frontend error {}: {}", error.code, error.message));
     }
-    let input = snapshot.input();
-    if input
-        .entities
-        .iter()
-        .any(|e| !e.valid || !e.complete || !e.identity_resolved)
-        || input
-            .units
-            .iter()
-            .any(|u| !u.valid || !u.complete || u.owner.is_none())
-        || input.groups.iter().any(|g| !g.valid || !g.complete)
-        || input
-            .introductions
-            .iter()
-            .any(|i| !i.valid || !i.complete || i.tag.is_none())
-        || input.references.iter().any(|r| r.tag.is_none())
-        || input.imports.iter().any(|i| {
-            !i.valid
-                || !i.complete
-                || i.status != crate::frontend::ImportStatus::Resolved
-                || i.names
-                    .iter()
-                    .any(|n| n.status != crate::frontend::SelectionStatus::Resolved)
-        })
-    {
+    if crate::inputs::structural_flaw(snapshot.input(), None) {
         return Err("frontend contains unresolved or incomplete language structure".into());
     }
     Ok(())

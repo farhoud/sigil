@@ -7,7 +7,6 @@ use sigilc::{
 };
 use support::Workspace;
 
-const PATHS: &[&str] = &["a.sigil", "b.sigil", "c.sigil", "unrelated.sigil"];
 fn workspace() -> Workspace {
     let root = support::cycle_workspace();
     root.write("source.any", b"arbitrary implementation bytes");
@@ -15,6 +14,12 @@ fn workspace() -> Workspace {
 }
 fn input(root: &Workspace) -> DesignInput {
     support::cycle_input(root)
+}
+fn full(root: &Workspace) -> DesignSnapshot {
+    root.snapshot()
+}
+fn narrowed(input: DesignInput, root: &Workspace) -> DesignSnapshot {
+    DesignSnapshot::new(input, root.load().1).unwrap()
 }
 fn definition(paths: &[&str]) -> Value {
     json!({"version":1,"design":{"paths":paths},"implementation":{"paths":["source.any"]}})
@@ -29,7 +34,7 @@ fn resolve(root: &Workspace, input: &mut DesignInput, paths: &[&str]) -> Resolve
 #[test]
 fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs() {
     let root = workspace();
-    let full = DesignSnapshot::capture(&root.0, input(&root), 10_000).unwrap();
+    let full = full(&root);
     let mut first_input = input(&root);
     let first = resolve(&root, &mut first_input, &["c.sigil", "b.sigil"]);
     assert_eq!(
@@ -47,7 +52,7 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
     );
     assert_eq!(first_input.units.len(), 9);
     assert_eq!(first_input.references.len(), 3);
-    let scoped = DesignSnapshot::capture(&root.0, first_input, 10_000).unwrap();
+    let scoped = narrowed(first_input, &root);
     for path in &first.report.design.sources {
         assert_eq!(full.binding(path).unwrap(), scoped.binding(path).unwrap());
     }
@@ -67,7 +72,7 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
         first.report.order_fingerprint,
         second.report.order_fingerprint
     );
-    let reordered = DesignSnapshot::capture(&root.0, second_input, 10_000).unwrap();
+    let reordered = narrowed(second_input, &root);
     assert_eq!(
         scoped.fingerprint().unwrap(),
         reordered.fingerprint().unwrap()
@@ -78,12 +83,23 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
         second.report.order_fingerprint,
         again.report.order_fingerprint
     );
-    let text = std::fs::read_to_string(root.0.join("a.sigil")).unwrap();
-    root.write(
-        "a.sigil",
-        format!("{text}\n// changed provider declaration").as_bytes(),
+    let edit = |from: &str, to: &str| {
+        let text = std::fs::read_to_string(root.0.join("a.sigil")).unwrap();
+        root.write("a.sigil", text.replacen(from, to, 1).as_bytes());
+    };
+    // A provider's private change reaches no importer; its interface does.
+    edit("Describe A.", "Describe A in detail.");
+    let private = self::full(&root);
+    assert_eq!(
+        full.binding("c.sigil").unwrap(),
+        private.binding("c.sigil").unwrap()
     );
-    let changed = DesignSnapshot::capture(&root.0, input(&root), 10_000).unwrap();
+    assert_ne!(
+        full.binding("a.sigil").unwrap(),
+        private.binding("a.sigil").unwrap()
+    );
+    edit("A *a* exists.", "A *a* exists today.");
+    let changed = self::full(&root);
     assert_ne!(
         full.binding("c.sigil").unwrap(),
         changed.binding("c.sigil").unwrap()
@@ -95,7 +111,7 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
 }
 
 #[test]
-fn unresolved_graph_widens_visibly_and_diagnostics_remain_attributable() {
+fn an_unresolved_import_never_widens_the_world_and_diagnostics_remain_attributable() {
     let extra = |file: Option<&str>| -> Vec<sigilc::frontend::Diagnostic> {
         let mut config = json!({"code":"CONFIG","stage":"workspace","severity":"warning","message":"config","filePath":".sigil/config.json","related":[]});
         let mut global = json!({"code":"GLOBAL","stage":"workspace","severity":"error","message":"global","related":[]});
@@ -108,8 +124,8 @@ fn unresolved_graph_widens_visibly_and_diagnostics_remain_attributable() {
             .map(|d| serde_json::from_value(d).unwrap())
             .collect()
     };
-    // `a.sigil` imports the deleted `b.sigil`: the import resolves to nothing, so
-    // the world widens to every remaining source, and nothing is dropped.
+    // `a.sigil` imports the deleted `b.sigil`: the import resolves to nothing. It
+    // makes `a.sigil` invalid and adds no source to anyone's closure.
     let root = support::missing_cycle_provider_workspace();
     root.write("source.any", b"arbitrary implementation bytes");
     let mut partial = input(&root);
@@ -120,8 +136,11 @@ fn unresolved_graph_widens_visibly_and_diagnostics_remain_attributable() {
     );
     partial.diagnostics.extend(extra(None));
     let result = resolve(&root, &mut partial, &["c.sigil"]);
-    assert!(result.report.design.conservative_full_bundle);
-    assert_eq!(result.report.design.sources.len(), PATHS.len() - 1);
+    assert_eq!(
+        result.report.design.sources.iter().collect::<Vec<_>>(),
+        ["a.sigil", "c.sigil"],
+        "the unrelated source stays out"
+    );
     assert_eq!(partial.diagnostics.len(), 3);
     // A diagnostic on a file the scope excludes is dropped; global and context ones stay.
     let root = workspace();

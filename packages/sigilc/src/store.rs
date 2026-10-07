@@ -54,6 +54,8 @@ pub enum Freshness {
     Incompatible,
     Incomplete,
     Deleted,
+    /// The source, or a source it imports, has errors, so nothing was read.
+    Invalid,
 }
 
 #[derive(Debug)]
@@ -108,19 +110,22 @@ impl LockedStore {
                 entries: BTreeMap::new(),
             },
             Err(e) => return Err(e.to_string()),
-            Ok(_) => serde_json::from_slice::<Index>(
-                &sources::capture(&store, INDEX, limits.max_index_bytes)?.bytes,
-            )
-            .map_err(|e| format!("invalid projection index: {e}"))?,
+            Ok(_) => parse_index(&sources::capture(&store, INDEX, limits.max_index_bytes)?.bytes)
+                .map_err(|e| format!("invalid projection index: {e}"))?,
         };
         if index.version != INDEX_VERSION {
             return Err("unsupported projection index version".into());
         }
         for (key, entry) in &index.entries {
-            if *key != object_key(&entry.binding)? && *key != history_key(&entry.binding)?
-                || !checksum(&entry.generation)
-                || !checksum(&entry.assertion_checksum)
-            {
+            let object = object_key(&entry.binding)?;
+            // An entry of an older projection format keeps its key but not its
+            // fingerprint, which only the current layout can reproduce.
+            let keyed = if entry.binding.projection_format == crate::inputs::PROJECTION_FORMAT {
+                *key == object || *key == history_key(&entry.binding)?
+            } else {
+                *key == object || key.starts_with(&format!("{object}~"))
+            };
+            if !keyed || !checksum(&entry.generation) || !checksum(&entry.assertion_checksum) {
                 return Err(format!("invalid projection index entry: {key}"));
             }
         }
@@ -183,7 +188,10 @@ impl LockedStore {
         compatible(current)?;
         let key = object_key(current)?;
         if prepared.version != 2 || prepared.binding != *current {
-            return Err("prepared semantic inputs no longer match current inputs".into());
+            return Err(format!(
+                "prepared semantic inputs no longer match current inputs: {} moved",
+                crate::inputs::moved(&prepared.binding, current)
+            ));
         }
         if self
             .entry_for(current)
@@ -295,34 +303,31 @@ impl LockedStore {
             .map(|entry| (history, entry))
     }
 
+    /// A binding is live while what it recorded still holds on disk. An
+    /// Implementation source is read again byte for byte. A Design source is
+    /// read through its trees again, and only the source's content identity and
+    /// the interface hashes it imports (and the context) are compared, so the
+    /// failure names the field that moved.
     fn check_live(&self, binding: &Binding) -> Result<(), String> {
-        let mut inputs = vec![(&binding.source.path, Some(binding.source.checksum.as_str()))];
-        if let SemanticInput::Design {
-            dependencies,
-            context,
-            ..
-        } = &binding.semantic
-        {
-            inputs.extend(
-                dependencies
-                    .iter()
-                    .map(|d| (&d.path, Some(d.checksum.as_str()))),
-            );
-            inputs.extend(context.iter().map(|c| (&c.path, c.checksum.as_deref())));
-        }
-        for (path, expected) in inputs {
-            if let Some(expected) = expected {
-                let current = sources::capture(&self.root, path, self.limits.max_source_bytes)?;
-                if current.identity.checksum != expected {
-                    return Err(format!("source input changed: {path}"));
-                }
-            } else {
-                match fs::symlink_metadata(sources::checked_path(&self.root, path)?) {
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
-                    Err(e) => return Err(e.to_string()),
-                    Ok(_) => return Err(format!("source input appeared: {path}")),
-                }
+        if matches!(binding.semantic, SemanticInput::Design { .. }) {
+            let live = crate::tree::design_input::load_basis(&self.root, &self.store)?
+                .binding(&binding.source.path)
+                .map_err(|e| format!("source input changed: {e}"))?;
+            if live != *binding {
+                return Err(format!(
+                    "prepared semantic inputs no longer match current inputs: {} moved",
+                    crate::inputs::moved(binding, &live)
+                ));
             }
+            return Ok(());
+        }
+        let current = sources::capture(
+            &self.root,
+            &binding.source.path,
+            self.limits.max_source_bytes,
+        )?;
+        if current.identity.checksum != binding.source.checksum {
+            return Err(format!("source input changed: {}", binding.source.path));
         }
         Ok(())
     }
@@ -392,6 +397,32 @@ fn acquire(root: &Path, store: &Path) -> Result<(PathBuf, PathBuf, File), String
     lock.try_lock()
         .map_err(|e| format!("projection store lock unavailable: {e}"))?;
     Ok((root, store, lock))
+}
+
+fn parse_index(bytes: &[u8]) -> Result<Index, String> {
+    let mut value: serde_json::Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    // A Design binding of an older projection format has other semantic fields.
+    // Keep it readable so it reports `incompatible` instead of failing the open.
+    let current = u64::from(crate::inputs::PROJECTION_FORMAT);
+    if let Some(entries) = value.get_mut("entries").and_then(|e| e.as_object_mut()) {
+        for entry in entries.values_mut() {
+            let Some(binding) = entry.get_mut("binding") else {
+                continue;
+            };
+            if binding["projection_format"].as_u64() == Some(current) {
+                continue;
+            }
+            if let Some(semantic) = binding.get_mut("semantic").and_then(|s| s.as_object_mut())
+                && semantic.get("side").and_then(|s| s.as_str()) == Some("design")
+            {
+                semantic.remove("dependencies");
+                semantic
+                    .entry("imports")
+                    .or_insert_with(|| serde_json::json!([]));
+            }
+        }
+    }
+    serde_json::from_value(value).map_err(|e| e.to_string())
 }
 
 fn inspected(status: Freshness) -> Inspection {

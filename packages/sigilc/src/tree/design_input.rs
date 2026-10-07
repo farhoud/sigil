@@ -13,6 +13,7 @@ use crate::frontend::{
     IntroductionKind, Link, Payload, Range, Reference, ReferenceStatus, Section, SelectionStatus,
     Source, Unit,
 };
+use crate::inputs::{ContextIdentity, DesignBasis, ImportedInterface, SourceBasis};
 use crate::language::{
     parse::{self, Span},
     resolve::{
@@ -22,6 +23,7 @@ use crate::language::{
     text::SourceText,
     workspace::Workspace,
 };
+use crate::sources::{self, SourceIdentity};
 use std::{collections::HashMap, path::Path};
 
 /// The reader that produced a derived input; part of every Design binding.
@@ -34,17 +36,155 @@ fn range(span: Span) -> Range {
 /// Read the workspace at `root`, building its trees into `<store>/trees`, and
 /// derive the structural input.
 pub fn load_design_input(root: &Path, store: &Path) -> Result<DesignInput, String> {
+    load_design(root, store).map(|(input, _)| input)
+}
+
+fn load_workspace(root: &Path) -> Result<Workspace, String> {
     if !root.is_dir() {
         return Err(format!(
             "workspace root is not a directory: {}",
             root.display()
         ));
     }
-    let workspace = Workspace::load(root).map_err(|e| format!("read workspace: {e}"))?;
+    Workspace::load(root).map_err(|e| format!("read workspace: {e}"))
+}
+
+/// The structural input and what every Design binding reads from the trees.
+pub fn load_design(root: &Path, store: &Path) -> Result<(DesignInput, DesignBasis), String> {
+    let workspace = load_workspace(root)?;
     let mut cache = TreeCache::new(&store.join("trees"));
     let snapshot = Snapshot::build(&workspace, &mut cache);
     let resolved = ResolvedWorkspace::from(&workspace);
-    design_input(&workspace, &snapshot, &resolved)
+    let input = design_input(&workspace, &snapshot, &resolved)?;
+    let basis = design_basis(&workspace, &snapshot);
+    Ok((input, basis))
+}
+
+/// Only the binding basis, for a liveness check that needs no structure rows.
+pub fn load_basis(root: &Path, store: &Path) -> Result<DesignBasis, String> {
+    let workspace = load_workspace(root)?;
+    let mut cache = TreeCache::new(&store.join("trees"));
+    let snapshot = Snapshot::build(&workspace, &mut cache);
+    Ok(design_basis(&workspace, &snapshot))
+}
+
+/// What a Design binding records per source (KTD7): the content file id, never
+/// `ResolvedTree::id` (which moves with a rewrap), the interface hash of every
+/// imported component, and a hash of the source's own resolution with no
+/// position in it. A dependency's private sections reach none of these.
+pub fn design_basis(workspace: &Workspace, snapshot: &Snapshot) -> DesignBasis {
+    let sources = snapshot
+        .trees
+        .iter()
+        .map(|tree| {
+            let imports: Vec<ImportedInterface> = tree
+                .parse
+                .imports
+                .iter()
+                .zip(&tree.resolution.imports)
+                .map(|(declaration, resolved)| {
+                    let target = resolved.target.as_deref();
+                    let mut interface: Vec<String> = target
+                        .and_then(|t| snapshot.tree(t))
+                        .into_iter()
+                        .flat_map(|t| &t.parse.components)
+                        .filter(|c| c.name == declaration.provider)
+                        .map(|c| c.interface_hash.clone())
+                        .collect();
+                    interface.sort();
+                    ImportedInterface {
+                        path: target.unwrap_or(&declaration.path).to_owned(),
+                        component: declaration.provider.clone(),
+                        interface,
+                    }
+                })
+                .collect();
+            let resolution = &tree.resolution;
+            let structure = sources::hash(
+                &serde_json::to_vec(&(
+                    "sigil-design-structure-v1",
+                    crate::language::SIGIL_VERSION,
+                    resolution
+                        .components
+                        .iter()
+                        .map(|c| {
+                            (
+                                &c.iri,
+                                c.identity_resolved,
+                                c.tags
+                                    .iter()
+                                    .map(|t| (&t.name, &t.status, &t.iri))
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                    resolution
+                        .imports
+                        .iter()
+                        .map(|i| {
+                            (
+                                &i.path,
+                                &i.provider,
+                                &i.status,
+                                &i.target,
+                                &i.provider_iri,
+                                i.names
+                                    .iter()
+                                    .map(|n| (&n.name, &n.status, n.used, &n.tag_iri))
+                                    .collect::<Vec<_>>(),
+                            )
+                        })
+                        .collect::<Vec<_>>(),
+                    resolution
+                        .references
+                        .iter()
+                        .map(|r| (&r.facet, &r.name, &r.status, &r.tag_iri))
+                        .collect::<Vec<_>>(),
+                ))
+                .expect("structure serializes"),
+            );
+            let exposed = tree
+                .parse
+                .components
+                .iter()
+                .map(|c| {
+                    (
+                        c.iri.clone(),
+                        c.interface_tags
+                            .iter()
+                            .map(|t| t.rsplit_once('#').map_or(t.as_str(), |(n, _)| n).to_owned())
+                            .collect(),
+                    )
+                })
+                .collect();
+            (
+                tree.parse.path.clone(),
+                SourceBasis {
+                    identity: SourceIdentity {
+                        path: tree.parse.path.clone(),
+                        checksum: tree.parse.file_id.clone(),
+                    },
+                    imports,
+                    structure,
+                    exposed,
+                },
+            )
+        })
+        .collect();
+    let mut context: Vec<ContextIdentity> = workspace
+        .context
+        .iter()
+        .map(|f| ContextIdentity {
+            path: f.path.to_owned(),
+            checksum: f.bytes.as_ref().map(|b| sources::hash(b)),
+        })
+        .collect();
+    context.sort_by(|a, b| a.path.cmp(&b.path));
+    DesignBasis {
+        frontend_version: FRONTEND_VERSION.to_owned(),
+        sources,
+        context,
+    }
 }
 
 /// Derive the structural input from a loaded workspace and its snapshot.

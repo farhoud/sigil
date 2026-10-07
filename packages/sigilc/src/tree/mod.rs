@@ -5,6 +5,7 @@
 //! Identity never depends on a position: ranges ride along for diagnostics and
 //! editor locations only.
 pub mod cache;
+pub mod command;
 pub mod design_input;
 pub mod diff;
 pub mod ids;
