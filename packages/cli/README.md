@@ -89,17 +89,9 @@ Commands:
   exclusion frontier, aggregated context, and a content fingerprint; add
   `--format markdown` for a readable context pack;
 - `sigil render ...` returns Markdown;
-- `sigil export design [path] [--root workspace] [--pretty]` emits the complete
-  workspace's raw structural JSON bundle for native compilation.
-
-Export preserves captured source, configuration, glossary and diagnostics. It
-supports JSON only and rejects `--quiet`. The path locates a workspace; select
-focused Design roots with native `--scope`, after export. Exit 0 means no
-language errors, 1 means language errors remain in the bundle, 2 means invalid
-usage, and 3 means an operational failure. Invalid UTF-8 cannot produce a
-faithful bundle: stdout stays empty and stderr carries encoding diagnostics with
-exit 1. A representable language-invalid source retains its captured text and
-diagnostics in schema-2 JSON. These exits do not describe semantic gate states.
+Exit 0 means no language errors, 1 means language errors remain, 2 means
+invalid usage, and 3 means an operational failure. These exits do not describe
+semantic gate states. Native `sigilc` reads the workspace root directly.
 
 Language ranges are half-open original UTF-8 byte offsets. Text diagnostic
 locations use scalar columns derived from the captured source. Implementation

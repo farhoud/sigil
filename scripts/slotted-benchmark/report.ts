@@ -175,7 +175,7 @@ export function renderReport(
     `Batch created: ${manifest.createdAt}. Fixture version: ${manifest.fixture.version}.`,
     manifest.input.workspaceDigest
       ? `Workspace digest: \`${manifest.input.workspaceDigest}\`.`
-      : `Captured export SHA-256: \`${manifest.input.frontendSha256}\`.`,
+      : "Workspace digest: not recorded.",
     "",
     manifest.fixture.description,
     "",

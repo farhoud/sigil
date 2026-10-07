@@ -1,9 +1,9 @@
 mod support;
 use serde_json::{Value, json};
 use sigilc::{
-    frontend::DesignInput,
     inputs::DesignSnapshot,
     scope::{ResolvedScope, Scope},
+    structure::DesignInput,
 };
 use support::Workspace;
 
@@ -112,7 +112,7 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
 
 #[test]
 fn an_unresolved_import_never_widens_the_world_and_diagnostics_remain_attributable() {
-    let extra = |file: Option<&str>| -> Vec<sigilc::frontend::Diagnostic> {
+    let extra = |file: Option<&str>| -> Vec<sigilc::structure::Diagnostic> {
         let mut config = json!({"code":"CONFIG","stage":"workspace","severity":"warning","message":"config","filePath":".sigil/config.json","related":[]});
         let mut global = json!({"code":"GLOBAL","stage":"workspace","severity":"error","message":"global","related":[]});
         if let Some(file) = file {

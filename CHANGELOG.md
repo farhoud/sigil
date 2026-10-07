@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `sigilc` and `sigil-claims` read `.sigil` sources directly through `--root`
+  (default `.`) and an optional `--store`, and keep one content-addressed tree
+  per source with an interface hash per component. A reformat or an edit that
+  leaves a component's interface alone re-requests nothing downstream.
+  `sigil export design`, the `--frontend` option and `frontend.json` are
+  removed; callers pass the workspace directory instead. Run `sigilc clean`
+  once after upgrading: stored projections, bindings and interpretations are
+  read as incompatible once. Dependents now see only the interfaces they
+  import, so claims findings can shift: `step-excluded-action`,
+  `step-negated-action` and `unguarded-flow` no longer fire across components,
+  and `exclusive-foreign-write` fires only when the owner states exclusivity
+  in its interface. A dependency flow a dependent relies on must be stated in
+  that dependency's interface.
 - `sigil-claims` decomposes flow-shaped Logic prose into a checked graph. A
   component's Logic section is presented whole, a step and its section's flow
   are entities the tool mints, and what a step reads, writes, calls and leads to

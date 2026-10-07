@@ -320,7 +320,7 @@ fn preparation_reads_no_sigil_file_from_the_workspace() {
 /// Logic, so these tests need a source of their own. Facet identities are
 /// content ids, so source order is read from each Facet's position, never from
 /// its id.
-fn logic_input(bodies: &[(&str, &[&str])]) -> sigilc::frontend::DesignInput {
+fn logic_input(bodies: &[(&str, &[&str])]) -> sigilc::structure::DesignInput {
     let mut text = String::new();
     for (name, proses) in bodies {
         text.push_str(&format!("component {name} {{\n  logic {{\n"));

@@ -11,8 +11,8 @@ use super::{
     vocabulary,
 };
 use crate::{
-    frontend::{DesignInput, ReferenceStatus},
     sources,
+    structure::{DesignInput, ReferenceStatus},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -442,7 +442,7 @@ impl<'a> Admitter<'a> {
 /// Entity names a claim may use, and what they resolve to.
 ///
 /// The interpreter reads labels, so labels are accepted and resolved to the
-/// identity the frontend minted. An exact identity is accepted too. Nothing
+/// identity the reader minted. An exact identity is accepted too. Nothing
 /// else is: an unknown name is either an entity outside the request or one the
 /// interpreter coined, and both are refused.
 struct EntityNames {

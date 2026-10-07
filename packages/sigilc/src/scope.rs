@@ -1,7 +1,7 @@
 //! Ordered focus and effective world membership, without external scheduling.
 use crate::{
-    frontend::{DesignInput, normalized_path},
     sources::{self, Selection, SourceManifest},
+    structure::{DesignInput, normalized_path},
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -63,7 +63,7 @@ impl Scope {
         if self.version != 1 {
             return Err("unsupported scope version".into());
         }
-        input.validate()?;
+        input.assert_consistent()?;
         let original_sources: BTreeSet<_> = input.sources.iter().map(|s| s.path.clone()).collect();
         let mut roots = BTreeSet::new();
         for path in &self.design.paths {
@@ -72,7 +72,9 @@ impl Scope {
                 return Err(format!("duplicate Design scope root: {path}"));
             }
             if !original_sources.contains(path) {
-                return Err(format!("Design scope root absent from frontend: {path}"));
+                return Err(format!(
+                    "Design scope root absent from the workspace: {path}"
+                ));
             }
         }
         if roots.is_empty() && !self.design.allow_empty {
@@ -118,7 +120,7 @@ impl Scope {
                 .as_ref()
                 .is_none_or(|p| !original_sources.contains(p) || design.sources.contains(p))
         });
-        input.validate()?;
+        input.assert_consistent()?;
         Ok(ResolvedScope {
             report: ScopeReport {
                 version: 1,
@@ -134,7 +136,7 @@ impl Scope {
     }
 }
 
-// Both callers operate on validated frontend structure. An import that does not
+// Both callers operate on validated structure structure. An import that does not
 // resolve contributes nothing here: it makes its own source invalid, and never
 // widens another source's closure.
 /*

@@ -11,9 +11,9 @@
 //! only there.
 use super::{guidance, vocabulary};
 use crate::{
-    frontend::{DesignInput, EntityType, ImportStatus, ReferenceStatus, SelectionStatus, Unit},
     inputs::DesignBasis,
     sources,
+    structure::{DesignInput, EntityType, ImportStatus, ReferenceStatus, SelectionStatus, Unit},
 };
 use serde::{Deserialize, Serialize};
 use std::{

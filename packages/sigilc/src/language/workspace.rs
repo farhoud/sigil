@@ -10,7 +10,7 @@ use super::{
     path::normalize_path,
     text::{Capture, capture_source},
 };
-use crate::frontend::Diagnostic;
+use crate::structure::Diagnostic;
 use std::{
     fs,
     io::{self, ErrorKind},

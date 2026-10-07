@@ -129,7 +129,7 @@ fn a_deleted_provider_invalidates_only_the_sources_that_depend_on_it() {
         before.binding("unrelated.sigil").unwrap(),
         deleted.binding("unrelated.sigil").unwrap()
     );
-    assert!(sigilc::design::valid_frontend(&deleted).is_err());
+    assert!(sigilc::design::valid_structure(&deleted).is_err());
     assert!(deleted.require_valid("a.sigil").is_err());
     deleted.require_valid("unrelated.sigil").unwrap();
 }

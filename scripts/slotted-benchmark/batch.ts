@@ -58,9 +58,6 @@ export interface BatchManifest {
   readonly input: {
     /** Hash of every resolved tree id, as reported by claims `prepare`. */
     readonly workspaceDigest?: string;
-    /** Runs retained from before sigilc read the workspace itself. */
-    readonly frontendPath?: "frontend.json";
-    readonly frontendSha256?: string;
     readonly sourceSha256: Readonly<Record<string, string>>;
     readonly workspaceMemoPresent: boolean;
   };

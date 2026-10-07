@@ -2,10 +2,10 @@
 use crate::{
     catalog::{self, DesignIdentities, FrozenCatalog},
     eqval::{self, DesignState, DesignWorld, Limits},
-    frontend::{EntityType, Severity},
     inputs::DesignSnapshot,
     sources::hash,
     store::{Freshness, LockedStore},
+    structure::{EntityType, Severity},
     turtle::{Assertion, ONTOLOGY, Object, RDF_TYPE, XSD},
 };
 use serde::Serialize;
@@ -77,7 +77,7 @@ pub fn compile(
     limits: Limits,
     allow_empty: bool,
 ) -> Result<DesignReport, String> {
-    valid_frontend(snapshot)?;
+    valid_structure(snapshot)?;
     let input = snapshot.input();
     if input.sources.is_empty() && !allow_empty {
         return Err("empty Design selection requires explicit allow-empty".into());
@@ -196,17 +196,17 @@ pub fn compile(
     })
 }
 
-pub fn valid_frontend(snapshot: &DesignSnapshot) -> Result<(), String> {
+pub fn valid_structure(snapshot: &DesignSnapshot) -> Result<(), String> {
     if let Some(error) = snapshot
         .input()
         .diagnostics
         .iter()
         .find(|d| matches!(d.severity, Severity::Error))
     {
-        return Err(format!("frontend error {}: {}", error.code, error.message));
+        return Err(format!("design error {}: {}", error.code, error.message));
     }
     if crate::inputs::structural_flaw(snapshot.input(), None) {
-        return Err("frontend contains unresolved or incomplete language structure".into());
+        return Err("design contains unresolved or incomplete language structure".into());
     }
     Ok(())
 }

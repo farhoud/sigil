@@ -172,7 +172,7 @@ workspace, because only the workspace knows it, and asking you to restate it wou
 create drift the column exists to catch.
 
 **An identity.** The tool mints every claim identity. Do not declare a Component
-or a Tag — the frontend reserves those — and do not name an entity outside the
+or a Tag — the tool reserves those — and do not name an entity outside the
 request's entity list.
 
 **A law.** The rules that derive contradictions, ownership conflicts and unmet

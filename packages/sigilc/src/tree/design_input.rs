@@ -8,11 +8,6 @@
 //! `{kind}:{path}:{start}` occurrence id, because those never feed content
 //! identity.
 use super::{Snapshot, cache::TreeCache, facet_ids_by_start, ids::encode};
-use crate::frontend::{
-    self, Context, DesignInput, Entity, EntityType, Group, Import, ImportedName, Introduction,
-    IntroductionKind, Link, Payload, Range, Reference, ReferenceStatus, Section, SelectionStatus,
-    Source, Unit,
-};
 use crate::inputs::{ContextIdentity, DesignBasis, ImportedInterface, SourceBasis};
 use crate::language::{
     parse::{self, Span},
@@ -24,10 +19,15 @@ use crate::language::{
     workspace::Workspace,
 };
 use crate::sources::{self, SourceIdentity};
+use crate::structure::{
+    self, Context, DesignInput, Entity, EntityType, Group, Import, ImportedName, Introduction,
+    IntroductionKind, Link, Payload, Range, Reference, ReferenceStatus, Section, SelectionStatus,
+    Source, Unit,
+};
 use std::{collections::HashMap, path::Path};
 
 /// The reader that produced a derived input; part of every Design binding.
-pub const FRONTEND_VERSION: &str = concat!("sigilc-", env!("CARGO_PKG_VERSION"));
+pub const READER_VERSION: &str = concat!("sigilc-", env!("CARGO_PKG_VERSION"));
 
 fn range(span: Span) -> Range {
     span.range()
@@ -181,7 +181,7 @@ pub fn design_basis(workspace: &Workspace, snapshot: &Snapshot) -> DesignBasis {
         .collect();
     context.sort_by(|a, b| a.path.cmp(&b.path));
     DesignBasis {
-        frontend_version: FRONTEND_VERSION.to_owned(),
+        reader_version: READER_VERSION.to_owned(),
         sources,
         context,
     }
@@ -197,7 +197,7 @@ pub fn design_input(
         let detail = snapshot
             .diagnostics
             .iter()
-            .filter(|d| matches!(d.severity, frontend::Severity::Error))
+            .filter(|d| matches!(d.severity, structure::Severity::Error))
             .map(|d| format!("{}: {}", d.code, d.message))
             .collect::<Vec<_>>()
             .join("; ");
@@ -437,9 +437,9 @@ pub fn design_input(
                 path_range: range(declaration.path_range),
                 provider_range: range(declaration.provider_range),
                 status: match item.status {
-                    ImportStatus::Resolved => frontend::ImportStatus::Resolved,
-                    ImportStatus::UnresolvedPath => frontend::ImportStatus::UnresolvedPath,
-                    ImportStatus::UnresolvedProvider => frontend::ImportStatus::UnresolvedProvider,
+                    ImportStatus::Resolved => structure::ImportStatus::Resolved,
+                    ImportStatus::UnresolvedPath => structure::ImportStatus::UnresolvedPath,
+                    ImportStatus::UnresolvedProvider => structure::ImportStatus::UnresolvedProvider,
                 },
                 valid: declaration.valid,
                 complete: declaration.complete,
@@ -519,7 +519,7 @@ pub fn design_input(
     let input = DesignInput {
         schema_version: 2,
         language_version: crate::language::SIGIL_VERSION.to_owned(),
-        frontend_version: FRONTEND_VERSION.to_owned(),
+        reader_version: READER_VERSION.to_owned(),
         sources,
         context,
         diagnostics: snapshot.diagnostics.clone(),
@@ -531,11 +531,9 @@ pub fn design_input(
         references,
         links,
     };
-    if cfg!(debug_assertions) {
-        input
-            .validate()
-            .map_err(|e| format!("derived structure is inconsistent: {e}"))?;
-    }
+    input
+        .assert_consistent()
+        .map_err(|e| format!("derived structure is inconsistent: {e}"))?;
     Ok(input)
 }
 

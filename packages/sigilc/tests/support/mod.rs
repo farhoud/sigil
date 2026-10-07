@@ -3,8 +3,8 @@
 //! tempdir: the tests read it the way the commands do, through the trees.
 use serde_json::Value;
 use sigilc::{
-    frontend::DesignInput,
     inputs::{DesignBasis, DesignSnapshot},
+    structure::DesignInput,
     tree::design_input::{load_design, load_design_input},
 };
 use std::{

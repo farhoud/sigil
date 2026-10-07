@@ -45,7 +45,7 @@ impl Scratch {
         }
     }
 
-    fn design_input(&self) -> sigilc::frontend::DesignInput {
+    fn design_input(&self) -> sigilc::structure::DesignInput {
         sigilc::tree::design_input::load_design_input(&self.0, &self.0.join(".sigil")).unwrap()
     }
 }

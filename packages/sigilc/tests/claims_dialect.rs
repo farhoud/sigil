@@ -5,7 +5,7 @@ use sigilc::{
         prepare::{self, Binding, Request},
         vocabulary,
     },
-    frontend::DesignInput,
+    structure::DesignInput,
     turtle,
 };
 
@@ -412,7 +412,7 @@ fn an_ambiguous_tag_reference_is_not_grounding_evidence() {
         .filter(|r| r.facet == base_constraints)
     {
         reference.tag = None;
-        reference.status = sigilc::frontend::ReferenceStatus::Ambiguous;
+        reference.status = sigilc::structure::ReferenceStatus::Ambiguous;
     }
     let grounded = accept(
         &shared_input(),

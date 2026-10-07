@@ -5,10 +5,10 @@
 //! supply again, which is what makes a run reproducible.
 use super::{context, dialect, findings, guidance, identity, memo, prepare, program, vocabulary};
 use crate::{
-    cli::{FRONTEND_REMOVED, Output, store_dir},
+    cli::{Output, store_dir},
     eqval,
-    frontend::DesignInput,
     inputs::DesignBasis,
+    structure::DesignInput,
     tree::design_input::load_design,
 };
 use std::{
@@ -396,11 +396,14 @@ fn parse(tail: &[&str], allowed: &[&str]) -> Result<BTreeMap<String, String>, (u
     let mut options = BTreeMap::new();
     let mut rest = tail;
     while let Some((flag, next)) = rest.split_first() {
-        if *flag == "--frontend" {
-            return Err((2, FRONTEND_REMOVED.into()));
-        }
         if !allowed.contains(flag) || options.contains_key(*flag) {
-            return Err((2, format!("unknown or duplicate option: {flag}")));
+            return Err((
+                2,
+                format!(
+                    "unknown or duplicate option: {flag} (accepted: {}; sigil-claims reads the workspace from --root DIR)",
+                    allowed.join(" ")
+                ),
+            ));
         }
         let Some((value, remaining)) = next.split_first() else {
             return Err((2, format!("missing value for {flag}")));

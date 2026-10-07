@@ -1,20 +1,28 @@
 //! Referential validation against captured original UTF-8 buffers.
-use crate::frontend::*;
+use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) fn validate(input: &DesignInput) -> Result<(), String> {
+fn unique<'a>(
+    items: impl Iterator<Item = &'a str>,
+    name: &str,
+) -> Result<BTreeSet<&'a str>, String> {
+    let mut set = BTreeSet::new();
+    for item in items {
+        ensure(set.insert(item), &format!("duplicate {name}: {item}"))?;
+    }
+    Ok(set)
+}
+
+pub(super) fn check(input: &DesignInput) -> Result<(), String> {
     ensure(
         input.schema_version == 2,
-        "unsupported frontend schema version",
+        "unsupported structure schema version",
     )?;
     ensure(
         input.language_version == "0.9.0",
-        "unsupported frontend language version",
+        "unsupported structure language version",
     )?;
-    ensure(
-        !input.frontend_version.is_empty(),
-        "missing frontend version",
-    )?;
+    ensure(!input.reader_version.is_empty(), "missing reader version")?;
     unique(input.sources.iter().map(|s| s.path.as_str()), "source path")?;
     for s in &input.sources {
         normalized_path(&s.path)?;

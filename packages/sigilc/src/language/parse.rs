@@ -11,11 +11,11 @@ use super::{
     text::{Capture, PhysicalLine, SourceText},
     width::prose_width_diagnostics,
 };
-use crate::frontend::{Diagnostic, Range, RelatedLocation, Severity};
+use crate::structure::{Diagnostic, Range, RelatedLocation, Severity};
 use regex::Regex;
 use std::sync::LazyLock;
 
-/// A half-open byte range. Unlike `frontend::Range` it is `Copy`.
+/// A half-open byte range. Unlike `structure::Range` it is `Copy`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Span {
     pub start: usize,

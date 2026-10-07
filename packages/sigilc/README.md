@@ -54,9 +54,9 @@ provider's private sections or logic. A flow that crosses components must
 therefore be stated in the dependency's interface; editing a dependency's
 private sections does not change its importers.
 
-After upgrading from a version that used `--frontend`, run `sigilc clean --root
-DIR` once. It drops the old generated projections. Readings stored under the old
-unit ids are not reused, so the first `prepare` asks for every unit once, and
+After upgrading from a version that read a pre-exported structural file, run
+`sigilc clean --root DIR` once. It drops the old generated projections.
+Readings stored under the old unit ids are not reused, so the first `prepare` asks for every unit once, and
 later runs ask only for what changed.
 
 `prepare` copies the semantic inputs and writes an immutable `binding.json`.

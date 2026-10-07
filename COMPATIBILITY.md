@@ -10,8 +10,8 @@ no release is published by the 0.9 migration.
 | `@qoherent/sigil` CLI | 0.9.0 | Core 0.8.x; language 0.9.0 |
 | `@qoherent/sigil-lsp` | 0.8.0 | Core 0.8.x; language 0.9.0; UTF-16 LSP |
 | VS Code extension | 0.8.0 | Bundled LSP/core 0.8.x; language 0.9.0; VS Code `^1.91.0` |
-| Native `sigilc` | 0.2.0 | Design export schema 2, language 0.9.0, report version 2 |
-| Native `sigil-claims` | 0.2.0 | Design export schema 2, language 0.9.0, request format 1, claim vocabulary 1, claims report version 1, judgment context version 1 |
+| Native `sigilc` | 0.2.0 | Reads `.sigil` sources through `--root`; language 0.9.0, tree format 1, projection format 3, report version 2 |
+| Native `sigil-claims` | 0.2.0 | Reads `.sigil` sources through `--root`; language 0.9.0, request format 5, claim vocabulary 1, claims report version 3, judgment context version 1 |
 | Legacy `sigil` skill | 0.10.0 | CLI `^0.8.0`, core `^0.7.0`, native `^0.1.0`, language 0.7.0 |
 | `sigil-understand` | 0.1.0 | Sigil 0.9.0 reference pack; no compiler requirement |
 | `sigil-evaluate` | 0.1.0 | Sigil 0.9.0; sibling `sigil-understand` |

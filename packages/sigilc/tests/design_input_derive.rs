@@ -1,5 +1,5 @@
 //! The structural input derived from a workspace matches the export the
-//! TypeScript frontend produced for the same files, except for the Facet ids,
+//! TypeScript reader produced for the same files, except for the Facet ids,
 //! which are content ids here.
 mod support;
 use serde_json::{Value, json};
@@ -38,15 +38,24 @@ fn check(golden: Value, root: &support::Workspace) {
         "Facet ids are content ids"
     );
     let (golden, derived) = (mask(&golden, &golden_ids), mask(&derived, &derived_ids));
-    for field in golden.as_object().unwrap().keys() {
-        if field == "frontendVersion" {
-            continue;
-        }
+    // The TypeScript golden names the reader's own version differently; every
+    // other field must exist on both sides.
+    let keys = |v: &Value| -> std::collections::BTreeSet<String> {
+        v.as_object().unwrap().keys().cloned().collect()
+    };
+    let (only_golden, only_derived): (Vec<_>, Vec<_>) = (
+        keys(&golden).difference(&keys(&derived)).cloned().collect(),
+        keys(&derived).difference(&keys(&golden)).cloned().collect(),
+    );
+    assert_eq!(only_golden.len(), 1, "{only_golden:?}");
+    assert_eq!(only_derived, ["readerVersion"]);
+    for field in keys(&golden).intersection(&keys(&derived)) {
         let sort = |v: &Value| {
             let mut items = v.as_array().cloned().unwrap_or_default();
             items.sort_by_key(|i| i["id"].to_string());
             items
         };
+        let field = field.as_str();
         if golden[field].is_array() && golden[field][0]["id"].is_string() {
             assert_eq!(sort(&golden[field]), sort(&derived[field]), "{field}");
         } else {
@@ -79,7 +88,7 @@ fn facet_ids_survive_a_move_that_changes_every_offset() {
     let before = root.design_input();
     root.write("a.sigil", format!("\n\n\n{source}").as_bytes());
     let after = root.design_input();
-    let ids = |i: &sigilc::frontend::DesignInput| {
+    let ids = |i: &sigilc::structure::DesignInput| {
         let mut ids: Vec<_> = i.units.iter().map(|u| u.id.clone()).collect();
         ids.sort();
         ids

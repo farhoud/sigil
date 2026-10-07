@@ -10,7 +10,6 @@ pub mod design_input;
 pub mod diff;
 pub mod ids;
 
-use crate::frontend::Diagnostic;
 use crate::language::{
     diagnostics::order_diagnostics,
     parse::parse_document,
@@ -19,6 +18,7 @@ use crate::language::{
     workspace::Workspace,
 };
 use crate::sources;
+use crate::structure::Diagnostic;
 use cache::{CacheStats, TreeCache};
 use serde::{Deserialize, Serialize};
 use std::{

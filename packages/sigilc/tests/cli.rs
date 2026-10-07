@@ -26,7 +26,7 @@ fn ontology_is_available_without_workspace_or_model_configuration() {
 }
 
 #[test]
-fn clean_requires_no_frontend_or_valid_cache() {
+fn clean_requires_no_valid_cache() {
     let root = std::env::temp_dir().join(format!("sigil-clean-cli-{}", std::process::id()));
     std::fs::create_dir_all(root.join(".sigil/worlds")).unwrap();
     std::fs::write(root.join(".sigil/worlds/index.json"), "malformed").unwrap();
@@ -49,7 +49,7 @@ fn clean_requires_no_frontend_or_valid_cache() {
 }
 
 #[test]
-fn frontend_is_a_usage_error_that_names_root() {
+fn the_removed_pre_exported_input_flag_is_a_usage_error_that_names_root() {
     for args in [
         vec!["stale", "design", "--frontend", "f.json"],
         vec!["scope", "--frontend", "f.json", "--scope", "s.json"],

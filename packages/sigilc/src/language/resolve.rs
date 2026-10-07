@@ -13,7 +13,7 @@ use super::{
     width::prose_width_diagnostics,
     workspace::Workspace,
 };
-use crate::frontend::{Diagnostic, RelatedLocation};
+use crate::structure::{Diagnostic, RelatedLocation};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// A Facet's position inside its component: section index, then unit index.

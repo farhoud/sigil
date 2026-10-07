@@ -1,5 +1,5 @@
 //! The published claim vocabulary. Guidance describes it; the validator enforces it.
-use crate::frontend::Section;
+use crate::structure::Section;
 use std::{collections::BTreeSet, sync::LazyLock};
 
 /// Changes when the accepted claim profile becomes incompatible.

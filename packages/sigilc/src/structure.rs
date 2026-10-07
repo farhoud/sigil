@@ -1,13 +1,17 @@
-//! Source-faithful Sigil 0.9 structural transport. Semantic interpretation is separate.
+//! The structural model sigilc derives from its source trees: entities, units,
+//! imports and ranges. Semantic interpretation is separate.
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
+
+#[cfg(debug_assertions)]
+mod consistency;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DesignInput {
     pub schema_version: u32,
     pub language_version: String,
-    pub frontend_version: String,
+    pub reader_version: String,
     pub sources: Vec<Source>,
     pub context: Vec<Context>,
     pub diagnostics: Vec<Diagnostic>,
@@ -286,14 +290,17 @@ pub struct Position {
 }
 
 impl DesignInput {
-    // @sigil implements packages/sigilc/_module.sigil::SigilSemanticCompiler::FrontendBoundary interface
-    pub fn parse(bytes: &[u8]) -> Result<Self, String> {
-        let input: Self = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
-        input.validate()?;
-        Ok(input)
-    }
-    pub fn validate(&self) -> Result<(), String> {
-        super::frontend_validation::validate(self)
+    /// Referential consistency of the derived structure. Checked in debug
+    /// builds and tests only; release builds trust the derivation.
+    pub(crate) fn assert_consistent(&self) -> Result<(), String> {
+        #[cfg(debug_assertions)]
+        {
+            consistency::check(self)
+        }
+        #[cfg(not(debug_assertions))]
+        {
+            Ok(())
+        }
     }
     /// Every structural relation is carried together through preparation and saturation.
     pub fn structural_records(&self, paths: &BTreeSet<String>) -> serde_json::Value {
@@ -330,16 +337,6 @@ pub(crate) fn encode_identifier(value: &str) -> String {
         }
     }
     encoded
-}
-pub(crate) fn unique<'a>(
-    items: impl Iterator<Item = &'a str>,
-    name: &str,
-) -> Result<BTreeSet<&'a str>, String> {
-    let mut set = BTreeSet::new();
-    for item in items {
-        ensure(set.insert(item), &format!("duplicate {name}: {item}"))?;
-    }
-    Ok(set)
 }
 pub(crate) fn ensure(condition: bool, message: &str) -> Result<(), String> {
     if condition {

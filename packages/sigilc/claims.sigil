@@ -1,5 +1,4 @@
 @packages/sigilc/vocabulary.sigil from SigilClaimsVocabulary import { AcceptedVocabulary, AtomDiscipline }
-@packages/core/src/design-input.sigil from SigilDesignInput import { ResolvedDesignInput }
 
 @packages/core/src/parser.sigil from SigilParser import { source order }
 @spec/language.sigil from SigilLanguage import { Constraints, prohibitions }
@@ -69,16 +68,17 @@ component SigilComputedClaims {
     }
 
     InterpretationRequest {
-      Project one design source and its resolved closure into an interpretation
+      Project one design source and the interfaces it imports into an interpretation
       directory. Carry each Facet's exact prose slice with the contract role its
-      unit belongs to, taken from ResolvedDesignInput rather than inferred, and
+      unit belongs to, taken from the source tree rather than inferred, and
       emit one pre-filled row per Facet identifying that Facet alone. Write an
-      immutable binding over the export digest, the selected source, the guidance
+      immutable binding over the source tree id, the imported interface
+      hashes, the selected source, the guidance
       fingerprint and the vocabulary generation. The caller keeps the directory
       and produces claims independently.
 
-      The *selected source closure* presents every Facet, not only the selected
-      source.
+      The *selected source closure* presents every Facet of the source and the
+      interface Facets of what it imports.
 
       A request asks only for *claim units* whose stored interpretation is stale. A
       stored interpretation is keyed on the unit's prose, its owning component,
@@ -103,7 +103,8 @@ component SigilComputedClaims {
       expected not to hold is a prohibition. A reading row records a Facet the
       interpreter read and found no commitment in, or whose intent is
       unresolved. The tool mints every identity and refuses any the
-      interpretation declares, and any entity outside the resolved closure.
+      interpretation declares, and any entity the source and its imported
+      interfaces do not expose.
 
       A component's Logic prose describing a *sequence* of steps is interpreted as
       one flow graph spanning that section's Facets.
@@ -152,7 +153,7 @@ component SigilComputedClaims {
 
     SectionAwareClosure {
       Fill each claim's contract role from the unit it derives from, as
-      ResolvedDesignInput attributes it, then derive holding relations,
+      the source tree attributes it, then derive holding relations,
       reachability, delegation, contradictions, ownership conflicts and
       obligations under finite tool-owned laws, inspecting absence only after
       the closure stabilizes. A claim whose role is Decisions is retained and
@@ -316,10 +317,12 @@ component SigilComputedClaims {
       single block. A component that names two Logic flows therefore yields one
       graph today, and that is the case to revisit if it appears.
 
-      The request widened to the *whole closure* because every design source
-      measured declares exactly one component, so a claim had no dependency
-      graph to reach. Storing interpretations is what keeps that widening from
-      re-reading every shared dependency once per dependent.
+      A dependent sees only the interfaces it imports, so a dependency's flow
+      counts only when its interface states it. These laws no longer fire across
+      components: step-excluded-action, step-negated-action and unguarded-flow.
+      exclusive-foreign-write fires only when the owner states exclusivity in its
+      interface. Storing interpretations keeps each shared dependency from being
+      re-read once per dependent.
     }
   }
 }

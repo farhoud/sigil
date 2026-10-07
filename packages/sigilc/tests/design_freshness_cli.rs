@@ -322,7 +322,7 @@ fn an_unresolved_import_invalidates_only_its_own_closure() {
     );
     assert_eq!(output.status.code(), Some(3));
     assert!(output.stdout.is_empty());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("frontend error"));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("design error"));
     // The whole workspace is not a passing verdict either; preparing the broken
     // source is refused, and preparing a healthy one is not.
     assert_eq!(run(&root, &["compile", "design"]).status.code(), Some(3));

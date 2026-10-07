@@ -406,7 +406,7 @@ fn supplying_a_second_artifact_changes_the_recorded_report_identity() {
 // ------------------------------------------------- flow findings (U6)
 
 /// A one-component workspace with a Logic section, since base.sigil has none.
-fn flow_design(paragraphs: &[&str]) -> (sigilc::frontend::DesignInput, Vec<String>) {
+fn flow_design(paragraphs: &[&str]) -> (sigilc::structure::DesignInput, Vec<String>) {
     let mut text = String::from("component Flow {\n  logic {\n");
     for p in paragraphs {
         text.push_str(&format!("    {p}\n\n"));

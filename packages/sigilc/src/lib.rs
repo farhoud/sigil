@@ -6,7 +6,6 @@ pub mod cli;
 pub mod comparison;
 pub mod design;
 pub mod eqval;
-pub mod frontend;
 pub mod implementation;
 pub mod inputs;
 pub mod language;
@@ -14,7 +13,6 @@ pub mod report;
 pub mod scope;
 pub mod sources;
 pub mod store;
+pub mod structure;
 pub mod tree;
 pub mod turtle;
-
-mod frontend_validation;

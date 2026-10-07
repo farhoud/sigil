@@ -1,9 +1,9 @@
 //! Small disposable index and atomic per-source publication. No external-work registry.
 use crate::{
     assertions,
-    frontend::normalized_path,
     inputs::{Binding, SemanticInput},
     sources::{self, hash},
+    structure::normalized_path,
     turtle::{Assertion, TurtleLimits},
 };
 use serde::{Deserialize, Serialize};

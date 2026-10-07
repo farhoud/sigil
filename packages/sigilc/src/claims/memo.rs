@@ -14,7 +14,7 @@ use super::{
     identity::{Admitter, Defect},
     prepare::{REQUEST_FORMAT, Request},
 };
-use crate::{frontend::DesignInput, sources::hash};
+use crate::{sources::hash, structure::DesignInput};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, BTreeSet},

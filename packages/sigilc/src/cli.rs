@@ -20,9 +20,6 @@ use std::{
 
 pub type Output = Result<(u8, String), (u8, String)>;
 
-/// The usage error for the removed pre-exported structural input.
-pub const FRONTEND_REMOVED: &str = "--frontend is no longer accepted: sigilc reads the workspace itself; pass the workspace directory with --root DIR (default .)";
-
 /// Where disposable state lives: `--store DIR`, else `<root>/.sigil`.
 pub fn store_dir(root: &Path, store: Option<&str>) -> PathBuf {
     store.map_or_else(|| root.join(".sigil"), PathBuf::from)
@@ -73,11 +70,14 @@ pub fn run(args: &[&str]) -> Output {
     let mut options = BTreeMap::new();
     let mut rest = tail;
     while let Some((flag, next)) = rest.split_first() {
-        if *flag == "--frontend" {
-            return Err((2, FRONTEND_REMOVED.into()));
-        }
         if !allowed.contains(flag) || options.contains_key(flag) {
-            return Err((2, format!("unknown or duplicate option: {flag}")));
+            return Err((
+                2,
+                format!(
+                    "unknown or duplicate option: {flag} (accepted: {}; sigilc reads the workspace from --root DIR)",
+                    allowed.join(" ")
+                ),
+            ));
         }
         let value;
         if *flag == "--allow-empty" {
@@ -538,9 +538,7 @@ fn ingest_hint(message: &str) -> Option<&'static str> {
             "use rdf:type with one class IRI from ontology.json (for example sigil:Component, sigil:Tag or sigil:Contract); do not invent class names",
         );
     }
-    if message.starts_with("frontend source changed:")
-        || message.starts_with("frontend context changed:")
-    {
+    if message.starts_with("source changed:") || message.starts_with("context changed:") {
         return Some(
             "a workspace file changed while sigilc was reading it or after it was prepared; run prepare again and do not reuse this binding or Turtle",
         );
@@ -612,7 +610,7 @@ fn ingest_hint(message: &str) -> Option<&'static str> {
             "encode sigil:relation as a plain string literal containing one fixed entity predicate; use IRIs for the subject and other entity-valued predicates",
         );
     }
-    if message == "Component and Tag identities are reserved by the frontend" {
+    if message == "Component and Tag identities are reserved" {
         return Some(
             "preserve prepared Component and Tag declarations instead of redeclaring them as domain entities",
         );

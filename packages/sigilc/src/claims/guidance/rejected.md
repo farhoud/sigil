@@ -57,7 +57,7 @@ names an entity outside the request's entity list.
 Two narrower versions of the same mistake:
 
 - **Declaring an identity.** A row that declares a Component or a Tag is
-  refused; the frontend reserves those identities and the tool mints every
+  refused; the tool reserves those identities and the tool mints every
   claim identity itself.
 - **Naming a Tag you can see but the Facet cannot.** A Tag owned by another
   component, in a source this one does not import, or one that a dependency keeps in a

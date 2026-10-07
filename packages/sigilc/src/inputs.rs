@@ -1,8 +1,8 @@
 //! Captured semantic inputs; no producer identity or Implementation resolution.
 use crate::{
     catalog::Catalog,
-    frontend::{DesignInput, Severity},
     sources::{CapturedSource, SourceIdentity, hash},
+    structure::{DesignInput, Severity},
     turtle::ontology_fingerprint,
 };
 use serde::{Deserialize, Serialize};
@@ -32,7 +32,7 @@ pub enum SemanticInput {
         catalog_fingerprint: String,
     },
     Design {
-        frontend_version: String,
+        reader_version: String,
         imports: Vec<ImportedInterface>,
         context: Vec<ContextIdentity>,
         structure: String,
@@ -101,7 +101,7 @@ pub struct SourceBasis {
 /// Everything a Design binding reads from the trees, for every source.
 #[derive(Debug, Clone)]
 pub struct DesignBasis {
-    pub frontend_version: String,
+    pub reader_version: String,
     pub sources: BTreeMap<String, SourceBasis>,
     pub context: Vec<ContextIdentity>,
 }
@@ -117,7 +117,7 @@ impl DesignBasis {
             ontology: ontology_fingerprint(),
             projection_format: PROJECTION_FORMAT,
             semantic: SemanticInput::Design {
-                frontend_version: self.frontend_version.clone(),
+                reader_version: self.reader_version.clone(),
                 imports: basis.imports.clone(),
                 context: self.context.clone(),
                 structure: basis.structure.clone(),
@@ -141,20 +141,20 @@ pub fn moved(previous: &Binding, current: &Binding) -> String {
     match (&previous.semantic, &current.semantic) {
         (
             SemanticInput::Design {
-                frontend_version: pv,
+                reader_version: pv,
                 imports: pi,
                 context: pc,
                 structure: ps,
             },
             SemanticInput::Design {
-                frontend_version: cv,
+                reader_version: cv,
                 imports: ci,
                 context: cc,
                 structure: cs,
             },
         ) => {
             if pv != cv {
-                fields.push("frontend version".into());
+                fields.push("reader version".into());
             }
             let key = |i: &ImportedInterface| (i.path.clone(), i.component.clone());
             let before: BTreeMap<_, _> = pi.iter().map(|i| (key(i), &i.interface)).collect();
@@ -216,10 +216,10 @@ pub fn structural_flaw(input: &DesignInput, source: Option<&str>) -> bool {
             of(&i.source)
                 && (!i.valid
                     || !i.complete
-                    || i.status != crate::frontend::ImportStatus::Resolved
+                    || i.status != crate::structure::ImportStatus::Resolved
                     || i.names
                         .iter()
-                        .any(|n| n.status != crate::frontend::SelectionStatus::Resolved))
+                        .any(|n| n.status != crate::structure::SelectionStatus::Resolved))
         })
 }
 
@@ -229,9 +229,9 @@ pub fn structural_flaw(input: &DesignInput, source: Option<&str>) -> bool {
 /// Nothing widens another source's closure.
 fn invalid_sources(input: &DesignInput) -> BTreeMap<String, String> {
     let paths: BTreeSet<&str> = input.sources.iter().map(|s| s.path.as_str()).collect();
-    let error = |d: &&crate::frontend::Diagnostic| matches!(d.severity, Severity::Error);
+    let error = |d: &&crate::structure::Diagnostic| matches!(d.severity, Severity::Error);
     let describe =
-        |d: &crate::frontend::Diagnostic| format!("frontend error {}: {}", d.code, d.message);
+        |d: &crate::structure::Diagnostic| format!("design error {}: {}", d.code, d.message);
     let global = input
         .diagnostics
         .iter()
@@ -313,7 +313,7 @@ pub struct DesignSnapshot {
 impl DesignSnapshot {
     /// `input` may be narrowed to a scope; bindings never depend on it.
     pub fn new(input: DesignInput, basis: DesignBasis) -> Result<Self, String> {
-        input.validate()?;
+        input.assert_consistent()?;
         let invalid = invalid_sources(&input);
         Ok(Self {
             input,
@@ -374,7 +374,7 @@ impl DesignSnapshot {
             )
             .collect();
         let mut dependencies = Vec::new();
-        let mut dependency_entities: Vec<&crate::frontend::Entity> = Vec::new();
+        let mut dependency_entities: Vec<&crate::structure::Entity> = Vec::new();
         let mut seen = BTreeSet::new();
         for import in input.imports.iter().filter(|i| own(&i.source)) {
             let (Some(target), Some(component)) = (&import.target, &import.provider_id) else {
@@ -390,7 +390,7 @@ impl DesignSnapshot {
                 .flatten()
                 .map(String::as_str)
                 .collect();
-            let entities: Vec<&crate::frontend::Entity> = input
+            let entities: Vec<&crate::structure::Entity> = input
                 .entities
                 .iter()
                 .filter(|e| {
@@ -407,14 +407,14 @@ impl DesignSnapshot {
                 .find(|s| s.path == *target)
                 .ok_or("imported source is not selected")?
                 .text;
-            let groups: BTreeMap<&str, &crate::frontend::Group> =
+            let groups: BTreeMap<&str, &crate::structure::Group> =
                 input.groups.iter().map(|g| (g.id.as_str(), g)).collect();
             let units: Vec<Value> = input
                 .units
                 .iter()
                 .filter(|u| {
                     u.owner.as_deref() == Some(component.as_str())
-                        && u.section == crate::frontend::Section::Interface
+                        && u.section == crate::structure::Section::Interface
                 })
                 .map(|u| {
                     serde_json::json!({
@@ -451,7 +451,7 @@ impl DesignSnapshot {
         strip_ranges(&mut dependencies);
         Ok(serde_json::json!({
             "schemaVersion": input.schema_version,
-            "frontendVersion": input.frontend_version,
+            "readerVersion": input.reader_version,
             "languageVersion": input.language_version,
             "target": input.sources.iter().find(|s| s.path == source),
             "dependencies": dependencies,
