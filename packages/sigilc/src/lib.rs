@@ -14,6 +14,7 @@ pub mod report;
 pub mod scope;
 pub mod sources;
 pub mod store;
+pub mod tree;
 pub mod turtle;
 
 mod frontend_validation;
