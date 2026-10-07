@@ -9,6 +9,7 @@ pub mod eqval;
 pub mod frontend;
 pub mod implementation;
 pub mod inputs;
+pub mod language;
 pub mod report;
 pub mod scope;
 pub mod sources;
