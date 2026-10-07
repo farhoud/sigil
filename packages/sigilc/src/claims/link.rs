@@ -80,6 +80,13 @@ pub struct Linked {
     pub workspace_digest: String,
 }
 
+/// Rows in the order admission reads them, with repeats dropped.
+fn sorted(mut rows: Vec<Row>) -> Vec<Row> {
+    rows.sort();
+    rows.dedup();
+    rows
+}
+
 /// Link the workspace's stored readings, read-only.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::SectionAwareClosure interface,constraints,cases
 pub fn link(input: &DesignInput, basis: &DesignBasis, store: &Path) -> Result<Linked, String> {
@@ -127,13 +134,13 @@ pub fn link(input: &DesignInput, basis: &DesignBasis, store: &Path) -> Result<Li
         // a time, so one refused reading leaves its unit unread without
         // dropping the rest of the source.
         let admitter = Admitter::new(&request, input);
-        let mut all: Vec<Row> = split
-            .reused
-            .iter()
-            .flat_map(|(_, rows)| rows.iter().cloned())
-            .collect();
-        all.sort();
-        all.dedup();
+        let all = sorted(
+            split
+                .reused
+                .iter()
+                .flat_map(|(_, rows)| rows.iter().cloned())
+                .collect(),
+        );
         match admitter.admit(&all) {
             Ok(admitted) => {
                 facts.extend(admitted);
@@ -141,10 +148,7 @@ pub fn link(input: &DesignInput, basis: &DesignBasis, store: &Path) -> Result<Li
             }
             Err(_) => {
                 for (unit, unit_rows) in &split.reused {
-                    let mut unit_rows = unit_rows.clone();
-                    unit_rows.sort();
-                    unit_rows.dedup();
-                    match admitter.admit(&unit_rows) {
+                    match admitter.admit(&sorted(unit_rows.clone())) {
                         Ok(admitted) => {
                             facts.extend(admitted);
                             memo_keys.insert(unit.key.clone());
@@ -183,13 +187,11 @@ pub fn link(input: &DesignInput, basis: &DesignBasis, store: &Path) -> Result<Li
             source: i.source.clone(),
             path: i.path.clone(),
             provider: i.provider.clone(),
-            status: match i.status {
-                ImportStatus::Resolved => "resolved",
-                ImportStatus::UnresolvedPath => "unresolved-path",
-                ImportStatus::UnresolvedProvider => "unresolved-provider",
-                ImportStatus::Invalid => "invalid",
-            }
-            .to_owned(),
+            // The kebab-case name the import status serializes to.
+            status: serde_json::to_value(&i.status)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_owned))
+                .unwrap_or_default(),
         })
         .collect();
     unresolved_imports.sort();

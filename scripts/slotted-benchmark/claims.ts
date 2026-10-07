@@ -4,8 +4,8 @@ import { captureStream, settleWithin, signalOwnedProcess } from "./process.ts";
 import type { AgentRunResult } from "./agents.ts";
 
 type JsonObject = Record<string, unknown>;
-export type ComputedState = "coherent" | "loose" | "disjoint" | "incomplete";
 /** A source's own ingest never reports `incomplete`; only the linked check does. */
+export type ComputedState = "coherent" | "loose" | "disjoint" | "incomplete";
 const LINKED_REPORT_VERSION = 4;
 
 export interface ClaimsEvidenceInput {
@@ -485,7 +485,7 @@ export function validateLinkedEvidence(
     errors.push("linked interpretations are not stored sorted memo keys");
   }
   if (
-    sameArray(contextIdentity?.interpretations, keys) === false
+    !sameArray(contextIdentity?.interpretations, keys)
   ) {
     errors.push("linked context interpretations differ from the report");
   }
@@ -648,15 +648,12 @@ export async function runClaimsPass(
       );
     }
     if (!linked.validation.valid) {
-      return {
-        ...passFailure(
-          "validation",
-          linked.validation.errors.join("; "),
-          "invalid",
-          linked,
-        ),
-        state: null,
-      };
+      return passFailure(
+        "validation",
+        linked.validation.errors.join("; "),
+        "invalid",
+        linked,
+      );
     }
     const first = unread[0];
     return {

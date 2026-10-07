@@ -10,7 +10,7 @@ use crate::{
     cli::{Output, store_dir},
     eqval,
     inputs::DesignBasis,
-    structure::DesignInput,
+    structure::{DesignInput, Severity, Stage},
     tree::design_input::load_design,
 };
 use std::{
@@ -169,10 +169,7 @@ fn check(source: Option<&str>, root: &str, store: &Path) -> Output {
     let unreadable: Vec<String> = input
         .diagnostics
         .iter()
-        .filter(|d| {
-            matches!(d.stage, crate::structure::Stage::Workspace)
-                && matches!(d.severity, crate::structure::Severity::Error)
-        })
+        .filter(|d| matches!(d.stage, Stage::Workspace) && matches!(d.severity, Severity::Error))
         .map(|d| format!("{}: {}", d.code, d.message))
         .collect();
     if !unreadable.is_empty() {
