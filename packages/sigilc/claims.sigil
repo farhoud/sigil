@@ -209,7 +209,8 @@ component SigilComputedClaims {
 
       A finding is reported by each run whose selected source authored a step it
       names or a Facet it names, so one spanning two sources reaches both
-      authors and one spanning none is reported nowhere.
+      authors and one spanning none is reported nowhere. The linked check
+      reports each finding to every source that authored part of it.
 
       An unchanged export, selected source, runtime identity, store and set of
       *supplied interpretations* produce an identical report.
@@ -226,14 +227,15 @@ component SigilComputedClaims {
     }
 
     ClaimsCommands {
-      Offer preparation, ingestion and guidance extraction as a separate
-      executable beside the compiler. Refuse a binding that does not match the
-      running *invocation* on any of its four parts. Exit zero for pass and
+      Offer preparation, ingestion, a linked check and guidance extraction as a
+      separate executable beside the compiler. Refuse a binding that does not
+      match the running *invocation* on any of its four parts. Exit zero for pass and
       warning, one for a gate failure, two for usage and a refused input, and
       three for operational failure. Only a contradiction or an ownership
       conflict the closure derives without reading a flow is a gate failure;
       every other finding, including one resting on the interpretation's reading
-      of a flow, is a warning.
+      of a flow, is a warning. A check that cannot read every unit is
+      incomplete, and an incomplete check is a gate failure.
     }
   }
 
@@ -317,11 +319,9 @@ component SigilComputedClaims {
       single block. A component that names two Logic flows therefore yields one
       graph today, and that is the case to revisit if it appears.
 
-      A dependent sees only the interfaces it imports, so a dependency's flow
-      counts only when its interface states it. These laws no longer fire across
-      components: step-excluded-action, step-negated-action and unguarded-flow.
-      exclusive-foreign-write fires only when the owner states exclusivity in its
-      interface. Storing interpretations keeps each shared dependency from being
+      A dependent sees only the interfaces it imports when its source is read,
+      and the linked check applies every law across components over the stored
+      readings. Storing interpretations keeps each shared dependency from being
       re-read once per dependent.
     }
   }

@@ -147,6 +147,7 @@ sigil-claims prepare --root . --source a.sigil --out claims-a
 # An external interpreter reads claims-a and writes Datalog claims.
 sigil-claims ingest --root . \
   --binding claims-a/binding.json --claims claims-a/result.egg
+sigil-claims check --root .
 sigil-claims extract-guidance --out ./guidance
 ```
 
@@ -154,6 +155,15 @@ sigil-claims extract-guidance --out ./guidance
 Facet's exact prose slice with the contract role it belongs to, and the
 interpreter guidance. `ingest` recomputes the request from the current workspace
 and refuses a binding that does not match it, naming which input moved.
+
+`ingest` judges one source against the interfaces it imports. For the whole
+design, interpret and ingest each source, then run `check`: it links every
+valid stored reading into one program, applies every law across components, and
+writes `workspace.linked.json` and `workspace.linked.context.json` under the
+store's `claims` directory. `--source PATH` limits the check to findings that
+source authored part of, writing `<source>.linked.json`. A unit with no stored
+reading, or an import no source resolves, makes the state `incomplete`, listing
+the `unread` units and `unresolvedImports`; that exits 1, as does `disjoint`.
 
 Claims come back as data-only egglog atoms. An artifact containing a rule,
 command, schedule or non-literal argument is refused whole. Relation and

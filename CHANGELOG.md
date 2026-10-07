@@ -10,11 +10,18 @@
   removed; callers pass the workspace directory instead. Run `sigilc clean`
   once after upgrading: stored projections, bindings and interpretations are
   read as incompatible once. Dependents now see only the interfaces they
-  import, so claims findings can shift: `step-excluded-action`,
-  `step-negated-action` and `unguarded-flow` no longer fire across components,
-  and `exclusive-foreign-write` fires only when the owner states exclusivity
-  in its interface. A dependency flow a dependent relies on must be stated in
-  that dependency's interface.
+  import when read, so a single source's findings can shift:
+  `exclusive-foreign-write` fires only when the owner states exclusivity in its
+  interface. `sigil-claims check` applies every law across components,
+  including `step-excluded-action`, `step-negated-action` and `unguarded-flow`,
+  over the stored readings.
+- `sigil-claims check [--source PATH]` links every valid stored reading of the
+  workspace into one program, runs every claims law and writes
+  `workspace.linked.json` (or `<source>.linked.json`) with a matching
+  `.linked.context.json` under the store's `claims` directory. A check that
+  cannot read every unit reports the new `incomplete` state, listing `unread`
+  units and `unresolvedImports`, and exits 1, as does `disjoint`. The report
+  moves to version 4. Ingest is unchanged and local.
 - `sigil-claims` decomposes flow-shaped Logic prose into a checked graph. A
   component's Logic section is presented whole, a step and its section's flow
   are entities the tool mints, and what a step reads, writes, calls and leads to
