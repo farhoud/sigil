@@ -3,8 +3,13 @@ pub mod config;
 pub mod data;
 pub mod diagnostics;
 pub mod glossary;
+pub mod inline;
+pub mod parse;
 pub mod path;
+pub mod resolve;
+pub mod tags;
 pub mod text;
+pub mod width;
 pub mod workspace;
 
 /// The Sigil language version this reader supports.
