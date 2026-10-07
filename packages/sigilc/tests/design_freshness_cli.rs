@@ -363,6 +363,9 @@ fn a_projection_stored_under_the_old_format_reads_as_incompatible() {
         let semantic = binding["semantic"].as_object_mut().unwrap();
         semantic.remove("imports");
         semantic.insert("dependencies".into(), json!([]));
+        // An index written before the reader rename carries the old field name.
+        let version = semantic.remove("reader_version").unwrap();
+        semantic.insert("frontend_version".into(), version);
     }
     std::fs::write(&index, serde_json::to_vec(&value).unwrap()).unwrap();
     let after = statuses(&root, 1);

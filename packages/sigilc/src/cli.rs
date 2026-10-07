@@ -538,7 +538,7 @@ fn ingest_hint(message: &str) -> Option<&'static str> {
             "use rdf:type with one class IRI from ontology.json (for example sigil:Component, sigil:Tag or sigil:Contract); do not invent class names",
         );
     }
-    if message.starts_with("source changed:") || message.starts_with("context changed:") {
+    if message.starts_with("source changed during") {
         return Some(
             "a workspace file changed while sigilc was reading it or after it was prepared; run prepare again and do not reuse this binding or Turtle",
         );
@@ -633,6 +633,13 @@ fn json(code: u8, value: &impl Serialize) -> Output {
 #[cfg(test)]
 mod tests {
     use super::ingest_hint;
+
+    #[test]
+    fn a_source_edited_while_hashing_gets_the_prepare_again_hint() {
+        let hint = ingest_hint("source changed during hashing: a.sigil")
+            .expect("a source edited mid-read has an actionable repair hint");
+        assert!(hint.contains("run prepare again"));
+    }
 
     #[test]
     fn source_bound_unit_hint_allows_zero_fact_repair() {

@@ -209,7 +209,9 @@ impl TreeCache {
 fn atomic_write(target: &Path, bytes: &[u8]) -> std::io::Result<()> {
     fs::create_dir_all(target.parent().expect("a cache file has a parent"))?;
     let mut name = target.file_name().expect("a file name").to_owned();
-    name.push(".tmp");
+    // The process id keeps concurrent writers (an editor and the CLI) on
+    // separate temporary files, so one cannot publish the other's partial write.
+    name.push(format!(".tmp{}", std::process::id()));
     let temporary = target.with_file_name(name);
     let _ = fs::remove_file(&temporary);
     let mut file = OpenOptions::new()

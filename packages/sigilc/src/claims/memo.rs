@@ -231,8 +231,12 @@ pub fn prune_older(root: &Path) -> Result<usize, String> {
     let mut removed = 0;
     for (path, current) in entries(root).collect::<Vec<_>>() {
         if !current {
-            std::fs::remove_file(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-            removed += 1;
+            match std::fs::remove_file(&path) {
+                Ok(()) => removed += 1,
+                // A concurrent prune already removed it.
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("{}: {e}", path.display())),
+            }
         }
     }
     Ok(removed)

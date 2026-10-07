@@ -90,8 +90,11 @@ pub fn normalize_prose(text: &str) -> String {
 }
 
 pub fn parse_key(path: &str, text: &str) -> String {
+    // The compiler version is part of the key, so a parser change in a new
+    // release never reuses trees an older parser built.
     Fields::new("parse/v1")
         .num(u64::from(TREE_FORMAT))
+        .str(env!("CARGO_PKG_VERSION"))
         .str(path)
         .str(&sources::hash(text.as_bytes()))
         .finish()

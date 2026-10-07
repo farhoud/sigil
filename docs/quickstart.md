@@ -1,7 +1,7 @@
 # Quickstart
 
 Sigil keeps authored contracts and independently reconstructed implementation
-worlds separate. `sigil` parses and exports the language; `sigilc` derives native
+worlds separate. `sigil` parses the language; `sigilc` reads the workspace and derives native
 semantic states from externally supplied assertions. It does not start a model
 or own your coding loop.
 

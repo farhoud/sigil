@@ -416,6 +416,10 @@ fn parse_index(bytes: &[u8]) -> Result<Index, String> {
                 && semantic.get("side").and_then(|s| s.as_str()) == Some("design")
             {
                 semantic.remove("dependencies");
+                // The reader version used to be recorded as `frontend_version`.
+                if let Some(version) = semantic.remove("frontend_version") {
+                    semantic.entry("reader_version").or_insert(version);
+                }
                 semantic
                     .entry("imports")
                     .or_insert_with(|| serde_json::json!([]));

@@ -14,7 +14,7 @@ This skill targets the implemented Sigil 0.7 language and native workflow.
 For 0.8 designs, select `sigil-understand`, `sigil-write`, or `sigil-evaluate`.
 Their source-based design workflows do not require the bootstrap below.
 
-`sigil` owns language inspection and structural Design export. Use `sigilc`
+`sigil` owns language inspection. Use `sigilc`
 directly for scope, freshness, preparation, ingestion, catalogs, and semantic
 gates. The native compiler never starts models or owns the coding loop.
 
