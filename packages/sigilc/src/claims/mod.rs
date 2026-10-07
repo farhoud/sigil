@@ -13,6 +13,7 @@ pub mod dialect;
 pub mod findings;
 pub mod guidance;
 pub mod identity;
+pub mod link;
 pub mod memo;
 pub mod prepare;
 pub mod program;

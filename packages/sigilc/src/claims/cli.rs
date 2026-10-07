@@ -3,7 +3,9 @@
 //! Deterministic, like the compiler's: no process launchers and no model
 //! options. The external interpretation is an input the caller supplies and can
 //! supply again, which is what makes a run reproducible.
-use super::{context, dialect, findings, guidance, identity, memo, prepare, program, vocabulary};
+use super::{
+    context, dialect, findings, guidance, identity, link, memo, prepare, program, vocabulary,
+};
 use crate::{
     cli::{Output, store_dir},
     eqval,
@@ -24,6 +26,7 @@ pub fn help() -> String {
 Commands:
   prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
   ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
+  check [--source PATH] [--root DIR] [--store DIR]
   extract-guidance --out DIR [--root DIR]
 
 --root DIR is the workspace; sigil-claims reads its .sigil configuration and
@@ -40,9 +43,16 @@ Flow:
 This command never launches a model. Step 3 is the caller's, and passing the
 same artifact again reproduces the same report.
 
+Check links every valid stored reading of the workspace into one program and
+runs every law over it, so a dependent meets its dependency's private
+readings. Run it after each source has been prepared, interpreted and ingested.
+--source narrows the report to the findings that source authored part of;
+completeness is always the workspace's. A unit with no valid reading, or an
+import that did not resolve, makes the state incomplete and a gate failure.
+
 Gate exits: 0 = pass or warning, 1 = a gate failure (a computed Disjoint
-verdict, a refused artifact, or a saturation-limit breach), 2 = usage,
-3 = operational failure.
+verdict, an incomplete check, a refused artifact, or a saturation-limit
+breach), 2 = usage, 3 = operational failure.
 "#
     .into()
 }
@@ -57,7 +67,7 @@ pub fn run(args: &[&str]) -> Output {
             return Ok((0, format!("sigil-claims {}\n", env!("CARGO_PKG_VERSION"))));
         }
         [
-            command @ ("prepare" | "ingest" | "extract-guidance"),
+            command @ ("prepare" | "ingest" | "check" | "extract-guidance"),
             tail @ ..,
         ] => (*command, tail),
         _ => return Err((2, "Invalid command. Run sigil-claims --help.".into())),
@@ -74,6 +84,7 @@ pub fn run(args: &[&str]) -> Output {
             "--root",
             "--store",
         ],
+        "check" => &["--source", "--root", "--store"],
         _ => &["--out", "--root"],
     };
     let options = parse(tail, allowed)?;
@@ -140,8 +151,78 @@ pub fn run(args: &[&str]) -> Output {
                 }),
             )
         }
+        "check" => check(options.get("--source").map(String::as_str), &root, &store),
         _ => ingest(&options, &root, &store),
     }
+}
+
+/// Link the workspace's stored readings and run every law over them.
+///
+/// Reads the store and never writes a reading: a reading whose recorded
+/// context moved is re-checked on every run. What it writes is its own report
+/// and judgment context, under names ingest's never take.
+// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ClaimsCommands interface,constraints
+fn check(source: Option<&str>, root: &str, store: &Path) -> Output {
+    let (input, basis) = workspace(root, store)?;
+    // A workspace the compiler could not read has no sources to be incomplete
+    // about, so linking it would read as a pass. Refuse it instead.
+    let unreadable: Vec<String> = input
+        .diagnostics
+        .iter()
+        .filter(|d| {
+            matches!(d.stage, crate::structure::Stage::Workspace)
+                && matches!(d.severity, crate::structure::Severity::Error)
+        })
+        .map(|d| format!("{}: {}", d.code, d.message))
+        .collect();
+    if !unreadable.is_empty() {
+        return Err(operational(format!(
+            "the workspace could not be read: {}",
+            unreadable.join("; ")
+        )));
+    }
+    if let Some(source) = source
+        && !input.sources.iter().any(|s| s.path == source)
+    {
+        return Err((2, format!("design source not found: {source}")));
+    }
+    let linked = link::link(&input, &basis, store).map_err(operational)?;
+    let world = program::saturate(&linked.request, &linked.facts, eqval::Limits::default())
+        .map_err(gate)?;
+    let report = findings::linked_report(&linked, &world, source);
+    let mut context = context::build(
+        &linked.request,
+        &linked.facts,
+        &world,
+        report.identity.clone(),
+    );
+    context.source = report.source.clone();
+
+    let report_path = findings::store(&report, store, &report.source, findings::LINKED_SUFFIX)
+        .map_err(operational)?;
+    let context_path = findings::store(&context, store, &report.source, context::LINKED_SUFFIX)
+        .map_err(operational)?;
+
+    let code = match report.state {
+        findings::State::Disjoint | findings::State::Incomplete => 1,
+        _ => 0,
+    };
+    json(
+        code,
+        &serde_json::json!({
+            "version": report.version,
+            "scope": report.source,
+            "state": report.state,
+            "findings": report.findings.len(),
+            "unreadUnits": linked.unread.len(),
+            "unresolvedImports": linked.unresolved_imports.len(),
+            "report": report_path,
+            "judgmentContext": context_path,
+            "workspaceDigest": linked.workspace_digest,
+            "vocabularyGeneration": vocabulary::VOCABULARY_GENERATION,
+            "guidanceFingerprint": report.identity.guidance_fingerprint,
+        }),
+    )
 }
 
 fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Output {

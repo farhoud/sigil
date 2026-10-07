@@ -528,8 +528,8 @@ fn two_runs_over_one_unchanged_interpretation_report_identically() {
     assert_eq!(a.findings, b.findings);
     assert_eq!(a.state, b.state);
     assert_eq!(
-        a.version, 3,
-        "the report version moved with the binding identity"
+        a.version, 4,
+        "the report version moved with the linked check's report"
     );
 }
 

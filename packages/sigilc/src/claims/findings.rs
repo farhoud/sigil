@@ -5,6 +5,7 @@
 //! that a reader can check it instead of trusting it.
 use super::{
     identity::{Body, Defect, Fact},
+    link::{Linked, SourceEvidence, Unread, UnresolvedImport, WORKSPACE},
     prepare::Request,
     program::{Saturated, text},
 };
@@ -19,8 +20,13 @@ use std::{
 /// 2 adds the flow finding classes. They are part of the report a consumer
 /// reads, so a reader pinned to 1 cannot be handed one. 3 replaces the
 /// identity's export digest with the digest of the tree-based binding and adds
-/// the `uninterpreted-context` finding.
-pub const REPORT_VERSION: u32 = 3;
+/// the `uninterpreted-context` finding. 4 adds the linked check's report: the
+/// `incomplete` state, the `unread` and `unresolvedImports` lists and the
+/// `linked` evidence. An ingest report carries none of them.
+pub const REPORT_VERSION: u32 = 4;
+
+/// The suffix of a linked report, so it never overwrites an ingest report.
+pub const LINKED_SUFFIX: &str = ".linked.json";
 
 /// The directory this component owns. Never the compiler's world cache.
 /// Inside the store directory (`<root>/.sigil` by default).
@@ -84,6 +90,10 @@ pub enum State {
     Loose,
     /// A contradiction or an ownership conflict was derived.
     Disjoint,
+    /// The linked check found no contradiction, but a unit has no valid
+    /// reading or an import did not resolve, so it can not say the design
+    /// holds together. Only the linked check reports it.
+    Incomplete,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,6 +108,23 @@ pub struct Report {
     /// Claims the runs disagreed on, when a second interpretation was supplied.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub disagreements: Option<Vec<Disagreement>>,
+    /// Units no valid stored reading covers, workspace-wide. Linked reports only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unread: Option<Vec<Unread>>,
+    /// Imports that did not resolve, workspace-wide. Linked reports only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unresolved_imports: Option<Vec<UnresolvedImport>>,
+    /// What each source was read against. Linked reports only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub linked: Option<LinkedEvidence>,
+}
+
+/// What a linked report was joined from.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LinkedEvidence {
+    pub workspace_digest: String,
+    pub sources: Vec<SourceEvidence>,
 }
 
 /// One claim present in one interpretation of a Facet and absent from another.
@@ -124,14 +151,10 @@ fn violation_class(law: &str) -> Class {
     }
 }
 
-/// Build the report for one interpretation of one design source.
-// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ComputedFindings interface
-pub fn report(
-    request: &Request,
-    facts: &[Fact],
-    world: &Saturated,
-    interpretations: &[String],
-) -> Report {
+/// Every finding the saturated tables and the admission record yield, before
+/// any run decides whose they are. Ingest and the linked check both start here,
+/// so one law cannot report differently in the two.
+fn derive(request: &Request, facts: &[Fact], world: &Saturated) -> Vec<Finding> {
     let origin: BTreeMap<&str, &Fact> = facts.iter().map(|f| (f.id.as_str(), f)).collect();
     let where_of = |id: &str| {
         origin
@@ -203,20 +226,37 @@ pub fn report(
         });
     }
 
-    // A requirement a flow touches and no step guards on.
+    // A requirement a flow touches and no step guards on. A guard can name only
+    // a Facet its own source presented, so when the requirement is another
+    // component's the flow's component can never answer it; say so, because the
+    // fix is the guarantee in that component's interface.
+    let graph_owner: BTreeMap<String, String> = world
+        .table("entity")
+        .iter()
+        .filter(|row| text(row, 1) == "Graph")
+        .map(|row| (text(row, 0), text(row, 3)))
+        .collect();
     for row in world.table("unguarded-flow") {
-        let (claim, object) = (text(row, 0), text(row, 2));
+        let (claim, graph, object) = (text(row, 0), text(row, 1), text(row, 2));
         let (component, section) = where_of(&claim);
+        let foreign = graph_owner
+            .get(&graph)
+            .is_some_and(|owner| *owner != component);
         findings.push(Finding {
             class: Class::Flow,
             law: "unguarded-flow".into(),
-            subject: text(row, 1),
+            subject: graph,
             object,
             claims: vec![claim],
             component,
             section,
-            detail: "this flow acts on what a reaching claim requires, and no step guards on it"
-                .into(),
+            detail: if foreign {
+                "this flow acts on what a claim in another component requires, and its own component cannot guard on that requirement; the guarantee belongs in its interface"
+                    .into()
+            } else {
+                "this flow acts on what a reaching claim requires, and no step guards on it"
+                    .into()
+            },
         });
     }
 
@@ -304,6 +344,19 @@ pub fn report(
 
     findings.sort();
     findings.dedup();
+    findings
+}
+
+/// Build the report for one interpretation of one design source.
+// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ComputedFindings interface
+pub fn report(
+    request: &Request,
+    facts: &[Fact],
+    world: &Saturated,
+    interpretations: &[String],
+) -> Report {
+    let mut findings = derive(request, facts, world);
+    let origin: BTreeMap<&str, &Fact> = facts.iter().map(|f| (f.id.as_str(), f)).collect();
 
     // A finding is reported by each run whose selected source authored a step
     // or a Facet it names. Imported interface readings join the program as
@@ -359,6 +412,92 @@ pub fn report(
         iterations: world.iterations,
         findings,
         disagreements: None,
+        unread: None,
+        unresolved_imports: None,
+        linked: None,
+    }
+}
+
+/// Build the linked check's report: every law over the joined readings of the
+/// workspace, optionally narrowed to the findings one source authored part of.
+///
+/// Completeness is the workspace's, never the view's: what is unread or
+/// unresolved anywhere keeps the state from reading as a pass.
+// @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ComputedFindings interface
+pub fn linked_report(linked: &Linked, world: &Saturated, view: Option<&str>) -> Report {
+    let mut findings = derive(&linked.request, &linked.facts, world);
+    if let Some(source) = view {
+        let involved = Involvement::new(linked);
+        findings.retain(|f| involved.in_finding(f, source));
+    }
+    let incomplete = !linked.unread.is_empty() || !linked.unresolved_imports.is_empty();
+    let state = match state_of(&findings) {
+        State::Disjoint => State::Disjoint,
+        _ if incomplete => State::Incomplete,
+        state => state,
+    };
+    Report {
+        version: REPORT_VERSION,
+        source: view.unwrap_or(WORKSPACE).to_owned(),
+        identity: Identity {
+            binding_digest: linked.request.binding.digest(),
+            interpretations: linked.memo_keys.clone(),
+            guidance_fingerprint: world.guidance_fingerprint.clone(),
+            vocabulary_generation: linked.request.binding.vocabulary_generation,
+        },
+        state,
+        iterations: world.iterations,
+        findings,
+        disagreements: None,
+        unread: Some(linked.unread.clone()),
+        unresolved_imports: Some(linked.unresolved_imports.clone()),
+        linked: Some(LinkedEvidence {
+            workspace_digest: linked.workspace_digest.clone(),
+            sources: linked.sources.clone(),
+        }),
+    }
+}
+
+/// Which source authored each part a finding can name.
+struct Involvement<'a> {
+    /// Fact id to the source of the Facet it reads.
+    fact_source: BTreeMap<&'a str, &'a str>,
+    /// Entity id to the source that declares it.
+    entity_source: BTreeMap<&'a str, &'a str>,
+}
+
+impl<'a> Involvement<'a> {
+    fn new(linked: &'a Linked) -> Self {
+        let facet_source: BTreeMap<&str, &str> = linked
+            .request
+            .rows
+            .iter()
+            .map(|r| (r.facet.as_str(), r.source.as_str()))
+            .collect();
+        Self {
+            fact_source: linked
+                .facts
+                .iter()
+                .filter_map(|f| Some((f.id.as_str(), *facet_source.get(f.facet.as_str())?)))
+                .collect(),
+            entity_source: linked
+                .request
+                .entities
+                .iter()
+                .map(|e| (e.id.as_str(), e.source.as_str()))
+                .collect(),
+        }
+    }
+
+    /// Whether `source` authored a claim, a component or a Tag the finding names.
+    fn in_finding(&self, finding: &Finding, source: &str) -> bool {
+        finding
+            .claims
+            .iter()
+            .any(|id| self.fact_source.get(id.as_str()) == Some(&source))
+            || [&finding.component, &finding.subject, &finding.object]
+                .iter()
+                .any(|id| self.entity_source.get(id.as_str()) == Some(&source))
     }
 }
 

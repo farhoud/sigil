@@ -306,6 +306,7 @@ fn the_context_round_trips_through_its_serialized_form() {
     // guard rows and the step and graph reference forms.
     assert_eq!(context.identity.vocabulary_generation, 2);
     // Pinned and moved with what changed the report's shape: 2 added the flow
-    // classes, 3 replaced the export digest with the tree binding's digest.
-    assert_eq!(findings::REPORT_VERSION, 3);
+    // classes, 3 replaced the export digest with the tree binding's digest, 4
+    // added the linked check's report.
+    assert_eq!(findings::REPORT_VERSION, 4);
 }
