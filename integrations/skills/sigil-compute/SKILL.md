@@ -1,6 +1,6 @@
 ---
 name: sigil-compute
-description: Run the claims loop on an existing Sigil 0.9 design and hand back the ingest state — Coherent, Loose, or Disjoint — with the computed findings report. Use only when the request names claims, `sigil-claims`, computed findings or checks, or this skill; a generic request to review or evaluate a design stays on `sigil-evaluate`.
+description: Run the claims loop on an existing Sigil 0.9 design and hand back the ingest state — Coherent, Loose, or Disjoint — with the computed findings report, or, for the whole design, read every unread source and hand back the linked check's state, which may also be Incomplete. Use only when the request names claims, `sigil-claims`, computed findings or checks, or this skill; a generic request to review or evaluate a design stays on `sigil-evaluate`.
 ---
 
 # Computed design evaluation

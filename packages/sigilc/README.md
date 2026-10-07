@@ -161,7 +161,9 @@ design, interpret and ingest each source, then run `check`: it links every
 valid stored reading into one program, applies every law across components, and
 writes `workspace.linked.json` and `workspace.linked.context.json` under the
 store's `claims` directory. `--source PATH` limits the check to findings that
-source authored part of, writing `<source>.linked.json`. A unit with no stored
+source authored part of, writing `<source>.linked.json`; its state and exit
+code follow those findings, so gate the whole design with the workspace check
+and use `--source` to read one author's view. A unit with no stored
 reading, or an import no source resolves, makes the state `incomplete`, listing
 the `unread` units and `unresolvedImports`; that exits 1, as does `disjoint`.
 
