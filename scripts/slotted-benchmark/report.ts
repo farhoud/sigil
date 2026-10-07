@@ -55,14 +55,18 @@ export async function writeReport(batchDir: string): Promise<string> {
       }
       const ingest = object(outcome?.ingestResult);
       if (ingest) {
-        const privateClaimsDir = resolve(
+        // The private store is `private`; runs from before `--store` kept the
+        // claims under `private/.sigil`.
+        const privateStore = resolve(
           batchDir,
           "attempts",
           record.id,
           "private",
-          ".sigil",
-          "claims",
         );
+        const privateClaimsDir =
+          await pathExists(join(privateStore, ".sigil", "claims"))
+            ? join(privateStore, ".sigil", "claims")
+            : join(privateStore, "claims");
         const reportPath = join(privateClaimsDir, `${record.source}.json`);
         const contextPath = join(
           privateClaimsDir,
@@ -169,7 +173,9 @@ export function renderReport(
     "# Slotted interpretation benchmark",
     "",
     `Batch created: ${manifest.createdAt}. Fixture version: ${manifest.fixture.version}.`,
-    `Captured export SHA-256: \`${manifest.input.frontendSha256}\`.`,
+    manifest.input.workspaceDigest
+      ? `Workspace digest: \`${manifest.input.workspaceDigest}\`.`
+      : `Captured export SHA-256: \`${manifest.input.frontendSha256}\`.`,
     "",
     manifest.fixture.description,
     "",

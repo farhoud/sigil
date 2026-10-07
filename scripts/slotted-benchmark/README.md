@@ -10,21 +10,24 @@ The benchmark owns the Slotted fixture and its four planted problems in
 design before scheduling a batch. If the design has drifted, the report marks
 the affected planted-problem measure as unavailable.
 
+A source is read with its imports shown as interface only. The
+`booking-rooms-archived-mark-ownership` problem depends on Rooms' `state`
+section, which Booking no longer sees, so the preflight marks it as drift and
+the report shows its measure as unavailable. The other three problems stay
+scorable.
+
 ## Requirements
 
 - Deno and Rust/Cargo must be available.
-- The Sigil CLI must be built at `build/sigil`.
 - The Claude, Codex, or Pi CLI you select must be installed and authenticated.
 - Each model selector must be accepted by its selected CLI.
 
-Build the Sigil CLI once before the first batch:
+The `deno task slotted-benchmark` command builds `sigilc` and `sigil-claims`
+with Cargo before running the benchmark.
 
-```sh
-deno task build:cli
-```
-
-The `deno task slotted-benchmark` command builds `sigil-claims` with Cargo
-before running the benchmark.
+Every command reads the Slotted workspace with `--root` and keeps its readings
+in a private `--store` that must start empty. An attempt therefore never reuses
+an earlier reading.
 
 ## Run a batch
 
@@ -92,10 +95,11 @@ model are labeled unverified.
 
 ## Retained evidence
 
-Each batch keeps its captured Slotted export, fixture preflight, tool and
-guidance identities, prepared requests, exact child rows, raw host events,
-native claims reports and contexts, and one record per scheduled attempt. The
-children do not receive the planted-problem answer key or prior batch output.
+Each batch keeps its `sigilc tree` output, the workspace digest, fixture
+preflight, tool and guidance identities, prepared requests, exact child rows,
+raw host events, native claims reports and contexts, and one record per
+scheduled attempt. The children do not receive the planted-problem answer key or
+prior batch output.
 
 See [`report.ts`](./report.ts) for report definitions and
 [`docs/computed-evaluation-demo.md`](../../docs/computed-evaluation-demo.md) for

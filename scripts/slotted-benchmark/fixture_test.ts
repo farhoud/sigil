@@ -3,15 +3,14 @@ import {
   match as assertMatch,
   ok as assert,
 } from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import {
-  type DesignInput,
-  InMemorySigilFileSystem,
-  loadDesignInput,
-} from "../../packages/core/src/mod.ts";
-import {
+  type DesignView,
+  designViewFromTrees,
   preflightSlottedFixture,
   type PreparedFacetRequest,
   SLOTTED_FIXTURE,
+  type TreeOutput,
 } from "./fixture.ts";
 
 const sourcePaths = [
@@ -23,68 +22,126 @@ const sourcePaths = [
   "booking.sigil",
   "calendar.sigil",
 ];
+const exe = Deno.build.os === "windows" ? ".exe" : "";
+const sigilc = fileURLToPath(
+  new URL(`../../packages/sigilc/target/debug/sigilc${exe}`, import.meta.url),
+);
+const claims = fileURLToPath(
+  new URL(
+    `../../packages/sigilc/target/debug/sigil-claims${exe}`,
+    import.meta.url,
+  ),
+);
 
-async function snapshot(
+async function run(
+  executable: string,
+  args: string[],
+  code = 0,
+): Promise<string> {
+  const output = await new Deno.Command(executable, {
+    args,
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  const stdout = new TextDecoder().decode(output.stdout);
+  assertEquals(
+    output.code,
+    code,
+    `${args.join(" ")}: ${new TextDecoder().decode(output.stderr)}`,
+  );
+  return stdout;
+}
+
+/** A temporary Slotted workspace, optionally edited before use. */
+async function slottedWorkspace(
   change?: (files: Record<string, string>) => void,
-): Promise<{ design: DesignInput; prepared: PreparedFacetRequest[] }> {
-  const files: Record<string, string> = {
-    ".sigil/config.json": JSON.stringify({
-      sigilVersion: "0.9.0",
-      workspace: { name: "slotted" },
-      files: { include: ["**/*.sigil"] },
-    }),
-  };
+): Promise<{ root: string; files: Record<string, string> }> {
+  const root = await Deno.makeTempDir({ prefix: "slotted-fixture-" });
+  const files: Record<string, string> = {};
   for (const path of sourcePaths) {
     files[path] = await Deno.readTextFile(
       new URL(`../../examples/slotted/${path}`, import.meta.url),
     );
   }
   change?.(files);
-  const { bundle } = await loadDesignInput(
-    new InMemorySigilFileSystem(files),
-    { startPath: "." },
+  await Deno.mkdir(`${root}/.sigil`);
+  await Deno.writeTextFile(
+    `${root}/.sigil/config.json`,
+    JSON.stringify({
+      sigilVersion: "0.9.0",
+      workspace: { name: "slotted" },
+      files: { include: ["**/*.sigil"] },
+    }),
   );
-  assert(bundle, "Slotted export must be available");
-  const sourceByModule = new Map(
-    SLOTTED_FIXTURE.sources.map((source) => [
-      source.path === "shared.sigil"
-        ? "SharedKernel"
-        : source.path.replace(/\.sigil$/, "").replace(/^./, (letter) =>
-          letter.toUpperCase()),
-      source.path,
-    ]),
-  );
-  const prepared = SLOTTED_FIXTURE.sources.filter((source) =>
-    files[source.path]
-  )
-    .map((source) => {
-      const closure = new Set<string>();
-      const visit = (path: string) => {
-        if (closure.has(path)) return;
-        closure.add(path);
-        const dependency = SLOTTED_FIXTURE.sources.find((entry) =>
-          entry.path === path
-        );
-        for (const imported of dependency?.imports ?? []) {
-          const importedPath = sourceByModule.get(imported);
-          if (importedPath) visit(importedPath);
-        }
-      };
-      visit(source.path);
-      return {
-        binding: { source: source.path },
-        rows: bundle.units.filter((unit) =>
-          closure.has(unit.source) && unit.valid
-        ).map((unit) => ({
-          facet: unit.id,
-          source: unit.source,
-          section: unit.section,
-          prose: bundle.sources.find((entry) => entry.path === unit.source)!
-            .text.slice(unit.proseRange.start, unit.proseRange.end),
-        })),
-      };
-    });
-  return { design: bundle, prepared };
+  for (const [path, text] of Object.entries(files)) {
+    await Deno.writeTextFile(`${root}/${path}`, text);
+  }
+  return { root, files };
+}
+
+async function snapshot(
+  change?: (files: Record<string, string>) => void,
+): Promise<{ design: DesignView; prepared: PreparedFacetRequest[] }> {
+  const { root, files } = await slottedWorkspace(change);
+  try {
+    const tree = JSON.parse(
+      await run(sigilc, [
+        "tree",
+        "--root",
+        root,
+        "--store",
+        `${root}/store`,
+      ]),
+    ) as TreeOutput;
+    const bundle = designViewFromTrees(tree, files);
+    const sourceByModule = new Map(
+      SLOTTED_FIXTURE.sources.map((source) => [
+        source.path === "shared.sigil"
+          ? "SharedKernel"
+          : source.path.replace(/\.sigil$/, "").replace(/^./, (letter) =>
+            letter.toUpperCase()),
+        source.path,
+      ]),
+    );
+    const encoder = new TextEncoder();
+    const prepared = SLOTTED_FIXTURE.sources.filter((source) =>
+      files[source.path]
+    )
+      .map((source) => {
+        const closure = new Set<string>();
+        const visit = (path: string) => {
+          if (closure.has(path)) return;
+          closure.add(path);
+          const dependency = SLOTTED_FIXTURE.sources.find((entry) =>
+            entry.path === path
+          );
+          for (const imported of dependency?.imports ?? []) {
+            const importedPath = sourceByModule.get(imported);
+            if (importedPath) visit(importedPath);
+          }
+        };
+        visit(source.path);
+        return {
+          binding: { source: source.path },
+          rows: bundle.units.filter((unit) =>
+            closure.has(unit.source) && unit.valid
+          ).map((unit) => ({
+            facet: unit.id,
+            source: unit.source,
+            section: unit.section,
+            prose: new TextDecoder().decode(
+              encoder.encode(files[unit.source]).slice(
+                unit.proseRange.start,
+                unit.proseRange.end,
+              ),
+            ),
+          })),
+        };
+      });
+    return { design: bundle, prepared };
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
 }
 
 Deno.test("tool fixture resolves all seven Slotted sources and four issue IDs", async () => {
@@ -160,9 +217,10 @@ Deno.test("anchor ownership drift withholds only the affected issue", async () =
   const original = design.units.find((unit) =>
     unit.source === ownershipAnchor.source &&
     unit.section === ownershipAnchor.section &&
-    design.sources.find((source) => source.path === unit.source)!.text.slice(
-      unit.proseRange.start,
-      unit.proseRange.end,
+    new TextDecoder().decode(
+      new TextEncoder().encode(
+        design.sources.find((source) => source.path === unit.source)!.text,
+      ).slice(unit.proseRange.start, unit.proseRange.end),
     ).includes(ownershipAnchor.text)
   );
   assert(original, "ownership anchor Facet must exist");
@@ -351,4 +409,59 @@ Deno.test("import drift is reported while all seven sources can still run", asyn
     result.sourceDrift.join(" "),
     /imports changed for calendar\.sigil/i,
   );
+});
+
+Deno.test("a reformat between two prepares with a shared store requests no units", async () => {
+  const { root, files } = await slottedWorkspace();
+  const store = `${root}/store`;
+  const prepare = async (label: string) => {
+    const out = `${root}/prepared-${label}`;
+    const summary = JSON.parse(
+      await run(claims, [
+        "prepare",
+        "--root",
+        root,
+        "--store",
+        store,
+        "--source",
+        "booking.sigil",
+        "--out",
+        out,
+      ]),
+    );
+    return { out, summary };
+  };
+  try {
+    const first = await prepare("first");
+    assert(first.summary.requestedUnits > 0);
+    assertMatch(first.summary.workspaceDigest, /^[a-f0-9]{64}$/);
+    const request = JSON.parse(
+      await Deno.readTextFile(`${first.out}/request.json`),
+    );
+    const readings = request.rows.filter((row: { context?: boolean }) =>
+      !row.context
+    ).map((row: { facet: string }) =>
+      `(reading ${JSON.stringify(row.facet)} "no-commitment")\n`
+    ).join("");
+    await Deno.writeTextFile(`${root}/readings.egg`, readings);
+    await run(claims, [
+      "ingest",
+      "--root",
+      root,
+      "--store",
+      store,
+      "--binding",
+      `${first.out}/binding.json`,
+      "--claims",
+      `${root}/readings.egg`,
+    ], 0);
+    for (const [path, text] of Object.entries(files)) {
+      await Deno.writeTextFile(`${root}/${path}`, `\n\n${text}\n`);
+    }
+    const second = await prepare("second");
+    assertEquals(second.summary.requestedUnits, 0);
+    assert(second.summary.reusedUnits > 0);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
 });

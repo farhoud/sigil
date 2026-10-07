@@ -64,9 +64,8 @@ prove behavior. Use the selection examples in
 ## Use the native flow
 
 Read [compilation execution](references/compilation-execution.md) for the exact
-semantic protocol, per-source inputs, and command exits. Capture current
-authored input with `sigil export design .`; use that JSON with native
-`--frontend`, and refresh it after authored, configuration, or glossary changes.
+semantic protocol, per-source inputs, and command exits. Native commands read
+the workspace through `--root` (default `.`); there is no export to refresh.
 
 1. Inspect `sigilc scope` and `sigilc stale` with the intended selection.
    Preserve every fresh projection and prepare only rows reported stale,

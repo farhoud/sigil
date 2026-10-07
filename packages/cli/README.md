@@ -116,21 +116,13 @@ designs.
 Use the native compiler directly:
 
 ```sh
-sigil export design . > frontend.json
-sigilc stale design --frontend frontend.json
-sigilc compile design --frontend frontend.json
+sigilc stale design --root .
+sigilc compile design --root .
 ```
 
 See the [native command guide](../sigilc/README.md) for ordered scope, external
 reconstruction, preparation/ingestion, catalogs and Implementation comparison.
-The model or operator invokes `sigilc` directly. The language CLI exports
-structure; it does not launch semanticizers or forward compiler commands.
+The model or operator invokes `sigilc` directly. The language CLI does not
+launch semanticizers or forward compiler commands.
 
-For a checkout whose installed CLI predates export:
-
-```sh
-deno run --allow-read packages/cli/src/main.ts export design . > frontend.json
-```
-
-Run this command from the repository root. Run package tests from `packages/cli`
-with `deno task test`.
+Run package tests from `packages/cli` with `deno task test`.

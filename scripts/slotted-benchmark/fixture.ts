@@ -1,4 +1,114 @@
-import type { DesignInput } from "../../packages/core/src/design-input.ts";
+/** The parts of `sigilc tree` output the preflight reads. */
+export interface TreeOutput {
+  readonly trees: readonly {
+    readonly parse: {
+      readonly path: string;
+      readonly valid: boolean;
+      readonly components: readonly {
+        readonly iri: string;
+        readonly name: string;
+        readonly sections: readonly unknown[];
+      }[];
+    };
+    readonly resolution: {
+      readonly components: readonly {
+        readonly iri: string;
+        readonly tags: readonly {
+          readonly name: string;
+          readonly status: string;
+          readonly iri?: string;
+        }[];
+      }[];
+      readonly imports: readonly {
+        readonly provider: string;
+        readonly status: string;
+      }[];
+    };
+  }[];
+}
+
+/** A Design world flattened from trees: sources, entities, Facets, and imports. */
+export interface DesignView {
+  readonly sources: readonly { readonly path: string; readonly text: string }[];
+  readonly entities: readonly {
+    readonly id: string;
+    readonly type: "Component" | "Tag";
+    readonly valid: boolean;
+    readonly source: string;
+  }[];
+  readonly units: readonly {
+    readonly id: string;
+    readonly source: string;
+    readonly section: string;
+    readonly owner: string;
+    readonly valid: boolean;
+    readonly proseRange: { readonly start: number; readonly end: number };
+  }[];
+  readonly imports: readonly {
+    readonly source: string;
+    readonly provider: string;
+    readonly status: string;
+  }[];
+}
+
+/** Flatten `sigilc tree` output and the sources it was read from. */
+export function designViewFromTrees(
+  output: TreeOutput,
+  texts: Readonly<Record<string, string>>,
+): DesignView {
+  const sources: { path: string; text: string }[] = [];
+  const entities: DesignView["entities"][number][] = [];
+  const units: DesignView["units"][number][] = [];
+  const imports: DesignView["imports"][number][] = [];
+  for (const tree of output.trees) {
+    const source = tree.parse.path;
+    const valid = tree.parse.valid;
+    sources.push({ path: source, text: texts[source] ?? "" });
+    for (const entry of tree.resolution.imports) {
+      imports.push({ source, provider: entry.provider, status: entry.status });
+    }
+    for (const component of tree.parse.components) {
+      entities.push({ id: component.iri, type: "Component", valid, source });
+      for (const facet of facetsOf(component.sections)) {
+        units.push({
+          id: facet.id,
+          source,
+          section: facet.section,
+          owner: component.iri,
+          valid,
+          proseRange: { start: facet.proseRange[0], end: facet.proseRange[1] },
+        });
+      }
+    }
+    for (const component of tree.resolution.components) {
+      for (const tag of component.tags) {
+        if (tag.iri) {
+          entities.push({
+            id: tag.iri,
+            type: "Tag",
+            valid: valid && tag.status === "resolved",
+            source,
+          });
+        }
+      }
+    }
+  }
+  return { sources, entities, units, imports };
+}
+
+function facetsOf(value: unknown): {
+  id: string;
+  section: string;
+  proseRange: [number, number];
+}[] {
+  if (Array.isArray(value)) return value.flatMap(facetsOf);
+  if (value === null || typeof value !== "object") return [];
+  const node = value as Record<string, unknown>;
+  if (node.kind === "facet") {
+    return [node as unknown as ReturnType<typeof facetsOf>[number]];
+  }
+  return Object.values(node).flatMap(facetsOf);
+}
 
 export interface FixtureSource {
   readonly path: string;
@@ -50,7 +160,7 @@ export interface PreparedFacetRequest {
 export interface IssuePreflight extends FixtureIssue {
   readonly status: "scorable" | "drift";
   readonly reason: string | null;
-  /** Facet IDs resolved from this export, in the same order as anchors. */
+  /** Facet IDs resolved from this tree view, in the same order as anchors. */
   readonly facets: readonly string[];
 }
 
@@ -220,7 +330,7 @@ export const SLOTTED_FIXTURE: {
 };
 
 function proseOf(
-  design: DesignInput,
+  design: DesignView,
   source: string,
   start: number,
   end: number,
@@ -232,9 +342,9 @@ function proseOf(
   );
 }
 
-/** Resolve the fixture against one captured export and its prepared source requests. */
+/** Resolve the fixture against one `sigilc tree` view and its prepared source requests. */
 export function preflightSlottedFixture(
-  design: DesignInput,
+  design: DesignView,
   prepared: readonly PreparedFacetRequest[],
 ): FixturePreflight {
   const expected = new Set(

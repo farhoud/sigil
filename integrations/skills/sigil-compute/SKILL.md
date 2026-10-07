@@ -12,7 +12,7 @@ request does not load this skill: advisory evaluation by `sigil-evaluate` keeps
 that job, and `sigil-write` still delegates its review there.
 
 Read the [orchestration contract](references/computed-evaluation.md) before
-running the loop. It owns source selection, the captured input snapshot, the
+running the loop. It owns source selection, the private store, the
 child handoff, recognizing a completed ingest, the failure path, and the
 result handoff.
 

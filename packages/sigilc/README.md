@@ -11,27 +11,53 @@ Build it with Rust 1.91.1 or newer:
 cargo build --locked --manifest-path packages/sigilc/Cargo.toml
 ```
 
-Design commands require structural schema 2 for language 0.9.0 and emit report
-version 2. Source locations carry explicit coordinate conventions and captured
-SHA-256 digests. Old captures and stored projections are retained but cannot be
+Every command reads the workspace itself. `--root DIR` (default `.`) names the
+workspace root; `sigilc` reads its `.sigil` configuration, glossary, and
+`.sigil` sources directly, so there is nothing to export or refresh by hand.
+`--store DIR` (default `<root>/.sigil`) holds the disposable projections and the
+tree cache; point it elsewhere to keep a run isolated from the workspace.
+Reports use version 2. Source locations carry explicit coordinate conventions
+and captured SHA-256 digests. Old stored projections are retained but cannot be
 used as current evidence.
 
-Design commands consume the versioned structural JSON produced by
-`sigil export design .`. The compiler checks the captured source and workspace
-inputs against `--root` (default `.`). Regenerate the bundle after authored,
-configuration, or glossary changes.
+```sh
+sigilc ontology --format json
+sigilc scope --root . --scope scope.json
+sigilc prepare design --root . --source architecture/a.sigil --out design-a
+# An external caller interprets design-a/design.json and design-a/ontology.json.
+sigilc ingest design --root . --source architecture/a.sigil --binding design-a/binding.json --turtle design-a/result.ttl
+sigilc stale design --root . --scope scope.json
+sigilc compile design --root . --scope scope.json
+sigilc entities --root . --scope scope.json
+```
+
+## Trees, content ids, and dependencies
+
+`sigilc` turns each `.sigil` file into a content-addressed tree: components,
+sections, and Facets, each with an id made from its content. A Facet id is
+`facet:<hash>`; it does not change when the file is reformatted or when
+unrelated text moves, and it changes when the Facet's meaning changes. Callers
+that need a unit or entity id read it from `sigilc tree`.
 
 ```sh
-sigil export design . > frontend.json
-sigilc ontology --format json
-sigilc scope --frontend frontend.json --scope scope.json
-sigilc prepare design --frontend frontend.json --source architecture/a.sigil --out design-a
-# An external caller interprets design-a/design.json and design-a/ontology.json.
-sigilc ingest design --frontend frontend.json --source architecture/a.sigil --binding design-a/binding.json --turtle design-a/result.ttl
-sigilc stale design --frontend frontend.json --scope scope.json
-sigilc compile design --frontend frontend.json --scope scope.json
-sigilc entities --frontend frontend.json --scope scope.json
+sigilc tree --root . [--source PATH] [--diff]
 ```
+
+`tree` prints the resolved trees as deterministic JSON: per source, its
+components, interface Tags, resolved Tags with their IRIs, and Facets with
+ranges, prose, and links. `--diff` lists the Facets added, removed, and changed
+since the previous tree recorded for each source.
+
+A dependency is presented to its importers by its interface only. A component
+sees what a provider declares in its `interface` section and nothing from the
+provider's private sections or logic. A flow that crosses components must
+therefore be stated in the dependency's interface; editing a dependency's
+private sections does not change its importers.
+
+After upgrading from a version that used `--frontend`, run `sigilc clean --root
+DIR` once. It drops the old generated projections. Readings stored under the old
+unit ids are not reused, so the first `prepare` asks for every unit once, and
+later runs ask only for what changed.
 
 `prepare` copies the semantic inputs and writes an immutable `binding.json`.
 The external caller keeps that directory, produces Turtle independently, and
@@ -41,7 +67,8 @@ before atomically publishing the accepted projection. If any bound input
 changes, prepare a new directory and binding. `sigilc` does not record the
 external interpretation, its attempts, or its outcome.
 
-The generated `.sigil/worlds/` cache is disposable and ignored. Its index keeps
+The generated `worlds/` cache in the store (`.sigil/worlds/` by default) is
+disposable and ignored. Its index keeps
 semantic bindings, checksums, generations, accepted projections, and available
 history. It does not contain tasks, requests, worker records, or completion
 evidence. The index schema is versioned; after upgrading from an older compiler,
@@ -60,12 +87,12 @@ Design catalog. It writes exactly `source` (captured unchanged bytes),
 `ontology.json`, `catalog.json`, and `binding.json` for the caller.
 
 ```sh
-sigilc prepare implementation --frontend frontend.json --source src/main.rs --out implementation-main
+sigilc prepare implementation --root . --source src/main.rs --out implementation-main
 # An external caller interprets the three copied inputs.
-sigilc ingest implementation --frontend frontend.json --source src/main.rs --binding implementation-main/binding.json --turtle implementation-main/result.ttl
-sigilc stale implementation --frontend frontend.json --selection selection.json
-sigilc compile implementation --frontend frontend.json --selection selection.json
-sigilc compare --frontend frontend.json --selection selection.json
+sigilc ingest implementation --root . --source src/main.rs --binding implementation-main/binding.json --turtle implementation-main/result.ttl
+sigilc stale implementation --root . --selection selection.json
+sigilc compile implementation --root . --selection selection.json
+sigilc compare --root . --selection selection.json
 ```
 
 Implementation inspection and comparison require an explicit selection JSON,
@@ -116,24 +143,23 @@ It never launches a model. Like `sigilc`, it uses a prepare/ingest boundary,
 and the interpretation is an input the caller supplies and can supply again.
 
 ```sh
-sigil export design . > frontend.json
-sigil-claims prepare --frontend frontend.json --source a.sigil --out claims-a
+sigil-claims prepare --root . --source a.sigil --out claims-a
 # An external interpreter reads claims-a and writes Datalog claims.
-sigil-claims ingest --frontend frontend.json \
+sigil-claims ingest --root . \
   --binding claims-a/binding.json --claims claims-a/result.egg
 sigil-claims extract-guidance --out ./guidance
 ```
 
 `prepare` writes an immutable `binding.json`, a `request.json` carrying each
 Facet's exact prose slice with the contract role it belongs to, and the
-interpreter guidance. `ingest` recomputes the request from the current export
+interpreter guidance. `ingest` recomputes the request from the current workspace
 and refuses a binding that does not match it, naming which input moved.
 
 Claims come back as data-only egglog atoms. An artifact containing a rule,
 command, schedule or non-literal argument is refused whole. Relation and
 property names are closed over the compiler's published ontology, read through
 `turtle::vocabulary()`. The tool mints every claim identity, fills the contract
-role from the export, and refuses an entity the design does not declare in the
+role from the source tree, and refuses an entity the design does not declare in the
 selected closure.
 
 Every claim carries the role it was authored under, which is what the
@@ -161,9 +187,22 @@ alongside the vocabulary and the laws. Guidance found in the workspace under
 validation is never read, so no file on disk can widen what is accepted;
 `extract-guidance` writes an editable copy to a path outside that workspace.
 
-Reports and stores live under `.sigil/claims/`, which this binary owns. The
-compiler's `.sigil/worlds/` cache, its stored projections, and its command
-surface are untouched.
+`prepare` reads the workspace through the tree cache and asks the interpreter
+only about units whose stored reading no longer holds. It prints
+`requestedUnits`, `regroundedUnits`, `uninterpretedContext` (dependency
+interface Facets shown for context, not to be read), and a `workspaceDigest`,
+the hash of every resolved tree id, which a caller can keep as run evidence. A
+binding covers the source's tree, the interface hashes of what it imports, the
+guidance, and the vocabulary generation, so editing an unrelated file or a
+dependency's private section does not reject `ingest`. A mismatch names the
+field that moved, and reports identify what they were computed from by
+`bindingDigest`.
+
+Reports and readings live under `<store>/claims/`, which this binary owns, with
+`--store DIR` (default `<root>/.sigil`). A caller that must never reuse an
+earlier reading, such as a benchmark, passes a fresh empty `--store`. The
+compiler's `worlds/` cache, its stored projections, and its command surface are
+untouched.
 
 Gate exits match the compiler's convention: 0 for coherent or loose, 1 for
 disjoint, 2 for usage, 3 for operational failure.

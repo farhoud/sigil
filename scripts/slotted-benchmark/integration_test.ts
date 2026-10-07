@@ -15,6 +15,8 @@ with open('preparation/request.json', encoding='utf8') as f:
     request = json.load(f)
 rows = []
 for row in request['rows']:
+    if row.get('context'):
+        continue
     facet = json.dumps(row['facet'])
     if ${
       planted ? "True" : "False"
@@ -129,7 +131,7 @@ Deno.test("failed host does not block later native detection and report", async 
     );
     matches(
       report,
-      /\[report\]\(attempts\/000013\/private\/\.sigil\/claims\/booking\.sigil\.json\)/,
+      /\[report\]\(attempts\/000013\/private\/claims\/booking\.sigil\.json\)/,
     );
     matches(report, /\| 000001 \| codex \| missing-model .*\| failed \|/);
   } finally {
@@ -137,7 +139,7 @@ Deno.test("failed host does not block later native detection and report", async 
   }
 });
 
-Deno.test("unknown agent or missing model fails before export and child launch", async () => {
+Deno.test("unknown agent or missing model fails before the tree read and child launch", async () => {
   for (const value of ["unknown:model", "claude:"]) {
     let error = "";
     try {

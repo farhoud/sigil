@@ -43,7 +43,7 @@ const manifest = {
       source: "booking.sigil",
     },
   ],
-  input: { frontendSha256: "snapshot" },
+  input: { workspaceDigest: "snapshot" },
 } as unknown as BatchManifest;
 
 function attempt(

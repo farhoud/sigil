@@ -16,14 +16,14 @@ const digest = Array.from(blake3(artifact)).map((byte) =>
 const root = "/tmp/slotted-claims-test/private";
 const binding = {
   source: "booking.sigil",
-  exportDigest: "export",
+  sourceContent: "content",
   guidanceFingerprint: "guidance",
   vocabularyGeneration: 2,
   facets: ["facet:booking.sigil:1", "facet:rooms.sigil:1"],
 };
 const request = { binding, rows: binding.facets.map((facet) => ({ facet })) };
 const identity = {
-  exportDigest: "export",
+  bindingDigest: "digest",
   guidanceFingerprint: "guidance",
   vocabularyGeneration: 2,
   interpretations: [digest],
@@ -54,12 +54,12 @@ const context = {
     asserted: [{ claim: "c", satisfiesUnit: true }],
   })),
 };
-const prepare = { reusedUnits: 0, facets: 2 };
+const prepare = { reusedUnits: 0, facets: 2, bindingDigest: "digest" };
 
 Deno.test("matching Disjoint identity and every presented Facet are valid", () => {
   const checked = validateClaimsEvidence({
     source: "booking.sigil",
-    privateRoot: root,
+    privateStore: root,
     exitCode: 1,
     artifact,
     binding,
@@ -77,7 +77,7 @@ Deno.test("matching Disjoint identity and every presented Facet are valid", () =
 Deno.test("omitted contextual Facet withholds state despite native ingest", () => {
   const checked = validateClaimsEvidence({
     source: "booking.sigil",
-    privateRoot: root,
+    privateStore: root,
     exitCode: 1,
     artifact,
     binding,
@@ -95,7 +95,7 @@ Deno.test("omitted contextual Facet withholds state despite native ingest", () =
 Deno.test("wrong artifact digest and path outside private root are rejected", () => {
   const checked = validateClaimsEvidence({
     source: "booking.sigil",
-    privateRoot: root,
+    privateStore: root,
     exitCode: 1,
     artifact: new TextEncoder().encode("different"),
     binding,
@@ -117,7 +117,7 @@ Deno.test("wrong artifact digest and path outside private root are rejected", ()
 Deno.test("a reading row counts as Facet coverage", () => {
   const checked = validateClaimsEvidence({
     source: "booking.sigil",
-    privateRoot: root,
+    privateStore: root,
     exitCode: 1,
     artifact,
     binding,
@@ -134,27 +134,10 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   const scratch = await Deno.makeTempDir({
     prefix: "slotted-native-claims-test-",
   });
-  const cli = new URL("../../build/sigil", import.meta.url).pathname;
   const claims =
     new URL("../../packages/sigilc/target/debug/sigil-claims", import.meta.url)
       .pathname;
   const workspace = new URL("../../examples/slotted", import.meta.url).pathname;
-  const exported = await new Deno.Command(cli, {
-    args: [
-      "export",
-      "design",
-      workspace,
-      "--root",
-      workspace,
-      "--format",
-      "json",
-    ],
-    stdout: "piped",
-    stderr: "piped",
-  }).output();
-  equal(exported.code, 0, new TextDecoder().decode(exported.stderr));
-  const frontendPath = `${scratch}/frontend.json`;
-  await Deno.writeFile(frontendPath, exported.stdout);
 
   async function attempt(
     name: string,
@@ -167,9 +150,9 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
       name === "full" ? relative(Deno.cwd(), value) : value;
     return await runClaimsAttempt({
       executable: claims,
-      frontendPath: path(frontendPath),
+      root: path(workspace),
       source: "identity.sigil",
-      privateRoot: path(`${dir}/private`),
+      privateStore: path(`${dir}/private`),
       preparationDir: path(`${dir}/prepared`),
       evidenceDir: path(`${dir}/evidence`),
       timeoutMs: 10_000,
@@ -187,9 +170,10 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
         );
         const rows = malformed
           ? ["not a claims row"]
-          : (request.rows as { facet: string }[]).map((row) =>
-            `(reading ${JSON.stringify(row.facet)} "no-commitment")`
-          );
+          : (request.rows as { facet: string; context?: boolean }[])
+            .filter((row) => !row.context).map((row) =>
+              `(reading ${JSON.stringify(row.facet)} "no-commitment")`
+            );
         if (omitLast) rows.pop();
         const finalResponsePath = `${evidenceDir}/final-response.txt`;
         await Deno.writeTextFile(finalResponsePath, `${rows.join("\n")}\n`);
@@ -205,7 +189,9 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   equal(full.status, "valid", full.error ?? "");
   equal(
     full.validation?.coveredFacets,
-    (full.request?.rows as unknown[]).length,
+    (full.request?.rows as { context?: boolean }[]).filter((row) =>
+      !row.context
+    ).length,
   );
   const partial = await attempt("partial", true);
   equal(partial.status, "invalid", partial.error ?? "");
@@ -235,17 +221,17 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   );
 });
 
-Deno.test("a nonempty private root stops before prepare or child launch", async () => {
-  const scratch = await Deno.makeTempDir({ prefix: "slotted-nonempty-root-" });
-  const privateRoot = `${scratch}/private`;
-  await Deno.mkdir(privateRoot);
-  await Deno.writeTextFile(`${privateRoot}/old.txt`, "prior interpretation");
+Deno.test("a nonempty private store stops before prepare or child launch", async () => {
+  const scratch = await Deno.makeTempDir({ prefix: "slotted-nonempty-store-" });
+  const privateStore = `${scratch}/private`;
+  await Deno.mkdir(privateStore);
+  await Deno.writeTextFile(`${privateStore}/old.txt`, "prior interpretation");
   let launched = false;
   const checked = await runClaimsAttempt({
     executable: "/missing/sigil-claims",
-    frontendPath: "/missing/export.json",
+    root: "/missing/workspace",
     source: "identity.sigil",
-    privateRoot,
+    privateStore,
     preparationDir: `${scratch}/prepared`,
     evidenceDir: `${scratch}/evidence`,
     timeoutMs: 1_000,
@@ -278,9 +264,9 @@ time.sleep(30)
   try {
     const pending = runClaimsAttempt({
       executable,
-      frontendPath: `${scratch}/frontend.json`,
+      root: `${scratch}/workspace`,
       source: "identity.sigil",
-      privateRoot: `${scratch}/private`,
+      privateStore: `${scratch}/private`,
       preparationDir: `${scratch}/prepared`,
       evidenceDir: `${scratch}/evidence`,
       timeoutMs: 500,
@@ -338,9 +324,9 @@ print(json.dumps({'reusedUnits': 0, 'facets': 0}))
   try {
     const result = await runClaimsAttempt({
       executable,
-      frontendPath: `${scratch}/frontend.json`,
+      root: `${scratch}/workspace`,
       source: "identity.sigil",
-      privateRoot: `${scratch}/private`,
+      privateStore: `${scratch}/private`,
       preparationDir: `${scratch}/prepared`,
       evidenceDir: `${scratch}/evidence`,
       timeoutMs: 1_000,

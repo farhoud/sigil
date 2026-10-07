@@ -1,8 +1,8 @@
 # Computed evaluation orchestration contract
 
 This is the shared protocol for running the claims loop on one selected Sigil
-0.9 design source. The host owns the loop: it runs the tool, captures one
-snapshot, delegates one interpretation, and recognizes one completed result.
+0.9 design source. The host owns the loop: it runs the tool, keeps one
+preparation, delegates one interpretation, and recognizes one completed result.
 The tool never launches a model and never reads skills. The interpreter child
 only reads the prepared request and returns rows. The host supplies agent
 creation, cancellation, and any enforced restrictions; run records belong
@@ -14,15 +14,18 @@ only outputs are the ingest state and the findings report.
 ## The tool surface
 
 ```text
-sigil export design . > frontend.json
-sigil-claims prepare --frontend FILE --source PATH --out NEW_DIR [--root DIR]
-sigil-claims ingest --frontend FILE --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR]
+sigil-claims prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
+sigil-claims ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
 sigil-claims extract-guidance --out DIR [--root DIR]
 ```
 
+`--root DIR` is the workspace, read directly (default `.`). `--store DIR`
+holds stored readings and reports (default `<root>/.sigil`). There is no
+export step.
+
 Exit codes: `0` is a pass or warning; `1` is a gate failure — a computed
 Disjoint verdict, a refused artifact, or a saturation-limit breach; `2` is a
-usage error, including a binding that does not match the supplied export; `3`
+usage error, including a binding that no longer matches the workspace; `3`
 is an operational failure such as an unreadable input. Exit 1 alone is never a
 verdict: a refused artifact exits 1 with an error message and no structured
 result, and only the result below plus its matching report decide a state.
@@ -31,20 +34,24 @@ Prepare writes into a fresh, initially empty preparation directory — it
 refuses one that is not empty — the files `binding.json`, `request.json`, and
 the guidance bundle (`sections.md`, `vocabulary.md`, `examples.md`,
 `rejected.md`). Its structured result names the binding path, the written
-inputs, how many Facets were presented, how many units were reused from stored
-interpretations, and the binding digest. The binding carries `format`,
-`source`, `exportDigest`, `guidanceFingerprint`, `vocabularyGeneration`,
-`closure`, and `facets`: the identity of the request, which ingest recomputes
-and compares.
+inputs, and counts: `facets` presented, `requestedUnits` to read,
+`reusedUnits` taken from stored interpretations, `regroundedUnits` kept after a
+change that did not alter them, and `uninterpretedContext` rows shown for
+reference. It also names `bindingDigest` and `workspaceDigest` (the hash of
+every resolved tree id). The binding carries `format`, `source`,
+`sourceContent`, `interfaces` (each imported component's interface hash),
+`guidanceFingerprint`, `vocabularyGeneration`, and `facets`: the identity of
+the request, which ingest recomputes and compares. A mismatch names the field
+that moved.
 
-Stored interpretations live under `<root>/.sigil/claims/interpretations`. The
-findings report and the judgment context are written under `<root>/.sigil/claims`.
+Stored interpretations live under `<store>/claims/interpretations`. The
+findings report and the judgment context are written under `<store>/claims`.
 
 Ingest prints a structured result with `version`, `source`, `state`,
 `findings` (a count), `report` (the path it just wrote), `judgmentContext`,
 `vocabularyGeneration`, and `guidanceFingerprint`. States serialize lowercase:
 `coherent`, `loose`, `disjoint`. The report file carries `version`, `source`,
-`identity` (`exportDigest`, `interpretations`, `guidanceFingerprint`,
+`identity` (`bindingDigest`, `interpretations`, `guidanceFingerprint`,
 `vocabularyGeneration`), `state`, `iterations`, `findings`, and optional
 `disagreements`. Each finding carries `class` (`contradiction`,
 `ownership-conflict`, `unmet-obligation`, `interpretation`, or `flow`), `law`,
@@ -52,40 +59,44 @@ Ingest prints a structured result with `version`, `source`, `state`,
 
 ## Select one exact source
 
-Resolve the selected source before prepare, from the export's `sources` list.
+Resolve the selected source before prepare, from the workspace's sources:
+`sigilc tree --root .` lists each as `parse.path`.
 
 - Honor an explicit source, and honor a design already selected
   unambiguously in the conversation.
-- Otherwise use the sole eligible source in the export. If several remain,
+- Otherwise use the sole eligible source in the workspace. If several remain,
   ask which one before prepare — a question to the requester, not a tool run.
-- Resolve the requested source to the exact `sources[].path` value; never
+- Resolve the requested source to the exact workspace-relative path; never
   match by an arbitrary basename.
-- An explicitly selected source absent from the export is a failure: name it
+- An explicitly selected source absent from the workspace is a failure: name it
   and stop. It is not permission to choose another source.
 
-The dependency closure is the tool's. Prepare expands it from the selected
-source; the host does not narrow it, reconstruct it, or substitute a
-workspace-wide reading for the selected source's coverage.
+Dependencies are the tool's. Prepare shows the selected source's imports as
+interface context only (rows marked `context`); the host does not widen or
+narrow them, reconstruct them, or substitute a workspace-wide reading for the
+selected source's coverage. A flow that crosses components is visible only when
+the dependency's interface states it.
 
-## Capture one snapshot and a private store
+## Keep one preparation and a private store
 
-One run uses one immutable input snapshot and a private claims store.
+One run uses one preparation and a private claims store.
 
-- Accept a supplied valid structural export, or obtain one with the export
-  command against the selected workspace. Export must succeed before prepare,
-  and ingest receives that same captured file.
 - Retain inputs in a unique run directory outside the design workspace, with a
   fresh, initially empty preparation directory inside it.
 - Before prepare, copy any existing workspace
-  `.sigil/claims/interpretations/` into the corresponding location under a
-  private storage root in the run directory. An absent store starts empty.
+  `.sigil/claims/interpretations/` into `claims/interpretations/` under a
+  private store directory in the run directory. An absent store starts empty.
   Retain the seed as evidence.
-- Pass this same private root as `--root` to both prepare and ingest. Memo
-  writes that result stay private: never merge them back into the workspace,
-  and never write to the workspace's own store.
+- Pass the workspace as `--root` and this same private directory as `--store`
+  to both prepare and ingest. Memo writes stay private: never merge them back
+  into the workspace, and never write to the workspace's own store.
+- Retain prepare's structured result: its `bindingDigest` and `workspaceDigest`
+  identify what the result covers.
 
-Results describe the captured export and the seeded store, including when the
-workspace changes later. The result handoff carries the snapshot identity so a
+Ingest recomputes the request from the live workspace. If the selected source
+or an imported interface changed after prepare, ingest refuses the binding and
+names the field that moved; the host stops rather than re-preparing. Edits to
+other files do not matter. The result handoff carries the binding digest so a
 reader can tell what the state covers.
 
 ## Hand one fresh child the prepared request
@@ -98,7 +109,7 @@ does not run the tool; it reads the prepared request and returns rows.
 | `task` | Read the prepared interpretation request and return data-only rows. This task overrides ordinary explanatory output. |
 | `skills` | Resolved installed entrypoint paths of the required `sigil-understand` and `sigil-egglog` skills. |
 | `preparation` | The preparation directory, containing the files below. |
-| `request` | Path to `request.json`: the presented Facet rows, whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
+| `request` | Path to `request.json`: the presented Facet rows (rows marked `context` are dependency interface shown for reference and take no reading), whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
 | `binding` | Path to `binding.json`, the request's identity. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
 | `artifact` | Where the host will read the returned rows. |
@@ -123,29 +134,29 @@ A completed ingest is all of:
    exit 1 with a structured result whose state is `disjoint`.
 2. The result is this invocation's payload — not a bare exit code, and not a
    file left by an earlier run.
-3. The report named by the result matches the captured inputs: `source` is
+3. The report named by the result matches the preparation: `source` is
    the selected source; `state` equals the result's state; the report version
-   is the one the result names; `identity.exportDigest` equals the captured
-   `binding.json`'s `exportDigest` — the tool's semantic export digest, never
-   a hash of raw frontend bytes in its place; `identity.guidanceFingerprint`
+   is the one the result names; `identity.bindingDigest` equals the
+   `bindingDigest` prepare returned — the tool's binding digest, never a hash
+   of raw file bytes in its place; `identity.guidanceFingerprint`
    and `identity.vocabularyGeneration` equal the binding's (and the
    result's); and `identity.interpretations` records the digest of the exact
    artifact bytes supplied, in the order supplied. That digest is the tool's
    BLAKE3 over the captured artifact: retain the captured bytes, and when you
    can compute the same digest over them, require the match.
 4. The result's `report` and `judgmentContext` paths lie under this run's
-   private root. The tool defaults `--root` to the working directory, so a
+   private store. The tool defaults `--store` to `<root>/.sigil`, so a
    dropped or mistyped flag still produces a fully consistent report written
    somewhere else; this check is what catches it.
 
 Anything else — a bare exit code, an old report, a malformed payload, a
 mismatch, or an operational failure — supplies no design state. Retain the
-matched report under the private root. Identity checks do not identify memo
-contents; the private root per run is what keeps invocations separate.
+matched report under the private store. Identity checks do not identify memo
+contents; the private store per run is what keeps invocations separate.
 
 ## Stop on the real failure
 
-When any step cannot finish — the tool is missing, export fails, the source
+When any step cannot finish — the tool is missing, the source
 is absent, the artifact is refused, the child is missing or interrupted, the
 payload is malformed, or the report does not match — stop. Name what broke and
 which step broke it. Emit no Coherent, Loose, or Disjoint. Do not retry the
@@ -159,12 +170,12 @@ After a completed ingest, hand back:
 - The findings of the matched report, with their class, law, claims,
   component, section, and detail. Flow-class findings are warnings and never
   by themselves make Disjoint.
-- The selected source, and the snapshot identity: the captured export digest
-  and the seeded store the result describes.
+- The selected source, and the preparation identity: the binding digest, the
+  workspace digest, and the seeded store the result describes.
 
 Comparison states — Drift, Converged, Closed — are not this loop's states and
 must not appear as one. The state is the selected source's; a source reached
-only through the closure is context, not a covered design.
+only as an import is context, not a covered design.
 
 ## Boundaries
 

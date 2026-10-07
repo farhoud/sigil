@@ -8,7 +8,7 @@ export type ComputedState = "coherent" | "loose" | "disjoint";
 
 export interface ClaimsEvidenceInput {
   readonly source: string;
-  readonly privateRoot: string;
+  readonly privateStore: string;
   readonly exitCode: number;
   readonly artifact: Uint8Array;
   readonly binding: JsonObject;
@@ -40,7 +40,10 @@ export function validateClaimsEvidence(
   const contextIdentity = object(context.identity);
   const requestBinding = object(input.request.binding);
   const state = result.state;
-  const rows = array(input.request.rows);
+  // Dependency interfaces ride along as context rows; only the rest are read.
+  const rows = array(input.request.rows).filter((row) =>
+    object(row)?.context !== true
+  );
   const facets = rows.map((row) => object(row)?.facet).filter((
     facet,
   ): facet is string => typeof facet === "string");
@@ -62,7 +65,7 @@ export function validateClaimsEvidence(
   for (
     const key of [
       "source",
-      "exportDigest",
+      "sourceContent",
       "guidanceFingerprint",
       "vocabularyGeneration",
     ]
@@ -104,7 +107,7 @@ export function validateClaimsEvidence(
     ]] as const
   ) {
     if (
-      !observed || observed.exportDigest !== binding.exportDigest ||
+      !observed || observed.bindingDigest !== input.prepare.bindingDigest ||
       observed.guidanceFingerprint !== binding.guidanceFingerprint ||
       observed.vocabularyGeneration !== binding.vocabularyGeneration
     ) {
@@ -119,8 +122,8 @@ export function validateClaimsEvidence(
     errors.push("interpretation digest mismatch");
   }
   if (
-    !inside(input.privateRoot, result.report) ||
-    !inside(input.privateRoot, result.judgmentContext)
+    !inside(input.privateStore, result.report) ||
+    !inside(input.privateStore, result.judgmentContext)
   ) {
     errors.push("result path outside private root");
   }
@@ -143,9 +146,11 @@ export function validateClaimsEvidence(
 
 export interface ClaimsAttemptRequest {
   readonly executable: string;
-  readonly frontendPath: string;
+  /** The workspace root `sigil-claims` reads. */
+  readonly root: string;
   readonly source: string;
-  readonly privateRoot: string;
+  /** An empty directory: no attempt may reuse an earlier reading. */
+  readonly privateStore: string;
   readonly preparationDir: string;
   readonly evidenceDir: string;
   readonly timeoutMs: number;
@@ -176,8 +181,8 @@ export interface ClaimsAttemptResult {
 export async function runClaimsAttempt(
   input: ClaimsAttemptRequest,
 ): Promise<ClaimsAttemptResult> {
-  const frontendPath = resolve(input.frontendPath);
-  const privateRoot = resolve(input.privateRoot);
+  const root = resolve(input.root);
+  const privateStore = resolve(input.privateStore);
   const preparationDir = resolve(input.preparationDir);
   const evidenceDir = resolve(input.evidenceDir);
   const deadline = Date.now() + input.timeoutMs;
@@ -194,22 +199,22 @@ export async function runClaimsAttempt(
       return failure("prepare", "attempt timeout", "interrupted");
     }
     await Deno.mkdir(evidenceDir, { recursive: true });
-    await Deno.mkdir(privateRoot, { recursive: true });
-    for await (const _entry of Deno.readDir(privateRoot)) {
-      return failure("prepare", "private claims root is not empty");
+    await Deno.mkdir(privateStore, { recursive: true });
+    for await (const _entry of Deno.readDir(privateStore)) {
+      return failure("prepare", "private claims store is not empty");
     }
     const prepared = await invoke(
       input.executable,
       [
         "prepare",
-        "--frontend",
-        frontendPath,
         "--source",
         input.source,
         "--out",
         preparationDir,
         "--root",
-        privateRoot,
+        root,
+        "--store",
+        privateStore,
       ],
       evidenceDir,
       "prepare",
@@ -270,14 +275,14 @@ export async function runClaimsAttempt(
       input.executable,
       [
         "ingest",
-        "--frontend",
-        frontendPath,
         "--binding",
         `${preparationDir}/binding.json`,
         "--claims",
         agent.finalResponsePath,
         "--root",
-        privateRoot,
+        root,
+        "--store",
+        privateStore,
       ],
       evidenceDir,
       "ingest",
@@ -299,8 +304,8 @@ export async function runClaimsAttempt(
       );
     }
     if (
-      !ingestResult || !inside(privateRoot, ingestResult.report) ||
-      !inside(privateRoot, ingestResult.judgmentContext)
+      !ingestResult || !inside(privateStore, ingestResult.report) ||
+      !inside(privateStore, ingestResult.judgmentContext)
     ) {
       return failure("validation", "native result paths escape private root");
     }
@@ -317,7 +322,7 @@ export async function runClaimsAttempt(
     }
     const validation = validateClaimsEvidence({
       source: input.source,
-      privateRoot,
+      privateStore,
       exitCode: ingested.exitCode,
       artifact,
       binding,

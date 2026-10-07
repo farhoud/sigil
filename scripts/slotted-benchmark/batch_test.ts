@@ -71,9 +71,11 @@ Deno.test("frozen batch retains seven pending records when cancelled before laun
       retained.records.every((record) => record.status === "pending"),
       true,
     );
-    equal(
-      manifest.preflight.issues.every((issue) => issue.status === "scorable"),
-      true,
+    // Booking is shown Rooms' interface only, so the ownership problem
+    // that Rooms states in its state section cannot be scored from it.
+    deepEqual(
+      manifest.preflight.issues.map((issue) => issue.status),
+      ["scorable", "drift", "scorable", "scorable"],
     );
     equal(Object.keys(manifest.input.sourceSha256).length, 7);
     equal(manifest.input.workspaceMemoPresent, false);
@@ -100,7 +102,7 @@ Deno.test("frozen batch retains seven pending records when cancelled before laun
   }
 });
 
-Deno.test("existing output directory is refused before export or child launch", async () => {
+Deno.test("existing output directory is refused before the tree read or child launch", async () => {
   const outputDir = await Deno.makeTempDir({
     prefix: "slotted-existing-batch-",
   });
@@ -112,7 +114,7 @@ Deno.test("existing output directory is refused before export or child launch", 
         passes: 1,
         outputDir,
         timeoutMs: 1000,
-        sigilExecutable: "/missing/sigil",
+        sigilcExecutable: "/missing/sigilc",
       });
     } catch (cause) {
       message = String(cause);

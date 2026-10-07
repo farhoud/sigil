@@ -41,7 +41,7 @@ change, and a discrepancy is reported rather than silently patched.
 4. Record the host and exposed model identities, agent handles, skill and
    reference hashes, workspace input hashes, actual requests and responses,
    every tool command with its exit code, and the run directory's retained
-   contents: the captured export, the seeded store, the preparation
+   contents: the seeded store, the preparation
    directory, the child's captured artifact bytes, and the report ingest
    wrote. Hash the workspace's `.sigil/claims/interpretations/` before and
    after each run; the skill must not write there.
@@ -54,11 +54,11 @@ Use this fixture:
 
 - [Computed evaluation](computed-evaluation-fixture.md): routing, actual
   Coherent, flow-only Loose, and contradiction Disjoint deliveries, source
-  resolution, tool-owned closure, memo reuse against interruption, a live edit
-  bound to the captured snapshot, and the failure cases — refused artifacts
+  resolution, tool-owned dependency context, memo reuse against interruption, a live
+  edit that makes ingest refuse the binding, and the failure cases — refused artifacts
   beside a valid Disjoint, missing prerequisites, non-conforming children
   without repair or retry, input and payload mismatches, a post-report
-  operational failure, and per-run private-root isolation.
+  operational failure, and per-run private-store isolation.
 
 ## Fault injection and limits
 
@@ -68,7 +68,7 @@ code — but label that evidence **controlled replay**, never real delegation,
 and retain the original captures and the injected change. An interruption
 produced by instruction is recorded as instruction, not as a missing child or
 missing tool. Do not claim unobserved states, untested hosts, or coverage the
-captured snapshot does not have. An unavailable `sigil` or `sigil-claims`
+captured preparation does not have. An unavailable `sigil-claims`
 binary is a recorded limitation, never a Coherent, Loose, or Disjoint.
 
 Repository observations live at `docs/skill-evaluation/sigil-compute.md`.
