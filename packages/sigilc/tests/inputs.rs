@@ -52,9 +52,7 @@ fn deleted_provider_bindings_widen_conservatively_instead_of_shrinking_the_world
     let root = workspace();
     let before = snapshot(&root);
     std::fs::remove_file(root.0.join("b.sigil")).unwrap();
-    let value = support::missing_cycle_provider();
-    let input = sigilc::frontend::DesignInput::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
-    let deleted = DesignSnapshot::capture(&root.0, input, 10_000).unwrap();
+    let deleted = DesignSnapshot::capture(&root.0, root.design_input(), 10_000).unwrap();
     for path in ["a.sigil", "c.sigil", "unrelated.sigil"] {
         assert_ne!(
             before.binding(path).unwrap(),
@@ -67,7 +65,7 @@ fn deleted_provider_bindings_widen_conservatively_instead_of_shrinking_the_world
 #[test]
 fn stale_frontend_buffers_and_context_absence_are_rejected() {
     let root = workspace();
-    let input = root.input(PATHS, json!([]));
+    let input = root.design_input();
     root.write("a.sigil", b"changed");
     assert!(
         DesignSnapshot::capture(&root.0, input, 10_000)
@@ -75,7 +73,7 @@ fn stale_frontend_buffers_and_context_absence_are_rejected() {
             .unwrap()
             .contains("source changed")
     );
-    let input = root.input(PATHS, json!([]));
+    let input = root.design_input();
     root.write(".sigil/local.json", b"{}");
     assert!(
         DesignSnapshot::capture(&root.0, input, 10_000)
@@ -83,7 +81,7 @@ fn stale_frontend_buffers_and_context_absence_are_rejected() {
             .unwrap()
             .contains("context appeared")
     );
-    let input = root.input(PATHS, json!([]));
+    let input = root.design_input();
     root.write(".sigil/config.json", b"changed");
     assert!(
         DesignSnapshot::capture(&root.0, input, 10_000)
@@ -96,7 +94,7 @@ fn stale_frontend_buffers_and_context_absence_are_rejected() {
 #[test]
 fn implementation_key_contains_only_its_target_and_ontology_format_catalog() {
     let root = workspace();
-    let mut input = root.input(PATHS, json!([]));
+    let input = root.design_input();
     let frozen = DesignIdentities::collect(&input, &BTreeMap::new())
         .unwrap()
         .freeze(DesignState::Loose, "d1".into(), true)
@@ -113,16 +111,12 @@ fn implementation_key_contains_only_its_target_and_ontology_format_catalog() {
             &frozen.catalog
         )
     );
-    let source = "component A {\ngoal {\nDescribe A.\n}\ninterface {\nOffer A.\n}\n}";
-    input
-        .sources
-        .iter_mut()
-        .find(|s| s.path == "a.sigil")
-        .unwrap()
-        .text = source.into();
-    input
-        .entities
-        .push(serde_json::from_value(support::component("a.sigil", "A", source)).unwrap());
+    // A new Component in the workspace changes the catalog, and so the key.
+    root.write(
+        "a.sigil",
+        b"component A {\ngoal {\nDescribe A.\n}\ninterface {\nOffer A.\n}\n}\ncomponent Added {\ngoal {\nDescribe it.\n}\n}",
+    );
+    let input = root.design_input();
     let changed = DesignIdentities::collect(&input, &BTreeMap::new())
         .unwrap()
         .freeze(DesignState::Coherent, "d2".into(), true)

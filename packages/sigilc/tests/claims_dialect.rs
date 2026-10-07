@@ -1,4 +1,3 @@
-use serde_json::{Value, json};
 use sigilc::{
     claims::{
         dialect::{self, Limits, Row},
@@ -12,16 +11,12 @@ use sigilc::{
 
 mod support;
 use support::{
-    BASE, BASE_CONSTRAINTS, BASE_GOAL, BASE_INTERFACE, CONSUMER, CONSUMER_GOAL, CONSUMER_INTERFACE,
+    BASE, CONSUMER, base_constraints, base_goal, base_interface, consumer_goal, consumer_interface,
     shared_input,
 };
 
 const BASE_ID: &str = "urn:sigil:component:base.sigil:Base";
 const VALUE_ID: &str = "urn:sigil:component:base.sigil:Base:tag:value";
-
-fn input_from(value: Value) -> DesignInput {
-    DesignInput::parse(&serde_json::to_vec(&value).unwrap()).unwrap()
-}
 
 fn request_for(input: &DesignInput, source: &str) -> Request {
     prepare::project(input, source).unwrap()
@@ -42,9 +37,10 @@ fn accept(
 
 #[test]
 fn an_artifact_carrying_a_rule_beside_a_valid_claim_is_refused_whole() {
+    let base_goal = base_goal();
     // Covers AE4.
     let artifact = format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+        "(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
          (rule ((holds a b c)) ((reachable a b)))\n"
     );
     let error = dialect::parse(&artifact, Limits::default()).unwrap_err();
@@ -58,6 +54,7 @@ fn an_artifact_carrying_a_rule_beside_a_valid_claim_is_refused_whole() {
 
 #[test]
 fn a_ruleset_a_command_or_a_schedule_is_refused_whole() {
+    let base_goal = base_goal();
     for offending in [
         "(ruleset extra)",
         "(run 3)",
@@ -65,7 +62,7 @@ fn a_ruleset_a_command_or_a_schedule_is_refused_whole() {
         "(relation sneaky (String))",
     ] {
         let artifact = format!(
-            "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n{offending}\n"
+            "(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n{offending}\n"
         );
         assert!(
             dialect::parse(&artifact, Limits::default()).is_err(),
@@ -76,11 +73,12 @@ fn a_ruleset_a_command_or_a_schedule_is_refused_whole() {
 
 #[test]
 fn a_non_literal_argument_is_refused() {
+    let base_goal = base_goal();
     for artifact in [
-        format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" true)\n"),
-        format!("(measure {BASE_GOAL:?} \"Base\" \"risk\" 1)\n"),
+        format!("(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" true)\n"),
+        format!("(measure {base_goal:?} \"Base\" \"risk\" 1)\n"),
         format!(
-            "(claim {BASE_GOAL:?} \"Base\" \"provides\" (f \"value\") \"required\" \"true\")\n"
+            "(claim {base_goal:?} \"Base\" \"provides\" (f \"value\") \"required\" \"true\")\n"
         ),
     ] {
         assert!(
@@ -107,11 +105,12 @@ fn the_byte_limit_is_checked_before_the_artifact_is_parsed() {
 
 #[test]
 fn the_atom_limit_is_checked_before_any_row_is_validated() {
+    let base_goal = base_goal();
     // Both rows name an unknown relation. If validation ran first the error
     // would name the relation; the atom limit has to win.
     let artifact = format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"nonsense\" \"value\" \"required\" \"true\")\n\
-         (claim {BASE_GOAL:?} \"Base\" \"nonsense\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_goal:?} \"Base\" \"nonsense\" \"value\" \"required\" \"true\")\n\
+         (claim {base_goal:?} \"Base\" \"nonsense\" \"value\" \"required\" \"true\")\n"
     );
     let limits = Limits {
         max_document_bytes: 1_000_000,
@@ -125,7 +124,8 @@ fn the_atom_limit_is_checked_before_any_row_is_validated() {
 
 #[test]
 fn a_row_with_the_wrong_column_count_is_refused_with_the_offending_atom() {
-    let artifact = format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\")\n");
+    let base_goal = base_goal();
+    let artifact = format!("(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\")\n");
     let error = dialect::parse(&artifact, Limits::default()).unwrap_err();
     assert!(error.contains("6 columns"), "got: {error}");
     assert!(
@@ -136,30 +136,31 @@ fn a_row_with_the_wrong_column_count_is_refused_with_the_offending_atom() {
 
 #[test]
 fn an_unknown_relation_modality_or_row_name_is_refused_with_the_offending_atom() {
+    let base_goal = base_goal();
     let cases = [
         (
-            format!("(claim {BASE_GOAL:?} \"Base\" \"offers\" \"value\" \"required\" \"true\")\n"),
+            format!("(claim {base_goal:?} \"Base\" \"offers\" \"value\" \"required\" \"true\")\n"),
             "offers",
         ),
         (
             format!(
-                "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"mandatory\" \"true\")\n"
+                "(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"mandatory\" \"true\")\n"
             ),
             "mandatory",
         ),
         (
             format!(
-                "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"maybe\")\n"
+                "(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"maybe\")\n"
             ),
             "maybe",
         ),
-        (format!("(assertion {BASE_GOAL:?} \"Base\")\n"), "assertion"),
+        (format!("(assertion {base_goal:?} \"Base\")\n"), "assertion"),
         (
-            format!("(property {BASE_GOAL:?} \"Base\" \"unknownFlag\" \"true\")\n"),
+            format!("(property {base_goal:?} \"Base\" \"unknownFlag\" \"true\")\n"),
             "unknownFlag",
         ),
         (
-            format!("(reading {BASE_GOAL:?} \"maybe-later\")\n"),
+            format!("(reading {base_goal:?} \"maybe-later\")\n"),
             "maybe-later",
         ),
     ];
@@ -174,22 +175,23 @@ fn an_unknown_relation_modality_or_row_name_is_refused_with_the_offending_atom()
 
 #[test]
 fn numeric_measures_follow_the_ontology_bounds() {
+    let base_goal = base_goal();
     let bad = [
         ("\"-1\"", "negative"),
         ("\"nan\"", "finite"),
         ("\"inf\"", "finite"),
     ];
     for (value, reason) in bad {
-        let artifact = format!("(measure {BASE_GOAL:?} \"Base\" \"cost\" {value})\n");
+        let artifact = format!("(measure {base_goal:?} \"Base\" \"cost\" {value})\n");
         let error = dialect::parse(&artifact, Limits::default()).unwrap_err();
         assert!(error.contains(reason), "{value} -> {error}");
     }
-    let artifact = format!("(measure {BASE_GOAL:?} \"Base\" \"risk\" \"2\")\n");
+    let artifact = format!("(measure {base_goal:?} \"Base\" \"risk\" \"2\")\n");
     let error = dialect::parse(&artifact, Limits::default()).unwrap_err();
     assert!(error.contains("greater than one"), "got: {error}");
     assert!(
         dialect::parse(
-            &format!("(measure {BASE_GOAL:?} \"Base\" \"risk\" \"0.5\")\n"),
+            &format!("(measure {base_goal:?} \"Base\" \"risk\" \"0.5\")\n"),
             Limits::default()
         )
         .is_ok()
@@ -216,9 +218,10 @@ fn the_published_relations_are_read_through_the_compilers_public_accessor() {
 
 #[test]
 fn a_claim_naming_an_entity_outside_the_closure_is_refused_by_name() {
+    let base_goal = base_goal();
     // base.sigil imports nothing, so Consumer is not in its closure.
     let artifact = format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"dependsOn\" \"Consumer\" \"required\" \"true\")\n"
+        "(claim {base_goal:?} \"Base\" \"dependsOn\" \"Consumer\" \"required\" \"true\")\n"
     );
     let error = accept(&shared_input(), BASE, &artifact).unwrap_err();
     assert!(error.contains("Consumer"), "got: {error}");
@@ -226,8 +229,9 @@ fn a_claim_naming_an_entity_outside_the_closure_is_refused_by_name() {
 
 #[test]
 fn a_claim_coining_an_identity_the_design_never_declared_is_refused() {
+    let base_goal = base_goal();
     let artifact = format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"RetryPolicy\" \"required\" \"true\")\n"
+        "(claim {base_goal:?} \"Base\" \"provides\" \"RetryPolicy\" \"required\" \"true\")\n"
     );
     let error = accept(&shared_input(), BASE, &artifact).unwrap_err();
     assert!(error.contains("RetryPolicy"), "got: {error}");
@@ -236,18 +240,20 @@ fn a_claim_coining_an_identity_the_design_never_declared_is_refused() {
 
 #[test]
 fn a_row_about_a_facet_the_request_did_not_ask_about_is_refused() {
+    let consumer_goal = consumer_goal();
     let artifact = format!(
-        "(claim {CONSUMER_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {consumer_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     );
     let error = accept(&shared_input(), BASE, &artifact).unwrap_err();
-    assert!(error.contains(CONSUMER_GOAL), "got: {error}");
+    assert!(error.contains(consumer_goal), "got: {error}");
 }
 
 #[test]
 fn identity_is_minted_deterministically_and_distinguishes_bodies() {
+    let base_interface = base_interface();
     let input = shared_input();
     let artifact = format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     );
     let once = accept(&input, BASE, &artifact).unwrap();
     let twice = accept(&input, BASE, &artifact).unwrap();
@@ -258,7 +264,7 @@ fn identity_is_minted_deterministically_and_distinguishes_bodies() {
         &input,
         BASE,
         &format!(
-            "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"permitted\" \"true\")\n"
+            "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"permitted\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -270,11 +276,13 @@ fn identity_is_minted_deterministically_and_distinguishes_bodies() {
 
 #[test]
 fn the_contract_role_on_an_accepted_fact_comes_from_the_export() {
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let input = shared_input();
     let facts = accept(
         &input,
         BASE,
-        &format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"),
+        &format!("(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"),
     )
     .unwrap();
     assert_eq!(facts[0].section, "goal");
@@ -284,7 +292,7 @@ fn the_contract_role_on_an_accepted_fact_comes_from_the_export() {
         &input,
         BASE,
         &format!(
-            "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+            "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -298,12 +306,13 @@ fn the_contract_role_on_an_accepted_fact_comes_from_the_export() {
 
 #[test]
 fn a_claim_relating_a_component_to_itself_is_grounded_then_degenerate() {
+    let base_goal = base_goal();
     // Covers AE1. The owning component has to be in the grounding set, or this
     // would be refused as ungrounded before the degenerate check could see it.
     let facts = accept(
         &shared_input(),
         BASE,
-        &format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"),
+        &format!("(claim {base_goal:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"),
     )
     .unwrap();
     assert_eq!(facts.len(), 1);
@@ -325,12 +334,13 @@ fn a_claim_relating_a_component_to_itself_is_grounded_then_degenerate() {
 
 #[test]
 fn a_claim_on_an_imported_tag_is_accepted_and_grounded() {
+    let consumer_interface = consumer_interface();
     // Covers AE5. consumer.sigil's interface Facet resolves both imported Tags.
     let facts = accept(
         &shared_input(),
         CONSUMER,
         &format!(
-            "(claim {CONSUMER_INTERFACE:?} \"Consumer\" \"uses\" \"value\" \"required\" \"true\")\n"
+            "(claim {consumer_interface:?} \"Consumer\" \"uses\" \"value\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -349,13 +359,14 @@ fn a_claim_on_an_imported_tag_is_accepted_and_grounded() {
 
 #[test]
 fn an_entity_absent_from_this_facets_resolved_records_is_ungrounded() {
+    let consumer_goal = consumer_goal();
     // consumer.sigil's goal Facet references no Tag, so `value` could not have
     // come from it, even though the claim is admissible against the closure.
     let facts = accept(
         &shared_input(),
         CONSUMER,
         &format!(
-            "(claim {CONSUMER_GOAL:?} \"Consumer\" \"uses\" \"value\" \"required\" \"true\")\n"
+            "(claim {consumer_goal:?} \"Consumer\" \"uses\" \"value\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -371,11 +382,12 @@ fn an_entity_absent_from_this_facets_resolved_records_is_ungrounded() {
 
 #[test]
 fn a_provider_component_reached_through_an_import_grounds_a_claim() {
+    let consumer_goal = consumer_goal();
     let facts = accept(
         &shared_input(),
         CONSUMER,
         &format!(
-            "(claim {CONSUMER_GOAL:?} \"Consumer\" \"dependsOn\" \"Base\" \"required\" \"true\")\n"
+            "(claim {consumer_goal:?} \"Consumer\" \"dependsOn\" \"Base\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -388,23 +400,25 @@ fn a_provider_component_reached_through_an_import_grounds_a_claim() {
 
 #[test]
 fn an_ambiguous_tag_reference_is_not_grounding_evidence() {
+    let base_constraints = base_constraints();
     // KTD6's stated limit: the resolver could not say what the name means, so
     // it cannot vouch for a claim about it.
     // base.sigil's constraints Facet resolves two of its own Tags and takes part
     // in no import, so the reference status can be changed on its own.
-    let mut value = support::shared_value();
-    for reference in value["references"].as_array_mut().unwrap() {
-        if reference["facet"] == BASE_CONSTRAINTS {
-            reference["tag"] = Value::Null;
-            reference["status"] = json!("ambiguous");
-        }
+    let mut input = shared_input();
+    for reference in input
+        .references
+        .iter_mut()
+        .filter(|r| r.facet == base_constraints)
+    {
+        reference.tag = None;
+        reference.status = sigilc::frontend::ReferenceStatus::Ambiguous;
     }
-    let input = input_from(value);
     let grounded = accept(
         &shared_input(),
         BASE,
         &format!(
-            "(claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+            "(claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -417,7 +431,7 @@ fn an_ambiguous_tag_reference_is_not_grounding_evidence() {
         &input,
         BASE,
         &format!(
-            "(claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+            "(claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
         ),
     )
     .unwrap();
@@ -434,10 +448,11 @@ fn an_ambiguous_tag_reference_is_not_grounding_evidence() {
 
 #[test]
 fn a_reading_row_is_accepted_retained_and_yields_no_claim() {
+    let base_goal = base_goal();
     let facts = accept(
         &shared_input(),
         BASE,
-        &format!("(reading {BASE_GOAL:?} \"unresolved\")\n"),
+        &format!("(reading {base_goal:?} \"unresolved\")\n"),
     )
     .unwrap();
     assert_eq!(facts.len(), 1);
@@ -450,7 +465,7 @@ fn a_reading_row_is_accepted_retained_and_yields_no_claim() {
     for outcome in vocabulary::READING_OUTCOMES {
         assert!(
             dialect::parse(
-                &format!("(reading {BASE_GOAL:?} {outcome:?})\n"),
+                &format!("(reading {base_goal:?} {outcome:?})\n"),
                 Limits::default()
             )
             .is_ok(),
@@ -461,6 +476,7 @@ fn a_reading_row_is_accepted_retained_and_yields_no_claim() {
 
 #[test]
 fn a_role_with_no_interpreted_row_is_a_gap_and_one_with_a_reading_is_not() {
+    let base_goal = base_goal();
     let input = shared_input();
     let request = request_for(&input, BASE);
 
@@ -470,7 +486,7 @@ fn a_role_with_no_interpreted_row_is_a_gap_and_one_with_a_reading_is_not() {
 
     // A reading closes the goal role without asserting anything.
     let rows = dialect::parse(
-        &format!("(reading {BASE_GOAL:?} \"no-commitment\")\n"),
+        &format!("(reading {base_goal:?} \"no-commitment\")\n"),
         Limits::default(),
     )
     .unwrap();
@@ -484,7 +500,7 @@ fn a_role_with_no_interpreted_row_is_a_gap_and_one_with_a_reading_is_not() {
 
     // A degenerate claim does not close its role.
     let rows = dialect::parse(
-        &format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"),
+        &format!("(claim {base_goal:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"),
         Limits::default(),
     )
     .unwrap();
@@ -522,18 +538,20 @@ fn deeply_nested_parens_are_refused_before_egglogs_own_parser_sees_them() {
 
 #[test]
 fn nesting_inside_a_quoted_string_does_not_count_as_depth() {
+    let base_goal = base_goal();
     // A literal argument may legitimately contain parenthesis characters; the
     // depth scan must track string state, not just paren characters.
     let artifact =
-        format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"(((a)))\" \"required\" \"true\")\n");
+        format!("(claim {base_goal:?} \"Base\" \"provides\" \"(((a)))\" \"required\" \"true\")\n");
     assert!(dialect::parse(&artifact, Limits::default()).is_ok());
 }
 
 #[test]
 fn ordinary_rows_never_approach_the_depth_limit() {
+    let base_goal = base_goal();
     for artifact in [
-        format!("(claim {BASE_GOAL:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"),
-        format!("(reading {BASE_GOAL:?} \"no-commitment\")\n"),
+        format!("(claim {base_goal:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"),
+        format!("(reading {base_goal:?} \"no-commitment\")\n"),
     ] {
         assert!(dialect::parse(&artifact, Limits::default()).is_ok());
     }
@@ -543,13 +561,15 @@ fn ordinary_rows_never_approach_the_depth_limit() {
 
 #[test]
 fn a_measure_row_is_grounded_and_admitted_like_a_claim() {
+    let base_goal = base_goal();
+    let consumer_goal = consumer_goal();
     // The Measure arm of admit()'s grounding check had no direct test: every
     // existing measure fixture used a subject grounded through its own
     // component, never exercising the ungrounded branch for this row kind.
     let grounded = accept(
         &shared_input(),
         BASE,
-        &format!("(measure {BASE_GOAL:?} \"Base\" \"risk\" \"0.5\")\n"),
+        &format!("(measure {base_goal:?} \"Base\" \"risk\" \"0.5\")\n"),
     )
     .unwrap();
     assert_eq!(grounded.len(), 1);
@@ -576,7 +596,7 @@ fn a_measure_row_is_grounded_and_admitted_like_a_claim() {
     let ungrounded = accept(
         &shared_input(),
         CONSUMER,
-        &format!("(measure {CONSUMER_GOAL:?} \"value\" \"risk\" \"0.5\")\n"),
+        &format!("(measure {consumer_goal:?} \"value\" \"risk\" \"0.5\")\n"),
     )
     .unwrap();
     assert!(
@@ -591,22 +611,7 @@ fn a_measure_row_is_grounded_and_admitted_like_a_claim() {
 /// A design with no source text at all: sufficient for identity::admit, which
 /// reads request.entities for name resolution and input only for grounding.
 fn no_source_input() -> DesignInput {
-    DesignInput::parse(
-        &serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
-            "sources": [],
-            "context": [
-                {"path": ".sigil/config.json", "text": Value::Null},
-                {"path": ".sigil/local.json", "text": Value::Null},
-                {"path": ".sigil/glossary.json", "text": Value::Null},
-            ],
-            "diagnostics": [], "imports": [],
-            "entities": [], "units": [], "groups": [], "introductions": [],
-            "references": [], "links": [],
-        }))
-        .unwrap(),
-    )
-    .unwrap()
+    support::Workspace::new().design_input()
 }
 
 #[test]
@@ -799,52 +804,21 @@ fn a_flow_row_beside_a_rule_declaration_is_refused_whole() {
 /// check without saying so. These tests therefore assert on the *absence* of a
 /// defect, which is the thing that would go unnoticed.
 fn flow_input(paragraphs: &[&str]) -> DesignInput {
-    let path = "flow.sigil";
+    // Blank lines keep every paragraph its own Facet.
     let mut text = String::from("component Flow {\n  logic {\n");
-    let mut spans = Vec::new();
     for p in paragraphs {
-        let at = text.len() + 4;
-        text.push_str(&format!("    {p}\n"));
-        spans.push((at, at + p.len()));
+        text.push_str(&format!("    {p}\n\n"));
     }
     text.push_str("  }\n}\n");
-    let id = format!("urn:sigil:component:{path}:Flow");
-    let units: Vec<Value> = spans
-        .iter()
-        .map(|(s, e)| {
-            json!({"id": format!("facet:{path}:{s}"), "source": path, "owner": id,
-                   "section": "logic", "range": {"start": s, "end": e},
-                   "proseRange": {"start": s, "end": e}, "grouping": null,
-                   "introductions": [], "references": [], "links": [],
-                   "payload": null, "valid": true, "complete": true})
-        })
-        .collect();
-    DesignInput::parse(
-        &serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
-            "sources": [{"path": path, "text": text}],
-            "context": [
-                {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.9.0\"}"},
-                {"path": ".sigil/local.json", "text": null},
-                {"path": ".sigil/glossary.json", "text": null}
-            ],
-            "diagnostics": [], "entities": [json!({
-                "id": id, "type": "Component", "label": "Flow", "source": path, "owner": null,
-                "range": {"start": 0, "end": text.len()},
-                "nameRange": {"start": 10, "end": 14},
-                "identityResolved": true, "valid": true, "complete": true})],
-            "units": units, "imports": [], "groups": [], "introductions": [],
-            "references": [], "links": []
-        }))
-        .unwrap(),
-    )
-    .unwrap()
+    let root = support::Workspace::new();
+    root.write("flow.sigil", text.as_bytes());
+    root.design_input()
 }
 
 fn facets_of(input: &DesignInput) -> Vec<String> {
-    let mut ids: Vec<String> = input.units.iter().map(|u| u.id.clone()).collect();
-    ids.sort_by_key(|id| id.rsplit(':').next().unwrap().parse::<usize>().unwrap());
-    ids
+    let mut units: Vec<_> = input.units.iter().collect();
+    units.sort_by_key(|u| u.prose_range.start);
+    units.into_iter().map(|u| u.id.clone()).collect()
 }
 
 #[test]
@@ -899,12 +873,13 @@ fn a_claim_about_a_minted_step_is_grounded_by_construction() {
 
 #[test]
 fn an_ordinary_claim_is_still_checked_for_degeneracy_and_grounding() {
+    let base_interface = base_interface();
     // The carve-outs narrow the checks; they must not disable them.
     let input = shared_input();
     let facts = accept(
         &input,
         BASE,
-        &format!(r#"(claim {BASE_INTERFACE:?} "Base" "requires" "Base" "required" "true")"#),
+        &format!(r#"(claim {base_interface:?} "Base" "requires" "Base" "required" "true")"#),
     )
     .unwrap();
     assert!(

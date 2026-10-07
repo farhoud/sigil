@@ -21,7 +21,8 @@ use std::{
 pub const REPORT_VERSION: u32 = 2;
 
 /// The directory this component owns. Never the compiler's world cache.
-pub const STORE: &str = ".sigil/claims";
+/// Inside the store directory (`<root>/.sigil` by default).
+pub const STORE: &str = "claims";
 
 /// What kind of question a finding answers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

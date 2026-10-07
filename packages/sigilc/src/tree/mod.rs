@@ -5,6 +5,7 @@
 //! Identity never depends on a position: ranges ride along for diagnostics and
 //! editor locations only.
 pub mod cache;
+pub mod design_input;
 pub mod diff;
 pub mod ids;
 
@@ -421,7 +422,7 @@ fn status_name<T: std::fmt::Debug>(status: T) -> String {
     format!("{status:?}").to_lowercase()
 }
 
-fn facet_ids_by_start(children: &[Child], out: &mut HashMap<usize, String>) {
+pub(crate) fn facet_ids_by_start(children: &[Child], out: &mut HashMap<usize, String>) {
     for child in children {
         match child {
             Child::Facet(f) => {

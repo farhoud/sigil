@@ -4,29 +4,36 @@
 //! options. The external interpretation is an input the caller supplies and can
 //! supply again, which is what makes a run reproducible.
 use super::{context, dialect, findings, guidance, identity, memo, prepare, program, vocabulary};
-use crate::{cli::Output, eqval, frontend::DesignInput};
+use crate::{
+    cli::{FRONTEND_REMOVED, Output, store_dir},
+    eqval,
+    frontend::DesignInput,
+    tree::design_input::load_design_input,
+};
 use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
 
-const MAX_FRONTEND_BYTES: u64 = 64_000_000;
 const MAX_BINDING_BYTES: u64 = 16_000_000;
 
 pub fn help() -> String {
     r#"sigil-claims — computed design validation
 
 Commands:
-  prepare --frontend FILE --source PATH --out NEW_DIR [--root DIR]
-  ingest --frontend FILE --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR]
+  prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
+  ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
   extract-guidance --out DIR [--root DIR]
 
+--root DIR is the workspace; sigil-claims reads its .sigil configuration and
+sources directly (default: the current directory). --store DIR holds the stored
+interpretations and the reports (default: ROOT/.sigil).
+
 Flow:
-  1. Export structural input:  sigil export design . > frontend.json
-  2. Prepare one source:       sigil-claims prepare --frontend frontend.json \
+  1. Prepare one source:       sigil-claims prepare --root . \
                                  --source a.sigil --out claims-a
-  3. An external interpreter reads claims-a and writes Datalog claims.
-  4. Ingest the result:        sigil-claims ingest --frontend frontend.json \
+  2. An external interpreter reads claims-a and writes Datalog claims.
+  3. Ingest the result:        sigil-claims ingest --root . \
                                  --binding claims-a/binding.json --claims claims-a/result.egg
 
 This command never launches a model. Step 3 is the caller's, and passing the
@@ -56,15 +63,15 @@ pub fn run(args: &[&str]) -> Output {
     };
 
     let allowed: &[&str] = match command {
-        // `--root` reaches prepare too: the store of past interpretations lives
-        // under it, and prepare is what decides which units are still stale.
-        "prepare" => &["--frontend", "--source", "--out", "--root"],
+        // The store reaches prepare too: past interpretations live in it, and
+        // prepare is what decides which units are still stale.
+        "prepare" => &["--source", "--out", "--root", "--store"],
         "ingest" => &[
-            "--frontend",
             "--binding",
             "--claims",
             "--claims-repeat",
             "--root",
+            "--store",
         ],
         _ => &["--out", "--root"],
     };
@@ -77,6 +84,7 @@ pub fn run(args: &[&str]) -> Output {
         .get("--root")
         .cloned()
         .unwrap_or_else(|| ".".to_string());
+    let store = store_dir(Path::new(&root), options.get("--store").map(String::as_str));
 
     match command {
         "extract-guidance" => {
@@ -95,12 +103,8 @@ pub fn run(args: &[&str]) -> Output {
             // Every required flag is resolved before anything is opened, so a
             // missing option is a usage error rather than whatever the
             // filesystem happens to say about the file that was supplied.
-            let (frontend_path, source, out) = (
-                required("--frontend")?,
-                required("--source")?,
-                required("--out")?,
-            );
-            let input = frontend(&frontend_path)?;
+            let (source, out) = (required("--source")?, required("--out")?);
+            let input = workspace(&root, &store)?;
             let request = prepare::project(&input, &source).map_err(usage)?;
 
             // Ask only for what is stale. The binding is left whole: it is what
@@ -108,7 +112,7 @@ pub fn run(args: &[&str]) -> Output {
             // prepared directory fail its own check. Only the presentation
             // narrows, and a request with nothing stale is valid and asks for
             // nothing.
-            let (stale, reused) = memo::split(&request, Path::new(&root));
+            let (stale, reused) = memo::split(&request, &store);
             let asked = prepare::presenting(&request, &stale);
             let written = prepare::write(&asked, Path::new(&out)).map_err(operational)?;
             json(
@@ -123,17 +127,16 @@ pub fn run(args: &[&str]) -> Output {
                 }),
             )
         }
-        _ => ingest(&options, &root),
+        _ => ingest(&options, &root, &store),
     }
 }
 
-fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
-    let (frontend_path, binding_path, claims_path) = (
-        required_in(options, "--frontend")?,
+fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Output {
+    let (binding_path, claims_path) = (
         required_in(options, "--binding")?,
         required_in(options, "--claims")?,
     );
-    let input = frontend(&frontend_path)?;
+    let input = workspace(root, store)?;
     let supplied: prepare::Binding = serde_json::from_slice(
         &crate::cli::read(&binding_path, MAX_BINDING_BYTES).map_err(operational)?,
     )
@@ -170,7 +173,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     // grounding runs here, so a stored claim naming an entity that has since
     // left the closure is refused like any other.
     let all_units = memo::units(&request);
-    let (stale, reused) = memo::split(&request, Path::new(root));
+    let (stale, reused) = memo::split(&request, store);
     let stale_keys: BTreeSet<String> = stale.iter().map(|unit| unit.key.clone()).collect();
     let reused: BTreeMap<String, Vec<dialect::Row>> = reused
         .into_iter()
@@ -219,7 +222,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
             .cloned()
             .collect();
         if !mine.is_empty() {
-            memo::save(Path::new(root), &request, unit, &mine).map_err(operational)?;
+            memo::save(store, &request, unit, &mine).map_err(operational)?;
         }
     }
 
@@ -248,9 +251,9 @@ fn ingest(options: &BTreeMap<String, String>, root: &str) -> Output {
     }
     let context = context::build(&request, &facts, &world, report.identity.clone());
 
-    let report_path = findings::write(&report, Path::new(root)).map_err(operational)?;
-    let context_path = findings::store(&context, Path::new(root), &context.source, context::SUFFIX)
-        .map_err(operational)?;
+    let report_path = findings::write(&report, store).map_err(operational)?;
+    let context_path =
+        findings::store(&context, store, &context.source, context::SUFFIX).map_err(operational)?;
 
     let code = match report.state {
         findings::State::Disjoint => 1,
@@ -309,14 +312,14 @@ fn mismatch(current: &prepare::Binding, supplied: &prepare::Binding) -> String {
         differences.push("binding contents".into());
     }
     format!(
-        "binding does not match the supplied export: {}. Prepare a new directory.",
+        "binding does not match the current workspace: {}. Prepare a new directory.",
         differences.join(", ")
     )
 }
 
-fn frontend(path: &str) -> Result<DesignInput, (u8, String)> {
-    let bytes = crate::cli::read(path, MAX_FRONTEND_BYTES).map_err(operational)?;
-    DesignInput::parse(&bytes).map_err(operational)
+/// The structural input of the workspace at `root`, read natively.
+fn workspace(root: &str, store: &Path) -> Result<DesignInput, (u8, String)> {
+    load_design_input(Path::new(root), store).map_err(operational)
 }
 
 fn artifact(path: &str, limits: dialect::Limits) -> Result<String, (u8, String)> {
@@ -335,6 +338,9 @@ fn parse(tail: &[&str], allowed: &[&str]) -> Result<BTreeMap<String, String>, (u
     let mut options = BTreeMap::new();
     let mut rest = tail;
     while let Some((flag, next)) = rest.split_first() {
+        if *flag == "--frontend" {
+            return Err((2, FRONTEND_REMOVED.into()));
+        }
         if !allowed.contains(flag) || options.contains_key(*flag) {
             return Err((2, format!("unknown or duplicate option: {flag}")));
         }

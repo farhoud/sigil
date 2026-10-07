@@ -2,7 +2,7 @@ use sigilc::claims::{guidance, prepare, vocabulary};
 use std::fs;
 
 mod support;
-use support::{BASE, BASE_CONSTRAINTS, CONSUMER, Workspace, shared_input};
+use support::{BASE, CONSUMER, Workspace, base_constraints, shared_input};
 
 fn out_dir(name: &str) -> std::path::PathBuf {
     let path = std::env::temp_dir().join(format!(
@@ -256,68 +256,25 @@ fn preparation_reads_no_sigil_file_from_the_workspace() {
 
 // ------------------------------------------------- grouping a Logic section
 
-/// Build an export whose components carry Logic Facets in a known order.
+/// Build a workspace whose components carry Logic Facets in a known order.
 ///
-/// The shared 0.8 fixture has no Logic section, and the grouping is entirely
-/// about Logic, so these tests need a source of their own. Facet identities are
-/// derived from byte offsets the same way the real frontend derives them, so
-/// source order and identity order genuinely disagree where the offsets cross a
-/// power of ten — which is the ordering bug this grouping has to avoid.
+/// The shared fixture has no Logic section, and the grouping is entirely about
+/// Logic, so these tests need a source of their own. Facet identities are
+/// content ids, so source order is read from each Facet's position, never from
+/// its id.
 fn logic_input(bodies: &[(&str, &[&str])]) -> sigilc::frontend::DesignInput {
-    use serde_json::json;
-    let path = "flows.sigil";
     let mut text = String::new();
-    let mut units = Vec::new();
-    let mut entities = Vec::new();
     for (name, proses) in bodies {
-        let start = text.len();
         text.push_str(&format!("component {name} {{\n  logic {{\n"));
-        let mut spans = Vec::new();
         for prose in *proses {
-            // Pad so one section's Facets straddle offset 1000: sorting the
-            // identities as text would then put "1000" before "999".
-            text.push_str(&"    // pad\n".repeat(40));
-            let at = text.len();
-            text.push_str(&format!("    {prose}\n"));
-            spans.push((at, at + prose.len() + 4));
+            // A blank line keeps each paragraph its own Facet.
+            text.push_str(&format!("    {prose}\n\n"));
         }
         text.push_str("  }\n}\n");
-        let end = text.len();
-        let id = format!("urn:sigil:component:{path}:{name}");
-        entities.push(json!({
-            "id": id, "type": "Component", "label": name, "source": path, "owner": null,
-            "range": {"start": start, "end": end},
-            "nameRange": {"start": start + 10, "end": start + 10 + name.len()},
-            "identityResolved": true, "valid": true, "complete": true
-        }));
-        for (s, e) in spans {
-            units.push(json!({
-                "id": format!("facet:{path}:{s}"), "source": path, "owner": id,
-                "section": "logic", "range": {"start": s, "end": e},
-                "proseRange": {"start": s, "end": e},
-                "grouping": null, "introductions": [], "references": [], "links": [],
-                "payload": null, "valid": true, "complete": true
-            }));
-        }
     }
-    // The frontend hands units in whatever order it walked them; shuffle so the
-    // grouping cannot pass by accident.
-    units.reverse();
-    sigilc::frontend::DesignInput::parse(
-        &serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
-            "sources": [{"path": path, "text": text}],
-            "context": [
-                {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.9.0\"}"},
-                {"path": ".sigil/local.json", "text": null},
-                {"path": ".sigil/glossary.json", "text": null}
-            ],
-            "diagnostics": [], "entities": entities, "units": units,
-            "imports": [], "groups": [], "introductions": [], "references": [], "links": []
-        }))
-        .unwrap(),
-    )
-    .unwrap()
+    let root = Workspace::new();
+    root.write("flows.sigil", text.as_bytes());
+    root.design_input()
 }
 
 #[test]
@@ -339,24 +296,18 @@ fn a_components_logic_facets_are_grouped_in_source_order() {
     assert_eq!(flow.component_label, "Pipeline");
     assert_eq!(flow.facets.len(), 5, "all five Facets, none dropped");
 
-    // Source order, which is offset order -- not identity order.
-    let offsets: Vec<usize> = flow
-        .facets
+    // Source order: the grouped Facets run by position, whatever their ids sort as.
+    let mut by_position: Vec<_> = input
+        .units
         .iter()
-        .map(|f| f.rsplit(':').next().unwrap().parse().unwrap())
+        .filter(|u| flow.facets.contains(&u.id))
         .collect();
-    let mut sorted = offsets.clone();
-    sorted.sort_unstable();
-    assert_eq!(offsets, sorted, "grouped Facets run in source order");
-
-    // The ordering actually crosses a power of ten here, so a text sort of the
-    // identities would disagree. Pin that, or this test proves nothing.
-    let mut as_text: Vec<&String> = flow.facets.iter().collect();
-    as_text.sort();
-    let in_order: Vec<&String> = flow.facets.iter().collect();
-    assert_ne!(
-        as_text, in_order,
-        "fixture must straddle a power of ten, or it cannot catch a text sort"
+    by_position.sort_by_key(|u| u.prose_range.start);
+    let in_source_order: Vec<&String> = by_position.iter().map(|u| &u.id).collect();
+    let grouped: Vec<&String> = flow.facets.iter().collect();
+    assert_eq!(
+        grouped, in_source_order,
+        "grouped Facets run in source order"
     );
 
     // Each grouped Facet still has its own row, identity and prose.
@@ -786,7 +737,7 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
             facet: logic_facet.clone(),
             step: 1,
             operand: "constraint".into(),
-            value: BASE_CONSTRAINTS.into(),
+            value: base_constraints().into(),
         }],
     )
     .unwrap();
@@ -814,12 +765,12 @@ fn a_reused_guard_remaps_its_constraint_facet_reference() {
     assert!(matches!(
         &guard_unit.1[0],
         Row::Guard { facet, value, .. }
-            if facet == &shifted[&logic_facet] && value == &shifted[BASE_CONSTRAINTS]
+            if facet == &shifted[&logic_facet] && value == &shifted[base_constraints()]
     ));
     assert!(
         stale
             .iter()
-            .any(|unit| unit.facets == [shifted[BASE_CONSTRAINTS].clone()])
+            .any(|unit| unit.facets == [shifted[base_constraints()].clone()])
     );
     assert!(
         !stale

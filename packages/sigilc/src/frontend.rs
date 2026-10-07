@@ -163,7 +163,7 @@ pub struct Unit {
     pub valid: bool,
     pub complete: bool,
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Section {
     Goal,

@@ -19,8 +19,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Where stored interpretations live, under the path this component owns.
-const DIR: &str = ".sigil/claims/interpretations";
+/// Where stored interpretations live, inside the store directory (`<root>/.sigil` by default).
+const DIR: &str = "claims/interpretations";
 
 /// One thing the interpreter is shown, and the unit staleness is judged in.
 ///

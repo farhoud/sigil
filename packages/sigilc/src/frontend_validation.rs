@@ -153,7 +153,12 @@ pub(crate) fn validate(input: &DesignInput) -> Result<(), String> {
     };
     for u in &input.units {
         let text = source(&sources, &u.source)?;
-        occurrence("facet", &u.id, &u.source, &u.range, text)?;
+        // A Facet's id is its content id; only the other kinds name an occurrence.
+        checked_range(text, &u.range)?;
+        ensure(
+            u.id.starts_with("facet:"),
+            "Facet identity is not a facet id",
+        )?;
         checked_range(text, &u.prose_range)?;
         ensure(
             contains(&u.range, &u.prose_range),

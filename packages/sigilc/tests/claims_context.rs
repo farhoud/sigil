@@ -12,7 +12,7 @@ use sigilc::{
 use std::{fs, path::PathBuf};
 
 mod support;
-use support::{BASE, BASE_CONSTRAINTS, BASE_GOAL, BASE_INTERFACE, shared_input};
+use support::{BASE, base_constraints, base_goal, base_interface, shared_input};
 
 fn run(artifact: &str) -> (Request, Vec<Fact>, Context) {
     let input = shared_input();
@@ -42,10 +42,11 @@ fn repo_root() -> PathBuf {
 
 #[test]
 fn every_unit_in_the_design_appears_even_with_nothing_found_about_it() {
+    let base_interface = base_interface();
     // R21. Only the interface Facet is interpreted; all three still appear, so
     // a defect in an untouched unit stays reachable by the judge.
     let (request, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     assert_eq!(context.units.len(), request.rows.len());
     assert_eq!(context.units.len(), 3, "base.sigil declares three Facets");
@@ -64,9 +65,11 @@ fn every_unit_in_the_design_appears_even_with_nothing_found_about_it() {
 
 #[test]
 fn coverage_distinguishes_a_read_facet_from_an_untouched_one() {
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let (_, _, context) = run(&format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     let coverage = |facet: &str| {
         context
@@ -76,24 +79,25 @@ fn coverage_distinguishes_a_read_facet_from_an_untouched_one() {
             .unwrap()
             .coverage
     };
-    assert_eq!(coverage(BASE_GOAL), Coverage::ReadWithoutCommitment);
-    assert_eq!(coverage(BASE_INTERFACE), Coverage::Interpreted);
-    assert_eq!(coverage(BASE_CONSTRAINTS), Coverage::Uninterpreted);
+    assert_eq!(coverage(base_goal), Coverage::ReadWithoutCommitment);
+    assert_eq!(coverage(base_interface), Coverage::Interpreted);
+    assert_eq!(coverage(base_constraints()), Coverage::Uninterpreted);
 }
 
 // ---------------------------------------------------------------- provenance
 
 #[test]
 fn a_derived_conclusion_carries_the_law_and_witness_that_reached_it() {
+    let base_interface = base_interface();
     // R20. The judge reads the conclusion rather than re-deriving it.
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_INTERFACE:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
+         (claim {base_interface:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     let unit = context
         .units
         .iter()
-        .find(|u| u.facet == BASE_INTERFACE)
+        .find(|u| u.facet == base_interface)
         .unwrap();
     assert!(
         unit.derived.iter().any(|d| d.law == "asserted"),
@@ -110,16 +114,17 @@ fn a_derived_conclusion_carries_the_law_and_witness_that_reached_it() {
 
 #[test]
 fn an_unfilled_promise_names_what_raised_it_and_where_it_is_stated() {
+    let base_interface = base_interface();
     // R22, and the one missing-detail admission element that is a fact:
     // "The existing promise or supplied intent that makes the omission
     // relevant" (integrations/skills/sigil-evaluate/references/design-review.md).
     let (request, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
     ));
     let unit = context
         .units
         .iter()
-        .find(|u| u.facet == BASE_INTERFACE)
+        .find(|u| u.facet == base_interface)
         .unwrap();
     assert_eq!(unit.obligations.len(), 1, "{:?}", unit.obligations);
     let obligation = &unit.obligations[0];
@@ -128,13 +133,13 @@ fn an_unfilled_promise_names_what_raised_it_and_where_it_is_stated() {
 
     let promise = &obligation.promise;
     assert!(!promise.claim.is_empty(), "the promise names its claim");
-    assert_eq!(promise.facet, BASE_INTERFACE);
+    assert_eq!(promise.facet, base_interface);
     assert_eq!(promise.section, "interface");
     assert_eq!(promise.source, BASE);
     let expected = &request
         .rows
         .iter()
-        .find(|r| r.facet == BASE_INTERFACE)
+        .find(|r| r.facet == base_interface)
         .unwrap()
         .prose;
     assert_eq!(
@@ -155,14 +160,15 @@ fn an_unfilled_promise_names_what_raised_it_and_where_it_is_stated() {
 
 #[test]
 fn a_promise_that_is_met_still_appears_with_its_filled_state() {
+    let base_interface = base_interface();
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n"
     ));
     let unit = context
         .units
         .iter()
-        .find(|u| u.facet == BASE_INTERFACE)
+        .find(|u| u.facet == base_interface)
         .unwrap();
     assert_eq!(unit.obligations.len(), 1);
     assert!(
@@ -176,10 +182,12 @@ fn a_promise_that_is_met_still_appears_with_its_filled_state() {
 
 #[test]
 fn the_same_proposition_in_two_units_is_proposed_without_a_verdict() {
+    let base_constraints = base_constraints();
+    let base_interface = base_interface();
     // R23.
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     let duplicates: Vec<_> = context
         .simplification
@@ -199,10 +207,11 @@ fn the_same_proposition_in_two_units_is_proposed_without_a_verdict() {
 
 #[test]
 fn a_claim_the_laws_already_derive_is_proposed_as_subsumed() {
+    let base_interface = base_interface();
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_INTERFACE:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
+         (claim {base_interface:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     let subsumed: Vec<_> = context
         .simplification
@@ -223,8 +232,9 @@ fn a_claim_the_laws_already_derive_is_proposed_as_subsumed() {
 
 #[test]
 fn a_design_with_nothing_redundant_proposes_nothing() {
+    let base_interface = base_interface();
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     assert!(
         context.simplification.is_empty(),
@@ -237,9 +247,10 @@ fn a_design_with_nothing_redundant_proposes_nothing() {
 
 #[test]
 fn a_consumer_can_quote_evidence_without_opening_a_sigil_file() {
+    let base_interface = base_interface();
     // R24. Everything a missing-detail question needs is in the context.
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
     ));
     // What a consumer actually receives is the serialized form, so the check
     // is that the prose survives it rather than that it appears verbatim in
@@ -264,8 +275,9 @@ fn a_consumer_can_quote_evidence_without_opening_a_sigil_file() {
 
 #[test]
 fn the_context_records_what_it_was_computed_from() {
+    let base_interface = base_interface();
     let (request, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     assert_eq!(context.source, BASE);
     assert_eq!(
@@ -284,8 +296,9 @@ fn the_context_records_what_it_was_computed_from() {
 
 #[test]
 fn the_context_round_trips_through_its_serialized_form() {
+    let base_interface = base_interface();
     let (_, _, context) = run(&format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n"
     ));
     let bytes = serde_json::to_vec(&context).unwrap();
     let back: Context = serde_json::from_slice(&bytes).unwrap();

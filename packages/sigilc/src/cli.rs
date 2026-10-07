@@ -2,12 +2,12 @@
 use crate::{
     catalog, comparison, design,
     eqval::{DesignState, Limits},
-    frontend::DesignInput,
     implementation,
     inputs::{self, DesignSnapshot},
     scope::{ResolvedScope, Scope},
     sources::{self, Selection},
     store::{Freshness, LockedStore, PreparedBinding, StoreLimits},
+    tree::design_input::load_design_input,
     turtle::{self, TurtleLimits},
 };
 use serde::Serialize;
@@ -20,17 +20,29 @@ use std::{
 
 pub type Output = Result<(u8, String), (u8, String)>;
 
+/// The usage error for the removed pre-exported structural input.
+pub const FRONTEND_REMOVED: &str = "--frontend is no longer accepted: sigilc reads the workspace itself; pass the workspace directory with --root DIR (default .)";
+
+/// Where disposable state lives: `--store DIR`, else `<root>/.sigil`.
+pub fn store_dir(root: &Path, store: Option<&str>) -> PathBuf {
+    store.map_or_else(|| root.join(".sigil"), PathBuf::from)
+}
+
 // @sigil implements packages/sigilc/store.sigil::SigilProjectionStore::DesignCommands interface
 pub fn run(args: &[&str]) -> Output {
     if args.first() == Some(&"clean") {
-        let root = match args {
-            ["clean"] => ".",
-            ["clean", "--root", root] => root,
-            _ => return Err((2, "Usage: sigilc clean [--root DIR]".into())),
+        let (root, store) = match args {
+            ["clean"] => (".", None),
+            ["clean", "--root", root] => (*root, None),
+            ["clean", "--store", store] => (".", Some(*store)),
+            ["clean", "--root", root, "--store", store]
+            | ["clean", "--store", store, "--root", root] => (*root, Some(*store)),
+            _ => return Err((2, "Usage: sigilc clean [--root DIR] [--store DIR]".into())),
         };
+        let store = store_dir(Path::new(root), store);
         return json(
             0,
-            &serde_json::json!({"version":2,"removed":crate::store::clean(Path::new(root)).map_err(runtime)?}),
+            &serde_json::json!({"version":2,"removed":crate::store::clean_in(Path::new(root), &store).map_err(runtime)?}),
         );
     }
     let (command, side, tail) = match args {
@@ -45,16 +57,10 @@ pub fn run(args: &[&str]) -> Output {
         _ => return Err((2, "Invalid command or options. Run sigilc --help.".into())),
     };
     let allowed: &[&str] = match command {
-        "scope" => &["--root", "--frontend", "--format"],
-        "prepare" => &["--root", "--frontend", "--source", "--out"],
-        "ingest" => &["--root", "--frontend", "--source", "--binding", "--turtle"],
-        _ => &[
-            "--root",
-            "--frontend",
-            "--limits",
-            "--allow-empty",
-            "--format",
-        ],
+        "scope" => &["--root", "--store", "--format"],
+        "prepare" => &["--root", "--store", "--source", "--out"],
+        "ingest" => &["--root", "--store", "--source", "--binding", "--turtle"],
+        _ => &["--root", "--store", "--limits", "--allow-empty", "--format"],
     };
     let mut allowed = allowed.to_vec();
     allowed.push("--scope");
@@ -64,6 +70,9 @@ pub fn run(args: &[&str]) -> Output {
     let mut options = BTreeMap::new();
     let mut rest = tail;
     while let Some((flag, next)) = rest.split_first() {
+        if *flag == "--frontend" {
+            return Err((2, FRONTEND_REMOVED.into()));
+        }
         if !allowed.contains(flag) || options.contains_key(flag) {
             return Err((2, format!("unknown or duplicate option: {flag}")));
         }
@@ -89,7 +98,6 @@ pub fn run(args: &[&str]) -> Output {
             .copied()
             .ok_or_else(|| (2, format!("required option: {key}")))
     };
-    let frontend = required("--frontend")?;
     if command == "scope" {
         required("--scope")?;
     }
@@ -125,8 +133,8 @@ pub fn run(args: &[&str]) -> Output {
         None
     };
     let root = PathBuf::from(options.get("--root").copied().unwrap_or("."));
+    let store_path = store_dir(&root, options.get("--store").copied());
     if [
-        Some(frontend),
         binding_path,
         turtle_path,
         options.get("--limits").copied(),
@@ -152,9 +160,8 @@ pub fn run(args: &[&str]) -> Output {
         .map_err(runtime)?
         .unwrap_or_default();
     let store_limits = StoreLimits::default();
-    let mut store = LockedStore::open(&root, store_limits).map_err(runtime)?;
-    let mut input =
-        DesignInput::parse(&read(frontend, 32_000_000).map_err(runtime)?).map_err(runtime)?;
+    let mut store = LockedStore::open_in(&root, &store_path, store_limits).map_err(runtime)?;
+    let mut input = load_design_input(&root, &store_path).map_err(runtime)?;
     let scope = options
         .get("--scope")
         .map(|path| {
@@ -533,7 +540,7 @@ fn ingest_hint(message: &str) -> Option<&'static str> {
         || message.starts_with("frontend context changed:")
     {
         return Some(
-            "recapture the structural Design export and run prepare again; do not reuse this binding or Turtle",
+            "a workspace file changed while sigilc was reading it or after it was prepared; run prepare again and do not reuse this binding or Turtle",
         );
     }
     if message.starts_with("prepared semantic inputs no longer match current inputs")

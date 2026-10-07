@@ -12,7 +12,7 @@ use std::fs;
 
 mod support;
 use support::{
-    BASE, BASE_CONSTRAINTS, BASE_GOAL, BASE_INTERFACE, CONSUMER, Workspace, shared_input,
+    BASE, CONSUMER, Workspace, base_constraints, base_goal, base_interface, shared_input,
 };
 
 const BASE_ID: &str = "urn:sigil:component:base.sigil:Base";
@@ -30,10 +30,13 @@ fn run(artifact: &str) -> (Request, Vec<Fact>, Report) {
 
 /// An interpretation that covers every declared role of base.sigil cleanly.
 fn clean_artifact() -> String {
+    let base_constraints = base_constraints();
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
     )
 }
 
@@ -41,9 +44,10 @@ fn clean_artifact() -> String {
 
 #[test]
 fn a_claim_pointing_at_itself_is_reported_degenerate_and_leaves_its_unit_unsatisfied() {
+    let base_goal = base_goal();
     // Covers AE1.
     let (_, facts, report) = run(&format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"
+        "(claim {base_goal:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n"
     ));
     let degenerate: Vec<_> = report
         .findings
@@ -69,11 +73,13 @@ fn a_claim_pointing_at_itself_is_reported_degenerate_and_leaves_its_unit_unsatis
 
 #[test]
 fn a_role_the_interpretation_skipped_is_named_with_its_component() {
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     // Covers AE2. base.sigil declares goal, interface and constraints; this
     // artifact answers two of them.
     let (_, _, report) = run(&format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     let gaps: Vec<_> = report
         .findings
@@ -113,10 +119,13 @@ fn a_declared_but_empty_role_is_not_a_gap() {
 
 #[test]
 fn every_finding_names_exactly_one_law_and_cites_its_claims() {
+    let base_constraints = base_constraints();
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let (_, _, report) = run(&format!(
-        "(claim {BASE_GOAL:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_goal:?} \"Base\" \"provides\" \"Base\" \"required\" \"true\")\n\
+         (claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
     ));
     assert!(!report.findings.is_empty());
     for finding in &report.findings {
@@ -138,10 +147,13 @@ fn every_finding_names_exactly_one_law_and_cites_its_claims() {
 
 #[test]
 fn an_unmet_promise_names_the_claim_that_raised_it() {
+    let base_constraints = base_constraints();
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let (_, facts, report) = run(&format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
     ));
     let unmet: Vec<_> = report
         .findings
@@ -151,7 +163,7 @@ fn an_unmet_promise_names_the_claim_that_raised_it() {
     assert_eq!(unmet.len(), 1, "{:?}", report.findings);
     let raised_by = &unmet[0].claims[0];
     let origin = facts.iter().find(|f| &f.id == raised_by).unwrap();
-    assert_eq!(origin.facet, BASE_INTERFACE);
+    assert_eq!(origin.facet, base_interface);
     assert_eq!(unmet[0].section, "interface");
     assert!(unmet[0].detail.contains("provides"), "{}", unmet[0].detail);
 }
@@ -169,17 +181,20 @@ fn a_fully_interpreted_design_with_no_defect_is_coherent() {
 
 #[test]
 fn an_unresolved_promise_is_loose_and_a_contradiction_is_disjoint() {
+    let base_constraints = base_constraints();
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let (_, _, loose) = run(&format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"requires\" \"result\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
     ));
     assert_eq!(loose.state, State::Loose);
 
     let (_, _, disjoint) = run(&format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"provides\" \"value\" \"required\" \"false\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"provides\" \"value\" \"required\" \"false\")\n"
     ));
     assert_eq!(disjoint.state, State::Disjoint, "{:?}", disjoint.findings);
 }
@@ -280,17 +295,20 @@ fn two_identical_interpretations_disagree_about_nothing() {
 
 #[test]
 fn one_differing_claim_is_reported_against_the_facet_it_came_from() {
+    let base_constraints = base_constraints();
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     let (request, first, _) = run(&clean_artifact());
     let changed = format!(
-        "(reading {BASE_GOAL:?} \"no-commitment\")\n\
-         (claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
-         (claim {BASE_CONSTRAINTS:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
+        "(reading {base_goal:?} \"no-commitment\")\n\
+         (claim {base_interface:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n\
+         (claim {base_constraints:?} \"Base\" \"owns\" \"value\" \"required\" \"true\")\n"
     );
     let repeat = admit_against(&request, &changed);
     let disagreements = findings::disagreements(&first, &repeat);
     assert_eq!(disagreements.len(), 2, "{disagreements:?}");
     for entry in &disagreements {
-        assert_eq!(entry.facet, BASE_INTERFACE, "{entry:?}");
+        assert_eq!(entry.facet, base_interface, "{entry:?}");
         assert_eq!(entry.section, "interface");
         assert!(entry.detail.contains("unstable"), "{}", entry.detail);
     }
@@ -303,10 +321,12 @@ fn one_differing_claim_is_reported_against_the_facet_it_came_from() {
 
 #[test]
 fn a_facet_only_the_repeat_read_is_a_disagreement_and_still_a_gap() {
+    let base_goal = base_goal();
+    let base_interface = base_interface();
     // The first interpretation stays the sole basis for the computed report, so
     // the gap it produced is not suppressed by the comparison.
     let first_artifact = format!(
-        "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     );
     let (request, first, mut report) = run(&first_artifact);
     assert!(
@@ -321,13 +341,13 @@ fn a_facet_only_the_repeat_read_is_a_disagreement_and_still_a_gap() {
     let repeat = admit_against(
         &request,
         &format!(
-            "(claim {BASE_INTERFACE:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
-             (reading {BASE_GOAL:?} \"no-commitment\")\n"
+            "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n\
+             (reading {base_goal:?} \"no-commitment\")\n"
         ),
     );
     let disagreements = findings::disagreements(&first, &repeat);
     assert_eq!(disagreements.len(), 1, "{disagreements:?}");
-    assert_eq!(disagreements[0].facet, BASE_GOAL);
+    assert_eq!(disagreements[0].facet, base_goal);
     assert_eq!(disagreements[0].only_in, "repeat");
 
     findings::attach(&mut report, disagreements);
@@ -385,67 +405,20 @@ fn supplying_a_second_artifact_changes_the_recorded_report_identity() {
 
 // ------------------------------------------------- flow findings (U6)
 
-/// A one-component export with a Logic section, since base.sigil has none.
+/// A one-component workspace with a Logic section, since base.sigil has none.
 fn flow_design(paragraphs: &[&str]) -> (sigilc::frontend::DesignInput, Vec<String>) {
-    use serde_json::{Value, json};
-    let path = "flow.sigil";
     let mut text = String::from("component Flow {\n  logic {\n");
-    let mut spans = Vec::new();
     for p in paragraphs {
-        let at = text.len() + 4;
-        text.push_str(&format!("    {p}\n"));
-        spans.push((at, at + p.len()));
+        text.push_str(&format!("    {p}\n\n"));
     }
-    text.push_str("  }\n  constraints {\n");
-    let guard_at = text.len() + 4;
-    text.push_str("    a stated constraint\n");
-    let guard_span = (guard_at, guard_at + "a stated constraint".len());
-    text.push_str("  }\n}\n");
-    let id = format!("urn:sigil:component:{path}:Flow");
-    let units: Vec<Value> = spans
-        .iter()
-        .map(|(s, e)| {
-            json!({"id": format!("facet:{path}:{s}"), "source": path, "owner": id,
-                   "section": "logic", "range": {"start": s, "end": e},
-                   "proseRange": {"start": s, "end": e}, "grouping": null,
-                   "introductions": [], "references": [], "links": [], "payload": null,
-                   "valid": true, "complete": true})
-        })
-        .collect();
-    let mut units = units;
-    units.push(
-        json!({"id": format!("facet:{path}:{}", guard_span.0), "source": path,
-        "owner": id, "section": "constraints",
-        "range": {"start": guard_span.0, "end": guard_span.1},
-        "proseRange": {"start": guard_span.0, "end": guard_span.1}, "grouping": null,
-        "introductions": [], "references": [], "links": [], "payload": null,
-        "valid": true, "complete": true}),
-    );
+    text.push_str("  }\n  constraints {\n    a stated constraint\n  }\n}\n");
+    let root = Workspace::new();
+    root.write("flow.sigil", text.as_bytes());
+    let input = root.design_input();
     // Logic Facets first, then the constraints Facet, so callers index by order.
-    let mut facets: Vec<String> = spans
-        .iter()
-        .map(|(s, _)| format!("facet:{path}:{s}"))
-        .collect();
-    facets.push(format!("facet:{path}:{}", guard_span.0));
-    let input = sigilc::frontend::DesignInput::parse(
-        &serde_json::to_vec(&json!({
-            "schemaVersion": 2, "languageVersion": "0.9.0", "frontendVersion": "test",
-            "sources": [{"path": path, "text": text}],
-            "context": [
-                {"path": ".sigil/config.json", "text": "{\"sigilVersion\":\"0.9.0\"}"},
-                {"path": ".sigil/local.json", "text": null},
-                {"path": ".sigil/glossary.json", "text": null}
-            ],
-            "diagnostics": [], "entities": [json!({
-                "id": id, "type": "Component", "label": "Flow", "source": path, "owner": null,
-                "range": {"start": 0, "end": text.len()}, "nameRange": {"start": 10, "end": 14},
-                "identityResolved": true, "valid": true, "complete": true})],
-            "units": units, "imports": [], "groups": [], "introductions": [],
-            "references": [], "links": []
-        }))
-        .unwrap(),
-    )
-    .unwrap();
+    let mut units: Vec<_> = input.units.iter().collect();
+    units.sort_by_key(|u| u.prose_range.start);
+    let facets = units.into_iter().map(|u| u.id.clone()).collect();
     (input, facets)
 }
 

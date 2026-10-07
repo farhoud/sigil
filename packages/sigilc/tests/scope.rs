@@ -96,23 +96,40 @@ fn focus_order_and_membership_are_separate_and_bindings_reuse_full_world_inputs(
 
 #[test]
 fn unresolved_graph_widens_visibly_and_diagnostics_remain_attributable() {
-    let root = workspace();
-    let mut value = support::missing_cycle_provider();
-    value["diagnostics"].as_array_mut().unwrap().extend([
-        json!({"code":"GLOBAL","stage":"workspace","severity":"error","message":"global","related":[]}),
-        json!({"code":"CONFIG","stage":"workspace","severity":"warning","message":"config","filePath":".sigil/config.json","related":[]})
-    ]);
-    let mut partial = DesignInput::parse(&serde_json::to_vec(&value).unwrap()).unwrap();
+    let extra = |file: Option<&str>| -> Vec<sigilc::frontend::Diagnostic> {
+        let mut config = json!({"code":"CONFIG","stage":"workspace","severity":"warning","message":"config","filePath":".sigil/config.json","related":[]});
+        let mut global = json!({"code":"GLOBAL","stage":"workspace","severity":"error","message":"global","related":[]});
+        if let Some(file) = file {
+            global["filePath"] = json!(file);
+        }
+        config["related"] = json!([]);
+        [global, config]
+            .into_iter()
+            .map(|d| serde_json::from_value(d).unwrap())
+            .collect()
+    };
+    // `a.sigil` imports the deleted `b.sigil`: the import resolves to nothing, so
+    // the world widens to every remaining source, and nothing is dropped.
+    let root = support::missing_cycle_provider_workspace();
+    root.write("source.any", b"arbitrary implementation bytes");
+    let mut partial = input(&root);
+    assert_eq!(
+        partial.diagnostics.len(),
+        1,
+        "the unresolved import is reported"
+    );
+    partial.diagnostics.extend(extra(None));
     let result = resolve(&root, &mut partial, &["c.sigil"]);
     assert!(result.report.design.conservative_full_bundle);
     assert_eq!(result.report.design.sources.len(), PATHS.len() - 1);
     assert_eq!(partial.diagnostics.len(), 3);
-    let mut valid = support::cycle_value();
-    value["diagnostics"][0]["filePath"] = json!("unrelated.sigil");
-    valid["diagnostics"] = value["diagnostics"].clone();
-    let mut scoped = DesignInput::parse(&serde_json::to_vec(&valid).unwrap()).unwrap();
+    // A diagnostic on a file the scope excludes is dropped; global and context ones stay.
+    let root = workspace();
+    let mut scoped = input(&root);
+    assert!(scoped.diagnostics.is_empty());
+    scoped.diagnostics.extend(extra(Some("unrelated.sigil")));
     resolve(&root, &mut scoped, &["c.sigil"]);
-    assert_eq!(scoped.diagnostics.len(), 2);
+    assert_eq!(scoped.diagnostics.len(), 1);
 }
 
 #[test]

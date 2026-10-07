@@ -14,8 +14,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const WORLDS: &str = ".sigil/worlds";
-const INDEX: &str = ".sigil/worlds/index.json";
+/// Paths inside the store directory, which is `<root>/.sigil` unless `--store` moves it.
+const WORLDS: &str = "worlds";
+const INDEX: &str = "worlds/index.json";
+const TREES: &str = "trees";
 const INDEX_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,23 +84,32 @@ impl Default for StoreLimits {
 /// Owns the exclusive lock until dropped. Host code computes current Design and
 /// catalog bindings inside this lifetime before preparing or publishing.
 pub struct LockedStore {
+    /// The workspace root: where the authored and implementation sources are read.
     root: PathBuf,
+    /// The store directory: where the projections and their index live.
+    store: PathBuf,
     _lock: File,
     index: Index,
     limits: StoreLimits,
 }
 
 impl LockedStore {
+    /// Open the store at its default place, `<root>/.sigil`.
     pub fn open(root: &Path, limits: StoreLimits) -> Result<Self, String> {
-        let (root, lock) = acquire(root)?;
-        let index = match fs::symlink_metadata(sources::checked_path(&root, INDEX)?) {
+        Self::open_in(root, &root.join(".sigil"), limits)
+    }
+
+    /// Open the store in `store`, while the sources are read from `root`.
+    pub fn open_in(root: &Path, store: &Path, limits: StoreLimits) -> Result<Self, String> {
+        let (root, store, lock) = acquire(root, store)?;
+        let index = match fs::symlink_metadata(sources::checked_path(&store, INDEX)?) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Index {
                 version: INDEX_VERSION,
                 entries: BTreeMap::new(),
             },
             Err(e) => return Err(e.to_string()),
             Ok(_) => serde_json::from_slice::<Index>(
-                &sources::capture(&root, INDEX, limits.max_index_bytes)?.bytes,
+                &sources::capture(&store, INDEX, limits.max_index_bytes)?.bytes,
             )
             .map_err(|e| format!("invalid projection index: {e}"))?,
         };
@@ -115,6 +126,7 @@ impl LockedStore {
         }
         Ok(Self {
             root,
+            store,
             _lock: lock,
             index,
             limits,
@@ -196,7 +208,7 @@ impl LockedStore {
             && previous.binding != *current
         {
             let previous_key = history_key(&previous.binding)?;
-            preserve_projection(&self.root, &key, &previous_key, self.limits)?;
+            preserve_projection(&self.store, &key, &previous_key, self.limits)?;
             proposed.entries.insert(previous_key, previous);
             proposed.entries.remove(&key);
         }
@@ -215,11 +227,11 @@ impl LockedStore {
         // A crash between replacements leaves a detectable checksum mismatch or
         // orphan. Failed publication never becomes current in this handle either.
         atomic_write(
-            &self.root,
+            &self.store,
             &format!("{WORLDS}/{key}.egg"),
             encoded.as_bytes(),
         )?;
-        atomic_write(&self.root, INDEX, &data)?;
+        atomic_write(&self.store, INDEX, &data)?;
         self.index = proposed;
         Ok(generation)
     }
@@ -239,7 +251,7 @@ impl LockedStore {
             return Ok(inspected(status));
         }
         let path = format!("{WORLDS}/{key}.egg");
-        match fs::symlink_metadata(sources::checked_path(&self.root, &path)?) {
+        match fs::symlink_metadata(sources::checked_path(&self.store, &path)?) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 return Ok(inspected(Freshness::Incomplete));
             }
@@ -248,7 +260,7 @@ impl LockedStore {
             _ => (),
         }
         let captured = sources::capture(
-            &self.root,
+            &self.store,
             &path,
             self.limits.assertions.max_document_bytes as u64,
         )?;
@@ -318,9 +330,20 @@ impl LockedStore {
 
 // @sigil implements packages/sigilc/store.sigil::SigilProjectionStore::DisposableCleanup interface
 pub fn clean(root: &Path) -> Result<Vec<String>, String> {
-    let (root, _lock) = acquire(root)?;
+    clean_in(root, &root.join(".sigil"))
+}
+
+/// Remove the disposable state in `store`: projections and the tree cache.
+pub fn clean_in(root: &Path, store: &Path) -> Result<Vec<String>, String> {
+    let (root, store, _lock) = acquire(root, store)?;
+    // Report paths the way the caller can read them: under the workspace root
+    // when the store sits there, otherwise under the store directory itself.
+    let label = store
+        .strip_prefix(&root)
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| store.display().to_string());
     let mut removed = Vec::new();
-    for entry in fs::read_dir(sources::checked_path(&root, WORLDS)?).map_err(|e| e.to_string())? {
+    for entry in fs::read_dir(sources::checked_path(&store, WORLDS)?).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         if entry.file_name() == ".lock" {
             continue;
@@ -334,16 +357,30 @@ pub fn clean(root: &Path) -> Result<Vec<String>, String> {
             fs::remove_file(entry.path())
         }
         .map_err(|e| e.to_string())?;
-        removed.push(format!("{WORLDS}/{}", entry.file_name().to_string_lossy()));
+        removed.push(format!(
+            "{label}/{WORLDS}/{}",
+            entry.file_name().to_string_lossy()
+        ));
+    }
+    // The tree cache is disposable too; `trees` is only ever a directory.
+    let trees = sources::checked_path(&store, TREES)?;
+    if fs::symlink_metadata(&trees).is_ok_and(|m| m.is_dir()) {
+        fs::remove_dir_all(&trees).map_err(|e| e.to_string())?;
+        removed.push(format!("{label}/{TREES}"));
     }
     removed.sort();
     Ok(removed)
 }
 
-fn acquire(root: &Path) -> Result<(PathBuf, File), String> {
+/// The workspace root and the store directory, canonical, with the store locked.
+fn acquire(root: &Path, store: &Path) -> Result<(PathBuf, PathBuf, File), String> {
     let root = root.canonicalize().map_err(|e| e.to_string())?;
-    fs::create_dir_all(sources::checked_path(&root, WORLDS)?).map_err(|e| e.to_string())?;
-    let path = sources::checked_path(&root, &format!("{WORLDS}/.lock"))?;
+    if fs::symlink_metadata(store).is_ok_and(|m| m.file_type().is_symlink()) {
+        return Err(format!("symlink path is not allowed: {}", store.display()));
+    }
+    fs::create_dir_all(store.join(WORLDS)).map_err(|e| e.to_string())?;
+    let store = store.canonicalize().map_err(|e| e.to_string())?;
+    let path = sources::checked_path(&store, &format!("{WORLDS}/.lock"))?;
     regular_or_absent(&path)?;
     let lock = OpenOptions::new()
         .create(true)
@@ -354,7 +391,7 @@ fn acquire(root: &Path) -> Result<(PathBuf, File), String> {
         .map_err(|e| e.to_string())?;
     lock.try_lock()
         .map_err(|e| format!("projection store lock unavailable: {e}"))?;
-    Ok((root, lock))
+    Ok((root, store, lock))
 }
 
 fn inspected(status: Freshness) -> Inspection {

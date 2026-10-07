@@ -1,5 +1,4 @@
 mod support;
-use serde_json::json;
 use sigilc::{
     catalog::{self, DesignIdentities},
     eqval::DesignState,
@@ -14,22 +13,17 @@ fn frontend() -> DesignInput {
     let root = support::Workspace::new();
     root.write("a.sigil", a.as_bytes());
     root.write("b.sigil", b.as_bytes());
-    let mut input = root.input(&["a.sigil", "b.sigil"], json!([]));
-    input.entities = vec![
-        support::component("a.sigil", "A", a),
-        support::component("b.sigil", "B", b),
-    ]
-    .into_iter()
-    .map(|v| serde_json::from_value(v).unwrap())
-    .collect();
-    input
-        .units
-        .push(serde_json::from_value(support::unit("a.sigil", "A", a, "Describe A.")).unwrap());
-    input.validate().unwrap();
-    input
+    root.design_input()
+}
+
+/// The id of A's goal Facet, which the tests name in Turtle as `<UNIT>`.
+fn unit() -> &'static str {
+    static ID: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    ID.get_or_init(|| support::facet_in(&frontend(), "a.sigil", "goal"))
 }
 
 fn facts(body: &str) -> Vec<Assertion> {
+    let body = body.replace("<UNIT>", &format!("<{}>", unit()));
     turtle::parse(format!("@prefix s: <https://sigil.dev/ontology/1#> . @prefix a: <urn:sigil:entity:a.sigil:> . @prefix b: <urn:sigil:entity:b.sigil:> . @prefix c: <urn:sigil:component:a.sigil:> . {body}").as_bytes(), TurtleLimits::default()).unwrap()
 }
 
@@ -114,10 +108,10 @@ fn declarations_are_owned_and_explicit_but_foreign_references_are_allowed() {
         "c:A a s:State .",
         "c:A s:label \"changed\" .",
         "<urn:sigil:component:b.sigil:B> a s:Component .",
-        "<facet:a.sigil:21> a s:State .",
-        "c:A s:uses <facet:a.sigil:21> .",
-        "<facet:a.sigil:21> s:target <facet:a.sigil:21> .",
-        "<facet:a.sigil:21> a s:Contract; s:relation \"owns\", \"hasContract\" .",
+        "<UNIT> a s:State .",
+        "c:A s:uses <UNIT> .",
+        "<UNIT> s:target <UNIT> .",
+        "<UNIT> a s:Contract; s:relation \"owns\", \"hasContract\" .",
         "<urn:sigil:entity:a.sigil:%52ead> a s:Capability; s:label \"Read\" .",
         "<urn:sigil:entity:a.sigil:> a s:Capability; s:label \"Empty\" .",
     ] {
@@ -126,17 +120,10 @@ fn declarations_are_owned_and_explicit_but_foreign_references_are_allowed() {
             "{body}"
         );
     }
-    let local = facts(
-        "c:A a s:Component; s:label \"A\"; s:uses b:Foreign . <facet:a.sigil:21> a s:Contract .",
-    );
+    let local = facts("c:A a s:Component; s:label \"A\"; s:uses b:Foreign . <UNIT> a s:Contract .");
     catalog::validate_design("a.sigil", &input, &local).unwrap();
     assert!(
-        catalog::validate_design(
-            "b.sigil",
-            &input,
-            &facts("<facet:a.sigil:21> s:expected false .")
-        )
-        .is_err()
+        catalog::validate_design("b.sigil", &input, &facts("<UNIT> s:expected false .")).is_err()
     );
     assert!(
         DesignIdentities::collect(&input, &BTreeMap::from([("a.sigil".into(), local.clone())]))
@@ -179,9 +166,9 @@ fn implementation_cannot_expand_or_mutate_the_identity_universe() {
         "c:A a s:State .",
         "c:A s:label \"alias\" .",
         "a:Read s:label \"Read\" .", // Language is part of label identity.
-        "c:A s:uses <facet:a.sigil:21> .",
+        "c:A s:uses <UNIT> .",
         "c:A s:uses s:Component .", // Classes are vocabulary only in rdf:type.
-        "<facet:a.sigil:21> a s:Contract .",
+        "<UNIT> a s:Contract .",
     ] {
         assert!(
             catalog.validate_implementation(&facts(body)).is_err(),
