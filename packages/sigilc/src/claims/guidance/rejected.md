@@ -52,7 +52,7 @@ the Facet does not state, passes every check the tool can run.
 **Refused as ungrounded** when `RetryPolicy` appears nowhere in the Facet's
 resolved references, is not the Facet's owning component, and is not a provider
 component reachable through the source's imports. **Refused outright** when it
-names an entity outside the design's resolved import closure.
+names an entity outside the request's entity list.
 
 Two narrower versions of the same mistake:
 
@@ -60,8 +60,9 @@ Two narrower versions of the same mistake:
   refused; the frontend reserves those identities and the tool mints every
   claim identity itself.
 - **Naming a Tag you can see but the Facet cannot.** A Tag owned by another
-  component, in a source this one does not import, is out of closure even
-  though it exists in the workspace.
+  component, in a source this one does not import, or one that a dependency keeps in a
+  private section, is not on the entity list even though it exists in the
+  workspace.
 
 ## A rule beside valid data
 

@@ -2,7 +2,7 @@
 
 Every Facet you read belongs to exactly one of seven contract roles. You are not
 told the role in the row you complete, and you must not restate it: the tool
-fills that column from the design export, which is the only thing that knows it.
+fills that column from the workspace, which is the only thing that knows it.
 What the role changes is *what kind of claim the Facet can support*.
 
 | Role | Read it as |
@@ -81,15 +81,21 @@ prose does not name a Tag, do not invent a claim about it. Return a `reading`
 row instead.
 
 **The entity list is wider than what a Facet may name.** The request's
-`entities` lists every component and Tag in the whole closure, including ones a
-source never imports. Being on that list does not ground a name. The request's
-`imports` list says, for each source, which components it imports from and which
-Tag names it takes from each. A Facet may name another component only if its own
-source appears in `imports` with that component under `from`. Look the source up
-there before you write the claim. When a Facet names a module only in passing,
-such as in a list of allowed dependencies, and that module is not in the source's
-`imports`, return a `reading` for that part instead of a claim the tool refuses
-as ungrounded.
+`entities` lists this source's own components and Tags, each component it
+imports from, and the Tags those components expose in their interfaces. Being on
+that list does not ground a name. The request's `imports` list says which
+components the source imports from and which Tag names it takes from each. A
+Facet may name another component only if the source appears in `imports` with
+that component under `from`. Look it up there before you write the claim. When a
+Facet names a module only in passing, such as in a list of allowed dependencies,
+and that module is not in `imports`, return a `reading` for that part instead of
+a claim the tool refuses as ungrounded.
+
+**Imported interface Facets are context.** A row marked `"context": true` is an
+interface Facet of a component this source imports. It is there so you can read
+what the names it exposes mean. Return nothing for it: its own source's run
+reads it. A dependency's other roles are not presented at all, and nothing they
+introduce is on the entity list.
 
 **Who does the requiring.** For `requires`, `provides`, `owns`, and `dependsOn`,
 the subject is a component (or a step, for a flow). Never a Tag. A Tag cannot

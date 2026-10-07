@@ -85,7 +85,7 @@ pub fn commits(section: &str) -> bool {
 /// Build the program this tool evaluates, as text.
 ///
 /// Exposed so a reader can see exactly what was run: the laws are fixed, and
-/// everything else is a row derived from the export or from an accepted fact.
+/// everything else is a row derived from the request or from an accepted fact.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::SectionAwareClosure interface,constraints,cases
 pub fn program(request: &Request, facts: &[Fact]) -> String {
     let mut out = String::from(include_str!("claims.egg"));

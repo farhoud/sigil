@@ -168,12 +168,12 @@ A claim's relation is one of these, and nothing else:
 ## What you never supply
 
 **A section.** No row carries the contract role. The tool fills it from the
-export, because only the export knows it, and asking you to restate it would
+workspace, because only the workspace knows it, and asking you to restate it would
 create drift the column exists to catch.
 
 **An identity.** The tool mints every claim identity. Do not declare a Component
 or a Tag — the frontend reserves those — and do not name an entity outside the
-design's resolved import closure.
+request's entity list.
 
 **A law.** The rules that derive contradictions, ownership conflicts and unmet
 obligations are compiled into the tool. You supply what the design says; the

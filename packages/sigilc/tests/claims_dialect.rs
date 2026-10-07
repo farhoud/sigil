@@ -19,7 +19,7 @@ const BASE_ID: &str = "urn:sigil:component:base.sigil:Base";
 const VALUE_ID: &str = "urn:sigil:component:base.sigil:Base:tag:value";
 
 fn request_for(input: &DesignInput, source: &str) -> Request {
-    prepare::project(input, source).unwrap()
+    support::project(input, source).unwrap()
 }
 
 /// Parse then admit, which is the order ingest uses.
@@ -625,10 +625,10 @@ fn a_label_shared_by_two_entities_in_the_closure_is_refused_as_ambiguous() {
         binding: Binding {
             format: prepare::REQUEST_FORMAT,
             source: "d.sigil".into(),
-            export_digest: "digest".into(),
+            source_content: "content".into(),
+            interfaces: Vec::new(),
             guidance_fingerprint: "guidance".into(),
             vocabulary_generation: vocabulary::VOCABULARY_GENERATION,
-            closure: vec!["d.sigil".into()],
             facets: vec!["f1".into()],
         },
         rows: vec![prepare::FacetRow {
@@ -638,6 +638,7 @@ fn a_label_shared_by_two_entities_in_the_closure_is_refused_as_ambiguous() {
             section: "interface".into(),
             source: "d.sigil".into(),
             prose: "prose".into(),
+            context: false,
         }],
         flows: Vec::new(),
         imports: Vec::new(),

@@ -27,6 +27,7 @@ fn request(roles: &[(&str, &str, &str)]) -> Request {
             section: (*section).to_string(),
             source: SRC.to_string(),
             prose: "prose".to_string(),
+            context: false,
         })
         .collect();
     let mut declared: Vec<(String, String)> = rows
@@ -39,10 +40,10 @@ fn request(roles: &[(&str, &str, &str)]) -> Request {
         binding: Binding {
             format: 1,
             source: SRC.to_string(),
-            export_digest: "digest".into(),
+            source_content: "content".into(),
+            interfaces: Vec::new(),
             guidance_fingerprint: "guidance".into(),
             vocabulary_generation: 1,
-            closure: vec![SRC.to_string()],
             facets: rows.iter().map(|r| r.facet.clone()).collect(),
         },
         rows,

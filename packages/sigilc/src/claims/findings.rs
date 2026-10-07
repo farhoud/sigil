@@ -17,8 +17,10 @@ use std::{
 /// Changes when the on-disk report's shape changes.
 ///
 /// 2 adds the flow finding classes. They are part of the report a consumer
-/// reads, so a reader pinned to 1 cannot be handed one.
-pub const REPORT_VERSION: u32 = 2;
+/// reads, so a reader pinned to 1 cannot be handed one. 3 replaces the
+/// identity's export digest with the digest of the tree-based binding and adds
+/// the `uninterpreted-context` finding.
+pub const REPORT_VERSION: u32 = 3;
 
 /// The directory this component owns. Never the compiler's world cache.
 /// Inside the store directory (`<root>/.sigil` by default).
@@ -64,7 +66,8 @@ pub struct Finding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Identity {
-    pub export_digest: String,
+    /// Digest of the request binding the report was computed under.
+    pub binding_digest: String,
     /// Every interpretation artifact supplied, in the order supplied.
     pub interpretations: Vec<String>,
     pub guidance_fingerprint: String,
@@ -303,17 +306,13 @@ pub fn report(
     findings.dedup();
 
     // A finding is reported by each run whose selected source authored a step
-    // or a Facet it names. The closure is presented whole, so without this a
-    // dependency's findings appear in every dependent's report as well as its
-    // own. A finding naming two sources reaches both authors deliberately:
+    // or a Facet it names. Imported interface readings join the program as
+    // context, so without this a dependency's findings appear in every
+    // dependent's report as well as its own. A finding naming two sources
+    // reaches both authors deliberately:
     // an ownership conflict names a step and the owning component by
     // construction, and neither author can fix it alone.
-    let mine: BTreeSet<&str> = request
-        .rows
-        .iter()
-        .filter(|r| r.source == request.binding.source)
-        .map(|r| r.facet.as_str())
-        .collect();
+    let mine: BTreeSet<&str> = request.own_rows().map(|r| r.facet.as_str()).collect();
     let owned = |id: &str| {
         origin
             .get(id)
@@ -322,17 +321,36 @@ pub fn report(
     findings.retain(|f| {
         f.claims.iter().any(|id| owned(id))
             || request
-                .rows
-                .iter()
+                .own_rows()
                 .any(|r| r.component == f.component && r.source == request.binding.source)
     });
+
+    // An imported interface Facet nothing has read yet. Added after the
+    // ownership filter above: it names a dependency's Facet on purpose, so its
+    // author can see why this source's check is looser than it looks. This
+    // run never requests it; its own source's run does.
+    for (component, facet) in super::identity::uninterpreted_context(request, facts) {
+        findings.push(Finding {
+            class: Class::Interpretation,
+            law: "uninterpreted-context".into(),
+            subject: component.clone(),
+            object: facet,
+            claims: Vec::new(),
+            component,
+            section: "interface".into(),
+            detail: "this imported interface Facet has no stored reading, so claims that depend on it could not be checked; prepare its own source to read it"
+                .into(),
+        });
+    }
+    findings.sort();
+    findings.dedup();
 
     let state = state_of(&findings);
     Report {
         version: REPORT_VERSION,
         source: request.binding.source.clone(),
         identity: Identity {
-            export_digest: request.binding.export_digest.clone(),
+            binding_digest: request.binding.digest(),
             interpretations: interpretations.to_vec(),
             guidance_fingerprint: world.guidance_fingerprint.clone(),
             vocabulary_generation: request.binding.vocabulary_generation,

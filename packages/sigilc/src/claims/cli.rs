@@ -8,7 +8,8 @@ use crate::{
     cli::{FRONTEND_REMOVED, Output, store_dir},
     eqval,
     frontend::DesignInput,
-    tree::design_input::load_design_input,
+    inputs::DesignBasis,
+    tree::design_input::load_design,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -104,26 +105,38 @@ pub fn run(args: &[&str]) -> Output {
             // missing option is a usage error rather than whatever the
             // filesystem happens to say about the file that was supplied.
             let (source, out) = (required("--source")?, required("--out")?);
-            let input = workspace(&root, &store)?;
-            let request = prepare::project(&input, &source).map_err(usage)?;
+            let (input, basis) = workspace(&root, &store)?;
+            let request = prepare::project(&input, &basis, &source).map_err(usage)?;
 
             // Ask only for what is stale. The binding is left whole: it is what
             // ingest recomputes and compares, so narrowing it would make every
             // prepared directory fail its own check. Only the presentation
             // narrows, and a request with nothing stale is valid and asks for
-            // nothing.
-            let (stale, reused) = memo::split(&request, &store);
-            let asked = prepare::presenting(&request, &stale);
+            // nothing. A stored reading whose grounding context moved is
+            // re-checked here without a model call; the ones that still hold
+            // have their recorded context refreshed.
+            let split = memo::split(&request, &input, &store);
+            let refreshed = memo::refresh(&store, &split).map_err(operational)?;
+            let asked = prepare::presenting(&request, &split.stale);
             let written = prepare::write(&asked, Path::new(&out)).map_err(operational)?;
+            let older = memo::older_entries(&store);
             json(
                 0,
                 &serde_json::json!({
                     "version": findings::REPORT_VERSION,
                     "binding": Path::new(&out).join("binding.json"),
                     "inputs": written,
-                    "facets": asked.rows.len(),
-                    "reusedUnits": reused.len(),
+                    "facets": asked.own_rows().count(),
+                    "requestedUnits": split.stale.len(),
+                    "reusedUnits": split.reused.len(),
+                    "regroundedUnits": refreshed,
+                    "uninterpretedContext": split.uninterpreted_context.len(),
                     "bindingDigest": request.binding.digest(),
+                    "workspaceDigest": prepare::workspace_digest(&basis),
+                    "olderMemoEntries": older,
+                    "note": (older > 0).then(|| format!(
+                        "{older} stored reading(s) were written by an older memo format and are ignored; every unit they covered will be read again, and they are removed at the next ingest"
+                    )),
                 }),
             )
         }
@@ -136,16 +149,17 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         required_in(options, "--binding")?,
         required_in(options, "--claims")?,
     );
-    let input = workspace(root, store)?;
+    let (input, basis) = workspace(root, store)?;
     let supplied: prepare::Binding = serde_json::from_slice(
         &crate::cli::read(&binding_path, MAX_BINDING_BYTES).map_err(operational)?,
     )
     .map_err(|e| operational(format!("{binding_path}: {e}")))?;
 
-    // The request is recomputed from the export now, and the supplied binding
-    // has to match it exactly. A stale binding cannot be paired with a fresh
-    // export, and a guidance change invalidates the pair the same way.
-    let request = prepare::project(&input, &supplied.source).map_err(usage)?;
+    // The request is recomputed from the workspace now, and the supplied
+    // binding has to match it field by field. Only what the request is built
+    // from can reject a binding, so an edit to an unrelated source or to a
+    // dependency's private sections leaves it intact.
+    let request = prepare::project(&input, &basis, &supplied.source).map_err(usage)?;
     if request.binding != supplied {
         return Err((2, mismatch(&request.binding, &supplied)));
     }
@@ -154,7 +168,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     let first_text = artifact(&claims_path, limits)?;
     let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
     let requested_facets: BTreeSet<String> =
-        request.rows.iter().map(|row| row.facet.clone()).collect();
+        request.own_rows().map(|row| row.facet.clone()).collect();
     if let Some(row) = supplied
         .iter()
         .find(|row| !requested_facets.contains(row.facet()))
@@ -166,23 +180,29 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         )));
     }
 
-    // Stored rows join first readings before admission, so the closure sees the
-    // whole design. A supplied reading for a cached unit is composed with the
-    // other units' first readings before admission, then compared against that
-    // stored answer; it never replaces the cache. Reused rows are re-admitted:
-    // grounding runs here, so a stored claim naming an entity that has since
-    // left the closure is refused like any other.
+    // Stored rows join first readings before admission, so the program sees the
+    // whole design the request presents. A supplied reading for a cached unit
+    // is composed with the other units' first readings before admission, then
+    // compared against that stored answer; it never replaces the cache. Reused
+    // rows are re-admitted: grounding runs here, so a stored claim naming an
+    // entity that has since left the request is refused like any other. Stored
+    // readings of imported interface Facets join as context; one this
+    // source's request cannot admit is dropped rather than refusing the run,
+    // because it was read in its own source's world, not this one's.
     let all_units = memo::units(&request);
-    let (stale, reused) = memo::split(&request, store);
-    let stale_keys: BTreeSet<String> = stale.iter().map(|unit| unit.key.clone()).collect();
-    let reused: BTreeMap<String, Vec<dialect::Row>> = reused
+    let split = memo::split(&request, &input, store);
+    let stale_keys: BTreeSet<String> = split.stale.iter().map(|unit| unit.key.clone()).collect();
+    let stale = split.stale;
+    let reused: BTreeMap<String, Vec<dialect::Row>> = split
+        .reused
         .into_iter()
         .map(|(unit, rows)| (unit.key, rows))
         .collect();
+    let admitter = identity::Admitter::new(&request, &input);
     let mut rows = Vec::new();
     let mut comparison_rows = Vec::new();
     let mut has_cached_second_reading = false;
-    for unit in &all_units {
+    for unit in all_units.iter().filter(|u| !u.context) {
         let mine: Vec<_> = supplied
             .iter()
             .filter(|row| unit.facets.iter().any(|facet| facet == row.facet()))
@@ -206,6 +226,12 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
             )));
         }
     }
+    for (_, stored) in &split.context {
+        if admitter.admit(stored).is_ok() {
+            rows.extend(stored.iter().cloned());
+            comparison_rows.extend(stored.iter().cloned());
+        }
+    }
     rows.sort();
     rows.dedup();
     comparison_rows.sort();
@@ -214,7 +240,12 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
 
     // Only first readings of stale units are stored, and only after admission,
-    // so a refused artifact or second reading leaves the cache untouched.
+    // so a refused artifact or second reading leaves the cache untouched. Each
+    // is stored with the defects admission accepted, so a later re-grounding
+    // does not read them as new. Entries another memo version wrote are
+    // removed first, and counted.
+    let mut pruned = 0;
+    let mut stored_units = 0;
     for unit in &stale {
         let mine: Vec<_> = supplied
             .iter()
@@ -222,7 +253,16 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
             .cloned()
             .collect();
         if !mine.is_empty() {
-            memo::save(store, &request, unit, &mine).map_err(operational)?;
+            if stored_units == 0 {
+                pruned = memo::prune_older(store).map_err(operational)?;
+            }
+            let defects = facts
+                .iter()
+                .filter(|f| unit.facets.contains(&f.facet))
+                .flat_map(|f| f.defects.iter().cloned())
+                .collect();
+            memo::save(store, &request, unit, &mine, defects).map_err(operational)?;
+            stored_units += 1;
         }
     }
 
@@ -270,6 +310,8 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
             "judgmentContext": context_path,
             "vocabularyGeneration": vocabulary::VOCABULARY_GENERATION,
             "guidanceFingerprint": report.identity.guidance_fingerprint,
+            "storedUnits": stored_units,
+            "prunedMemoEntries": pruned,
         }),
     )
 }
@@ -283,12 +325,27 @@ fn mismatch(current: &prepare::Binding, supplied: &prepare::Binding) -> String {
         }
     };
     note(
-        "export digest",
-        &current.export_digest,
-        &supplied.export_digest,
+        "source content",
+        &current.source_content,
+        &supplied.source_content,
     );
+    let hashes = |binding: &prepare::Binding| -> BTreeMap<String, String> {
+        binding
+            .interfaces
+            .iter()
+            .map(|i| (i.key(), i.hash.clone()))
+            .collect()
+    };
+    let (now, then) = (hashes(current), hashes(supplied));
+    for key in now.keys().chain(then.keys()).collect::<BTreeSet<_>>() {
+        let (a, b) = (
+            now.get(key).map_or("absent", String::as_str),
+            then.get(key).map_or("absent", String::as_str),
+        );
+        note(&format!("interface of {key}"), a, b);
+    }
     note(
-        "guidance fingerprint",
+        "guidance",
         &current.guidance_fingerprint,
         &supplied.guidance_fingerprint,
     );
@@ -302,11 +359,11 @@ fn mismatch(current: &prepare::Binding, supplied: &prepare::Binding) -> String {
         &current.format.to_string(),
         &supplied.format.to_string(),
     );
-    if current.closure != supplied.closure {
-        differences.push("resolved closure".into());
-    }
     if current.facets != supplied.facets {
-        differences.push("declared Facets".into());
+        differences.push("unit set".into());
+    }
+    if current.source != supplied.source {
+        differences.push("source".into());
     }
     if differences.is_empty() {
         differences.push("binding contents".into());
@@ -317,9 +374,10 @@ fn mismatch(current: &prepare::Binding, supplied: &prepare::Binding) -> String {
     )
 }
 
-/// The structural input of the workspace at `root`, read natively.
-fn workspace(root: &str, store: &Path) -> Result<DesignInput, (u8, String)> {
-    load_design_input(Path::new(root), store).map_err(operational)
+/// The structural input of the workspace at `root` and the content identities
+/// its trees bind on, read natively.
+fn workspace(root: &str, store: &Path) -> Result<(DesignInput, DesignBasis), (u8, String)> {
+    load_design(Path::new(root), store).map_err(operational)
 }
 
 fn artifact(path: &str, limits: dialect::Limits) -> Result<String, (u8, String)> {

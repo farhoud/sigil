@@ -3,7 +3,7 @@ use sigilc::{
         dialect::{self, Limits},
         findings::{self, Class, Report, State},
         identity::{self, Fact},
-        prepare::{self, Request},
+        prepare::Request,
         program,
     },
     eqval,
@@ -20,7 +20,7 @@ const BASE_ID: &str = "urn:sigil:component:base.sigil:Base";
 /// The whole path: project, read the artifact, admit, saturate, report.
 fn run(artifact: &str) -> (Request, Vec<Fact>, Report) {
     let input = shared_input();
-    let request = prepare::project(&input, BASE).unwrap();
+    let request = support::project(&input, BASE).unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
@@ -203,7 +203,7 @@ fn an_unresolved_promise_is_loose_and_a_contradiction_is_disjoint() {
 fn a_design_with_no_findings_still_reports_what_was_checked() {
     let (_, _, report) = run(&clean_artifact());
     assert!(report.findings.is_empty());
-    assert!(!report.identity.export_digest.is_empty());
+    assert!(!report.identity.binding_digest.is_empty());
     assert!(!report.identity.guidance_fingerprint.is_empty());
     assert_eq!(report.identity.interpretations, vec!["artifact-digest"]);
     assert!(report.iterations > 0, "saturation ran");
@@ -386,7 +386,7 @@ fn the_comparison_is_absent_unless_a_second_artifact_was_supplied() {
 fn supplying_a_second_artifact_changes_the_recorded_report_identity() {
     let (_, _, one) = run(&clean_artifact());
     let input = shared_input();
-    let request = prepare::project(&input, BASE).unwrap();
+    let request = support::project(&input, BASE).unwrap();
     let rows = dialect::parse(&clean_artifact(), Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
@@ -424,7 +424,7 @@ fn flow_design(paragraphs: &[&str]) -> (sigilc::frontend::DesignInput, Vec<Strin
 
 fn run_flow(paragraphs: &[&str], artifact: &str) -> Report {
     let (input, _) = flow_design(paragraphs);
-    let request = prepare::project(&input, "flow.sigil").unwrap();
+    let request = support::project(&input, "flow.sigil").unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
@@ -527,21 +527,23 @@ fn two_runs_over_one_unchanged_interpretation_report_identically() {
     let b = run_flow(&["first", "second"], &artifact);
     assert_eq!(a.findings, b.findings);
     assert_eq!(a.state, b.state);
-    assert_eq!(a.version, 2, "the report version moved with the new class");
+    assert_eq!(
+        a.version, 3,
+        "the report version moved with the binding identity"
+    );
 }
 
 #[test]
 fn a_dependencys_uninterpreted_role_is_never_this_sources_gap() {
-    // The request presents the whole resolved closure so a claim in one
-    // component can be checked against a flow graph in a component it depends
-    // on. Coverage is a different question, and stays the selected source's:
-    // answering only your own source must not report a gap for every role in
+    // The request presents each imported component's interface as context.
+    // Coverage is a different question, and stays the selected source's:
+    // answering only your own source must not report a gap for the roles of
     // every dependency.
     let input = shared_input();
-    let request = prepare::project(&input, CONSUMER).unwrap();
+    let request = support::project(&input, CONSUMER).unwrap();
     assert!(
         request.rows.iter().any(|r| r.source == BASE),
-        "precondition: the dependency's Facets are presented"
+        "precondition: the dependency's interface Facets are presented"
     );
 
     // Answer nothing at all. Every gap reported must belong to CONSUMER.
@@ -584,10 +586,10 @@ fn a_facet_whose_only_interpretation_is_a_step_is_not_a_gap() {
 
 #[test]
 fn a_dependencys_finding_is_not_repeated_in_its_dependents_report() {
-    // The closure is presented whole, so a dependency's Facets reach this run.
-    // Its findings belong to its own run, not to every dependent's.
+    // A dependency's interface Facets reach this run as context. Its findings
+    // belong to its own run, not to every dependent's.
     let input = shared_input();
-    let request = prepare::project(&input, CONSUMER).unwrap();
+    let request = support::project(&input, CONSUMER).unwrap();
     let base_facet = request
         .rows
         .iter()
@@ -612,7 +614,7 @@ fn a_dependencys_finding_is_not_repeated_in_its_dependents_report() {
 
     // And the same interpretation, run against the source that authored it,
     // does report it.
-    let own = prepare::project(&input, BASE).unwrap();
+    let own = support::project(&input, BASE).unwrap();
     let facts = identity::admit(&own, &input, &rows).unwrap();
     let world = program::saturate(&own, &facts, eqval::Limits::default()).unwrap();
     let report = findings::report(&own, &facts, &world, &["d".into()]);
@@ -626,7 +628,7 @@ fn a_dependencys_finding_is_not_repeated_in_its_dependents_report() {
 
 fn admit_flow(paragraphs: &[&str], artifact: &str) -> (Request, Vec<Fact>) {
     let (input, _) = flow_design(paragraphs);
-    let request = prepare::project(&input, "flow.sigil").unwrap();
+    let request = support::project(&input, "flow.sigil").unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     (request, facts)

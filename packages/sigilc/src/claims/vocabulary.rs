@@ -32,7 +32,7 @@ pub const GRAPH_REF: &str = "graph";
 pub const GUARD_OPERANDS: &[&str] = &["state", "input", "constraint"];
 
 /// Whether a name is a reference to a minted flow entity rather than a design
-/// entity the export declares.
+/// entity the workspace declares.
 pub fn is_flow_ref(name: &str) -> bool {
     name == GRAPH_REF || name.starts_with(STEP_REF)
 }
@@ -85,7 +85,7 @@ impl Returned {
 
 /// The complete set of rows an interpreter may return.
 ///
-/// No row carries a section: only the export knows which contract role a Facet
+/// No row carries a section: only the workspace knows which contract role a Facet
 /// belongs to, so the tool fills that column from the Facet identity instead of
 /// asking the interpreter to restate it.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::CompiledGuidance interface,constraints

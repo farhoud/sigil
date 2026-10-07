@@ -259,8 +259,8 @@ Do not write an exclusion for a rule about what is refused.
 (reading "f17" "no-commitment")
 ```
 
-Archive and Billing appear in the entity list because they are in the closure.
-Suppose the panel's source has no entry for either in `imports`. A claim naming
+Archive and Billing appear in the entity list because they expose interfaces the
+workspace knows. Suppose the panel's source has no entry for either in `imports`. A claim naming
 them would be refused as ungrounded, so this Facet returns a reading. If the
 source's `imports` did list Archive under `from`, a claim naming Archive would be
 grounded, and the Facet could return one.

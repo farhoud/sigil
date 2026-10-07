@@ -3,7 +3,7 @@
 //! Identity is the tool's alone: the interpreter names entities the design
 //! already declares and never coins one. Grounding asks a narrower question
 //! than admission does — admission asks whether an entity exists in the
-//! design's closure, grounding asks whether *this Facet* could have been
+//! request's entity list, grounding asks whether *this Facet* could have been
 //! talking about it.
 use super::{
     dialect::Row,
@@ -72,7 +72,7 @@ pub struct Fact {
     pub id: String,
     pub facet: String,
     pub component: String,
-    /// Filled from the export, never from anything the interpreter returned.
+    /// Filled from the workspace, never from anything the interpreter returned.
     pub section: String,
     pub body: Body,
     pub defects: Vec<Defect>,
@@ -99,7 +99,7 @@ struct Grounding {
 }
 
 impl Grounding {
-    /// Built from what the export already resolved, not from matching names
+    /// Built from what the trees already resolved, not from matching names
     /// against prose. The resolver has already done the hard part.
     fn build(input: &DesignInput, request: &Request) -> Self {
         // Provider components of each source, through its resolved imports.
@@ -241,187 +241,209 @@ impl Flow {
 /// Admit rows against the design, minting identity and filling the role.
 ///
 /// Refuses the artifact when a row speaks about a Facet the request did not ask
-/// about, or names an entity the design does not declare in the recorded
-/// closure. Degenerate and ungrounded rows are accepted and flagged, because
-/// they are findings a reader has to see rather than transport errors.
+/// about, or names an entity the design does not declare in the request's
+/// entity list. Degenerate and ungrounded rows are accepted and flagged,
+/// because they are findings a reader has to see rather than transport errors.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ReturnedClaims interface,constraints,cases
 pub fn admit(request: &Request, input: &DesignInput, rows: &[Row]) -> Result<Vec<Fact>, String> {
-    let roles: BTreeMap<&str, (&str, &str)> = request
-        .rows
-        .iter()
-        .map(|r| (r.facet.as_str(), (r.component.as_str(), r.section.as_str())))
-        .collect();
-    let names = EntityNames::build(request);
-    let grounding = Grounding::build(input, request);
-    let flow = Flow::build(rows, &roles)?;
+    Admitter::new(request, input).admit(rows)
+}
 
-    let mut facts = Vec::new();
-    for row in rows {
-        let facet = row.facet();
-        let (component, section) = *roles.get(facet).ok_or_else(|| {
-            format!(
-                "row ({} ...) names {facet:?}, which this request did not ask about",
-                row.relation_name()
-            )
-        })?;
+/// Everything admission reads, built once so it can be run over many sets of
+/// rows. `prepare` runs it as a dry admission over each stored reading whose
+/// grounding context moved; `ingest` runs it over the rows it keeps. It is the
+/// same code both times, so a dry run cannot disagree with the real one.
+pub struct Admitter<'a> {
+    roles: BTreeMap<&'a str, (&'a str, &'a str)>,
+    names: EntityNames,
+    grounding: Grounding,
+}
 
-        let mut defects = Vec::new();
-        let body = match row {
-            Row::Claim {
-                subject,
-                relation,
-                object,
-                modality,
-                expected,
-                ..
-            } => {
-                // A step or a graph reference resolves through the flow pass,
-                // never through entity-name lookup: that lookup refuses an
-                // unknown name by refusing the whole artifact, so routing a
-                // reference through it unchanged would reject every flow.
-                let flow_subject = vocabulary::is_flow_ref(subject);
-                let flow_object = vocabulary::is_flow_ref(object);
-                let subject = if flow_subject {
-                    flow.resolve(subject, component)?
-                } else {
-                    names.resolve(subject)?
-                };
-                let object = if flow_object {
-                    flow.resolve(object, component)?
-                } else {
-                    names.resolve(object)?
-                };
-
-                // Same subject and object is a claim that asserts nothing --
-                // unless both are steps, in which case it is an edge from a
-                // step to itself, an ordinary loop. Flagging a loop would
-                // suppress its whole graph's reachability check under the
-                // defect rule, and do it without erroring.
-                if subject == object && !(flow_subject && flow_object) {
-                    defects.push(Defect::Degenerate);
-                }
-
-                // Grounding asks whether the entity a row names could have come
-                // from the Facet naming it. A minted step or graph could only
-                // have come from here, so it grounds by construction; checking
-                // it against the export's references would flag every flow
-                // claim and, again, silently switch the graph's check off.
-                for named in [&subject, &object] {
-                    if !flow.minted.contains(named) && !grounding.grounds(facet, named) {
-                        defects.push(Defect::Ungrounded(named.clone()));
-                    }
-                }
-                Body::Claim {
-                    subject,
-                    relation: relation.clone(),
-                    object,
-                    modality: modality.clone(),
-                    expected: expected.clone(),
-                }
-            }
-            Row::Property {
-                subject,
-                property,
-                value,
-                ..
-            } => {
-                let subject = names.resolve(subject)?;
-                if !grounding.grounds(facet, &subject) {
-                    defects.push(Defect::Ungrounded(subject.clone()));
-                }
-                Body::Property {
-                    subject,
-                    property: property.clone(),
-                    value: value.clone(),
-                }
-            }
-            Row::Measure {
-                subject,
-                property,
-                number,
-                ..
-            } => {
-                let subject = names.resolve(subject)?;
-                if !grounding.grounds(facet, &subject) {
-                    defects.push(Defect::Ungrounded(subject.clone()));
-                }
-                Body::Measure {
-                    subject,
-                    property: property.clone(),
-                    number: number.clone(),
-                }
-            }
-            Row::Reading { outcome, .. } => Body::Reading {
-                outcome: outcome.clone(),
-            },
-            // U2 owns minting a Step entity from this row and grounding what
-            // refers to it. Admitted unchanged here so the crate compiles with
-            // the row kinds registered and the admission still to come.
-            Row::Step { ordinal, .. } => {
-                // Resolving proves the section declared it, which Flow::build
-                // has already checked; this keeps the body beside its identity.
-                flow.resolve(&format!("{}{ordinal}", vocabulary::STEP_REF), component)?;
-                Body::Step { ordinal: *ordinal }
-            }
-            Row::Guard {
-                step,
-                operand,
-                value,
-                ..
-            } => {
-                flow.resolve(&format!("{}{step}", vocabulary::STEP_REF), component)?;
-                let value = match operand.as_str() {
-                    // A state operand is a declared entity and grounds like
-                    // any other. An input is a literal and never resolves. A
-                    // constraint names a Facet, which the request already
-                    // bounds, so it is checked against that rather than
-                    // against the entity set.
-                    "state" => {
-                        let resolved = names.resolve(value)?;
-                        if !grounding.grounds(facet, &resolved) {
-                            defects.push(Defect::Ungrounded(resolved.clone()));
-                        }
-                        resolved
-                    }
-                    "constraint" => {
-                        if !roles.contains_key(value.as_str()) {
-                            return Err(format!(
-                                "a guard names the Constraints Facet it guards on;                                  {value:?} is not a Facet this request presented"
-                            ));
-                        }
-                        value.clone()
-                    }
-                    _ => value.clone(),
-                };
-                Body::Guard {
-                    step: *step,
-                    operand: operand.clone(),
-                    value,
-                }
-            }
-        };
-
-        defects.sort();
-        defects.dedup();
-        facts.push(Fact {
-            id: Fact::mint(facet, component, section, &body),
-            facet: facet.to_owned(),
-            component: component.to_owned(),
-            section: section.to_owned(),
-            body,
-            defects,
-        });
+impl<'a> Admitter<'a> {
+    pub fn new(request: &'a Request, input: &DesignInput) -> Self {
+        Self {
+            roles: request
+                .rows
+                .iter()
+                .map(|r| (r.facet.as_str(), (r.component.as_str(), r.section.as_str())))
+                .collect(),
+            names: EntityNames::build(request),
+            grounding: Grounding::build(input, request),
+        }
     }
-    facts.sort();
-    facts.dedup();
-    Ok(facts)
+
+    /// Admit `rows`; see [`admit`].
+    pub fn admit(&self, rows: &[Row]) -> Result<Vec<Fact>, String> {
+        let (roles, names, grounding) = (&self.roles, &self.names, &self.grounding);
+        let flow = Flow::build(rows, roles)?;
+        let mut facts = Vec::new();
+        for row in rows {
+            let facet = row.facet();
+            let (component, section) = *roles.get(facet).ok_or_else(|| {
+                format!(
+                    "row ({} ...) names {facet:?}, which this request did not ask about",
+                    row.relation_name()
+                )
+            })?;
+
+            let mut defects = Vec::new();
+            let body = match row {
+                Row::Claim {
+                    subject,
+                    relation,
+                    object,
+                    modality,
+                    expected,
+                    ..
+                } => {
+                    // A step or a graph reference resolves through the flow pass,
+                    // never through entity-name lookup: that lookup refuses an
+                    // unknown name by refusing the whole artifact, so routing a
+                    // reference through it unchanged would reject every flow.
+                    let flow_subject = vocabulary::is_flow_ref(subject);
+                    let flow_object = vocabulary::is_flow_ref(object);
+                    let subject = if flow_subject {
+                        flow.resolve(subject, component)?
+                    } else {
+                        names.resolve(subject)?
+                    };
+                    let object = if flow_object {
+                        flow.resolve(object, component)?
+                    } else {
+                        names.resolve(object)?
+                    };
+
+                    // Same subject and object is a claim that asserts nothing --
+                    // unless both are steps, in which case it is an edge from a
+                    // step to itself, an ordinary loop. Flagging a loop would
+                    // suppress its whole graph's reachability check under the
+                    // defect rule, and do it without erroring.
+                    if subject == object && !(flow_subject && flow_object) {
+                        defects.push(Defect::Degenerate);
+                    }
+
+                    // Grounding asks whether the entity a row names could have come
+                    // from the Facet naming it. A minted step or graph could only
+                    // have come from here, so it grounds by construction; checking
+                    // it against the workspace's references would flag every flow
+                    // claim and, again, silently switch the graph's check off.
+                    for named in [&subject, &object] {
+                        if !flow.minted.contains(named) && !grounding.grounds(facet, named) {
+                            defects.push(Defect::Ungrounded(named.clone()));
+                        }
+                    }
+                    Body::Claim {
+                        subject,
+                        relation: relation.clone(),
+                        object,
+                        modality: modality.clone(),
+                        expected: expected.clone(),
+                    }
+                }
+                Row::Property {
+                    subject,
+                    property,
+                    value,
+                    ..
+                } => {
+                    let subject = names.resolve(subject)?;
+                    if !grounding.grounds(facet, &subject) {
+                        defects.push(Defect::Ungrounded(subject.clone()));
+                    }
+                    Body::Property {
+                        subject,
+                        property: property.clone(),
+                        value: value.clone(),
+                    }
+                }
+                Row::Measure {
+                    subject,
+                    property,
+                    number,
+                    ..
+                } => {
+                    let subject = names.resolve(subject)?;
+                    if !grounding.grounds(facet, &subject) {
+                        defects.push(Defect::Ungrounded(subject.clone()));
+                    }
+                    Body::Measure {
+                        subject,
+                        property: property.clone(),
+                        number: number.clone(),
+                    }
+                }
+                Row::Reading { outcome, .. } => Body::Reading {
+                    outcome: outcome.clone(),
+                },
+                // U2 owns minting a Step entity from this row and grounding what
+                // refers to it. Admitted unchanged here so the crate compiles with
+                // the row kinds registered and the admission still to come.
+                Row::Step { ordinal, .. } => {
+                    // Resolving proves the section declared it, which Flow::build
+                    // has already checked; this keeps the body beside its identity.
+                    flow.resolve(&format!("{}{ordinal}", vocabulary::STEP_REF), component)?;
+                    Body::Step { ordinal: *ordinal }
+                }
+                Row::Guard {
+                    step,
+                    operand,
+                    value,
+                    ..
+                } => {
+                    flow.resolve(&format!("{}{step}", vocabulary::STEP_REF), component)?;
+                    let value = match operand.as_str() {
+                        // A state operand is a declared entity and grounds like
+                        // any other. An input is a literal and never resolves. A
+                        // constraint names a Facet, which the request already
+                        // bounds, so it is checked against that rather than
+                        // against the entity set.
+                        "state" => {
+                            let resolved = names.resolve(value)?;
+                            if !grounding.grounds(facet, &resolved) {
+                                defects.push(Defect::Ungrounded(resolved.clone()));
+                            }
+                            resolved
+                        }
+                        "constraint" => {
+                            if !roles.contains_key(value.as_str()) {
+                                return Err(format!(
+                                    "a guard names the Constraints Facet it guards on;                                  {value:?} is not a Facet this request presented"
+                                ));
+                            }
+                            value.clone()
+                        }
+                        _ => value.clone(),
+                    };
+                    Body::Guard {
+                        step: *step,
+                        operand: operand.clone(),
+                        value,
+                    }
+                }
+            };
+
+            defects.sort();
+            defects.dedup();
+            facts.push(Fact {
+                id: Fact::mint(facet, component, section, &body),
+                facet: facet.to_owned(),
+                component: component.to_owned(),
+                section: section.to_owned(),
+                body,
+                defects,
+            });
+        }
+        facts.sort();
+        facts.dedup();
+        Ok(facts)
+    }
 }
 
 /// Entity names a claim may use, and what they resolve to.
 ///
 /// The interpreter reads labels, so labels are accepted and resolved to the
 /// identity the frontend minted. An exact identity is accepted too. Nothing
-/// else is: an unknown name is either an entity outside the closure or one the
+/// else is: an unknown name is either an entity outside the request or one the
 /// interpreter coined, and both are refused.
 struct EntityNames {
     by_id: BTreeSet<String>,
@@ -436,7 +458,7 @@ impl EntityNames {
             by_id.insert(entity.id.clone());
             by_label
                 .entry(entity.label.clone())
-                // A label shared by two entities in one closure cannot be
+                // A label shared by two entities in one request cannot be
                 // resolved, so it is recorded as ambiguous rather than guessed.
                 .and_modify(|slot| *slot = None)
                 .or_insert_with(|| Some(entity.id.clone()));
@@ -451,10 +473,10 @@ impl EntityNames {
         match self.by_label.get(raw) {
             Some(Some(id)) => Ok(id.clone()),
             Some(None) => Err(format!(
-                "{raw:?} names more than one entity in this design's closure"
+                "{raw:?} names more than one entity in this request"
             )),
             None => Err(format!(
-                "{raw:?} is not an entity this design declares in the selected closure"
+                "{raw:?} is not an entity this design declares in the presented request"
             )),
         }
     }
@@ -471,13 +493,12 @@ pub fn uninterpreted(request: &Request, facts: &[Fact]) -> Vec<(String, String)>
         .filter(|f| f.satisfies_unit())
         .map(|f| f.facet.as_str())
         .collect();
-    // Coverage is the selected source's alone. The request presents the whole
-    // resolved closure so a claim in one component can be checked against a
-    // flow graph in a component it depends on, but a dependency's Facet is
-    // context the interpreter was given, never a gap this report names.
-    // Without this line a run answering only its own source reports a gap for
-    // every role in every dependency -- 56 of them on `pipeline.sigil`.
-    let own = |row: &&FacetRow| row.source == request.binding.source;
+    // Coverage is the selected source's alone. Imported interface Facets are
+    // presented as context so a claim can be read against the names they
+    // expose, but they are never a gap this report names: their own source's
+    // run owns them, and `uninterpreted_context` lists the ones it has not
+    // read yet.
+    let own = |row: &&FacetRow| !row.context;
 
     let mut gaps = BTreeSet::new();
     for row in request.rows.iter().filter(own) {
@@ -496,4 +517,24 @@ pub fn uninterpreted(request: &Request, facts: &[Fact]) -> Vec<(String, String)>
         .collect();
     gaps.retain(|gap| !covered.contains(gap));
     gaps.into_iter().collect()
+}
+
+/// Imported interface Facets no stored reading satisfies, as
+/// `(component, Facet)` pairs.
+///
+/// These are context, not targets: this source's run never requests them, so
+/// the report names them as uninterpreted context until their own source has
+/// been prepared and ingested.
+pub fn uninterpreted_context(request: &Request, facts: &[Fact]) -> Vec<(String, String)> {
+    let satisfied: BTreeSet<&str> = facts
+        .iter()
+        .filter(|f| f.satisfies_unit())
+        .map(|f| f.facet.as_str())
+        .collect();
+    request
+        .rows
+        .iter()
+        .filter(|r| r.context && !satisfied.contains(r.facet.as_str()))
+        .map(|r| (r.component.clone(), r.facet.clone()))
+        .collect()
 }

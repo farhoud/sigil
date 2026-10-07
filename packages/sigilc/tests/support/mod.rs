@@ -71,6 +71,21 @@ impl Drop for Workspace {
     }
 }
 
+/// The claims request for `source`, with the tree identities read from the
+/// sources `input` carries. For tests that adjust a derived `DesignInput` by
+/// hand and still need the binding basis a workspace would give.
+pub fn project(
+    input: &DesignInput,
+    source: &str,
+) -> Result<sigilc::claims::prepare::Request, String> {
+    let root = Workspace::new();
+    for item in &input.sources {
+        root.write(&item.path, item.text.as_bytes());
+    }
+    let (_, basis) = root.load();
+    sigilc::claims::prepare::project(input, &basis, source)
+}
+
 /// The id of the one Facet `source` holds in `section`.
 pub fn facet_in(input: &DesignInput, source: &str, section: &str) -> String {
     let mut found = input

@@ -441,13 +441,13 @@ fn a_claim_for_a_facet_outside_the_request_is_refused() {
 // ----------------------------------------------------------- binding refusal
 
 #[test]
-fn a_binding_that_does_not_match_the_supplied_export_is_refused() {
+fn a_binding_that_does_not_match_the_current_source_is_refused() {
     let (scratch, binding) = prepared("stale-export");
     let artifact = scratch.0.join("result.egg");
     fs::write(&artifact, clean_artifact()).unwrap();
 
     let mut tampered = json(&fs::read_to_string(&binding).unwrap());
-    tampered["exportDigest"] = serde_json::json!("a-different-export");
+    tampered["sourceContent"] = serde_json::json!("a-different-source");
     fs::write(&binding, serde_json::to_vec(&tampered).unwrap()).unwrap();
 
     let (code, _, stderr) = claims(&[
@@ -460,7 +460,7 @@ fn a_binding_that_does_not_match_the_supplied_export_is_refused() {
         scratch.0.to_str().unwrap(),
     ]);
     assert_eq!(code, 2, "{stderr}");
-    assert!(stderr.contains("export digest"), "{stderr}");
+    assert!(stderr.contains("source content"), "{stderr}");
     assert!(stderr.contains("Prepare a new directory"), "{stderr}");
 }
 
@@ -484,7 +484,7 @@ fn a_binding_from_a_different_guidance_build_is_refused() {
         scratch.0.to_str().unwrap(),
     ]);
     assert_eq!(code, 2, "{stderr}");
-    assert!(stderr.contains("guidance fingerprint"), "{stderr}");
+    assert!(stderr.contains("guidance"), "{stderr}");
 }
 
 // ------------------------------------------------------------- exit contract

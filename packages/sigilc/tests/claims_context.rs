@@ -4,7 +4,7 @@ use sigilc::{
         dialect::{self, Limits},
         findings::{self, Identity},
         identity::{self, Fact},
-        prepare::{self, Request},
+        prepare::Request,
         program,
     },
     eqval,
@@ -16,12 +16,12 @@ use support::{BASE, base_constraints, base_goal, base_interface, shared_input};
 
 fn run(artifact: &str) -> (Request, Vec<Fact>, Context) {
     let input = shared_input();
-    let request = prepare::project(&input, BASE).unwrap();
+    let request = support::project(&input, BASE).unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
     let identity = Identity {
-        export_digest: request.binding.export_digest.clone(),
+        binding_digest: request.binding.digest(),
         interpretations: vec!["artifact".into()],
         guidance_fingerprint: world.guidance_fingerprint.clone(),
         vocabulary_generation: request.binding.vocabulary_generation,
@@ -280,10 +280,7 @@ fn the_context_records_what_it_was_computed_from() {
         "(claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
     ));
     assert_eq!(context.source, BASE);
-    assert_eq!(
-        context.identity.export_digest,
-        request.binding.export_digest
-    );
+    assert_eq!(context.identity.binding_digest, request.binding.digest());
     assert_eq!(
         context.identity.guidance_fingerprint,
         sigilc::claims::guidance::fingerprint()
@@ -308,7 +305,7 @@ fn the_context_round_trips_through_its_serialized_form() {
     // prepared directory that what it may return has changed. 2 is the step and
     // guard rows and the step and graph reference forms.
     assert_eq!(context.identity.vocabulary_generation, 2);
-    // Pinned and moved with the class that changed the report's shape: a
-    // consumer reading version 1 does not know the flow classes.
-    assert_eq!(findings::REPORT_VERSION, 2);
+    // Pinned and moved with what changed the report's shape: 2 added the flow
+    // classes, 3 replaced the export digest with the tree binding's digest.
+    assert_eq!(findings::REPORT_VERSION, 3);
 }
