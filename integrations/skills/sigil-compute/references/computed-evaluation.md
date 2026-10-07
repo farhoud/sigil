@@ -16,6 +16,7 @@ only outputs are the ingest state and the findings report.
 ```text
 sigil-claims prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
 sigil-claims ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
+sigil-claims check [--source PATH] [--root DIR] [--store DIR]
 sigil-claims extract-guidance --out DIR [--root DIR]
 ```
 
@@ -24,11 +25,18 @@ holds stored readings and reports (default `<root>/.sigil`). There is no
 export step.
 
 Exit codes: `0` is a pass or warning; `1` is a gate failure — a computed
-Disjoint verdict, a refused artifact, or a saturation-limit breach; `2` is a
+Disjoint verdict, an `incomplete` linked check, a refused artifact, or a
+saturation-limit breach; `2` is a
 usage error, including a binding that no longer matches the workspace; `3`
 is an operational failure such as an unreadable input. Exit 1 alone is never a
 verdict: a refused artifact exits 1 with an error message and no structured
 result, and only the result below plus its matching report decide a state.
+
+`check` reads the root and the store directly, with no preparation or binding.
+It links every valid stored reading of the workspace into one program and runs
+every claims law over it, without launching a model. `--source PATH` only
+filters the findings to those that source authored; the `unread` and
+`unresolvedImports` lists stay workspace-wide.
 
 Prepare writes into a fresh, initially empty preparation directory — it
 refuses one that is not empty — the files `binding.json`, `request.json`, and
@@ -43,6 +51,17 @@ every resolved tree id). The binding carries `format`, `source`,
 `guidanceFingerprint`, `vocabularyGeneration`, and `facets`: the identity of
 the request, which ingest recomputes and compares. A mismatch names the field
 that moved.
+
+Check prints a structured result with `version`, `scope`, `state`,
+`findings`, `unreadUnits`, `unresolvedImports`, `report`, `judgmentContext`,
+`workspaceDigest`, `vocabularyGeneration`, and `guidanceFingerprint`. Its state
+adds `incomplete`: some unit has no valid reading, or an import does not
+resolve. The report (version 4) lists `unread` units by source, component,
+section, and Facet ids, and `unresolvedImports`. It is written to
+`<store>/claims/workspace.linked.json`, or `<store>/claims/<source>.linked.json`
+with `--source`, with a matching `.linked.context.json`; ingest's files are
+never overwritten. `incomplete` and `disjoint` exit 1; `loose` and `coherent`
+exit 0. Ingest never emits `incomplete`.
 
 Stored interpretations live under `<store>/claims/interpretations`. The
 findings report and the judgment context are written under `<store>/claims`.
@@ -74,8 +93,10 @@ Resolve the selected source before prepare, from the workspace's sources:
 Dependencies are the tool's. Prepare shows the selected source's imports as
 interface context only (rows marked `context`); the host does not widen or
 narrow them, reconstruct them, or substitute a workspace-wide reading for the
-selected source's coverage. A flow that crosses components is visible only when
-the dependency's interface states it.
+selected source's coverage. The one-source loop's ingest sees a flow that
+crosses components only when the dependency's interface states it. The linked
+`check` also sees the dependency's stored private readings, which the child
+never reads; the full-design action below is the loop that runs it.
 
 ## Keep one preparation and a private store
 
@@ -88,8 +109,9 @@ One run uses one preparation and a private claims store.
   private store directory in the run directory. An absent store starts empty.
   Retain the seed as evidence.
 - Pass the workspace as `--root` and this same private directory as `--store`
-  to both prepare and ingest. Memo writes stay private: never merge them back
-  into the workspace, and never write to the workspace's own store.
+  to both prepare and ingest. Memo writes stay private: in the one-source loop, never merge them back
+  into the workspace, and never write to the workspace's own store. The
+  full-design action's write-back below is the only exception.
 - Retain prepare's structured result: its `bindingDigest` and `workspaceDigest`
   identify what the result covers.
 
@@ -98,6 +120,54 @@ or an imported interface changed after prepare, ingest refuses the binding and
 names the field that moved; the host stops rather than re-preparing. Edits to
 other files do not matter. The result handoff carries the binding digest so a
 reader can tell what the state covers.
+
+## The full-design action
+
+The full-design action reads every source that still has unread units, then
+links the whole workspace. It is an alternative to the one-source loop and
+follows the same rules for the private store, the child handoff, and
+recognizing a completed ingest, per source. `sigil-claims` still launches no
+model; the host orchestrates every reader.
+
+1. Seed the private store from the workspace's
+   `.sigil/claims/interpretations/`, as above, and retain the seed as
+   evidence. Keep a copy of it to compare against at the end.
+2. Run `check` with the workspace as `--root` and the private store as
+   `--store`. Its `unread` list is the work queue: group it by source. A
+   check that already reports a state with nothing unread and no unresolved
+   import needs no reader.
+3. For each source in the queue, run prepare into a fresh empty preparation
+   directory. Launch one fresh child only when prepare reports
+   `requestedUnits` greater than zero; otherwise skip the child and the
+   ingest for that source. Then ingest the child's captured artifact in the
+   private store. Do not repair or retry. A source whose reader, prepare, or
+   ingest fails is recorded as failed, and the remaining sources still run.
+4. Run `check` again over the same private store. Hand back its state and
+   report. When it is `incomplete`, name every failed source and the unread
+   units the report lists, and the unresolved imports if any.
+
+A source whose stored reading a dependency's changed interface refused is
+unread in step 2, so the run re-reads it once. The next run finds it valid and
+launches no reader for it. With no edits since the last full run, the queue is
+empty, no reader launches, and the check hands back the same report.
+
+### Write back what the run read
+
+After the final check, copy readings from the private store into the workspace
+store. This is the one exception to the private-store rule, and it belongs to
+the full-design action alone. For each file under the private store's
+`claims/interpretations/`, copy it into the workspace's
+`.sigil/claims/interpretations/` when:
+
+- the workspace store lacks it; or
+- its bytes differ from the seed taken at the start of the run, and the
+  workspace copy still matches that seed.
+
+A re-read unit keeps its old memo key, so copying only absent files would leave
+the stale entry in place. Write each copy to a temporary file in the same
+directory and rename it into place. A workspace entry that changed since
+seeding is left alone. Reports and judgment context are not copied. A run
+that stops before the final check writes nothing back.
 
 ## Hand one fresh child the prepared request
 
@@ -131,7 +201,8 @@ interrupted output is a failure, not rows.
 A completed ingest is all of:
 
 1. Exit 0 with a structured result whose state is `coherent` or `loose`, or
-   exit 1 with a structured result whose state is `disjoint`.
+   exit 1 with a structured result whose state is `disjoint`. A linked
+   `check` also completes on exit 1 with state `incomplete`.
 2. The result is this invocation's payload — not a bare exit code, and not a
    file left by an earlier run.
 3. The report named by the result matches the preparation: `source` is
@@ -149,6 +220,11 @@ A completed ingest is all of:
    dropped or mistyped flag still produces a fully consistent report written
    somewhere else; this check is what catches it.
 
+For a linked `check`, the same rules apply with the check's result: the
+report's `scope` and `state` equal the result's, its `identity` carries the
+`workspaceDigest`, `guidanceFingerprint`, and `vocabularyGeneration` the
+result names, and both paths lie under the private store.
+
 Anything else — a bare exit code, an old report, a malformed payload, a
 mismatch, or an operational failure — supplies no design state. Retain the
 matched report under the private store. Identity checks do not identify memo
@@ -160,13 +236,18 @@ When any step cannot finish — the tool is missing, the source
 is absent, the artifact is refused, the child is missing or interrupted, the
 payload is malformed, or the report does not match — stop. Name what broke and
 which step broke it. Emit no Coherent, Loose, or Disjoint. Do not retry the
-child and do not rerun the loop; the requester sees the real failure.
+child and do not rerun the loop; the requester sees the real failure. In the full-design action, one source's
+failure is recorded and does not stop the other sources; the final check still
+runs and names the failed source.
 
 ## Hand back the result
 
 After a completed ingest, hand back:
 
-- The ingest state, presented as Coherent, Loose, or Disjoint.
+- The ingest state, presented as Coherent, Loose, or Disjoint. For the
+  full-design action, the check's state, which may also be Incomplete, with
+  its `unread` units, `unresolvedImports`, and any failed source named. An
+  incomplete check is not a pass.
 - The findings of the matched report, with their class, law, claims,
   component, section, and detail. Flow-class findings are warnings and never
   by themselves make Disjoint.

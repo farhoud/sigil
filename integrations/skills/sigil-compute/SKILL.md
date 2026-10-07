@@ -16,6 +16,13 @@ running the loop. It owns source selection, the private store, the
 child handoff, recognizing a completed ingest, the failure path, and the
 result handoff.
 
+The full-design action is an alternative to that one-source loop. When the
+request names the whole design, it reads every source that still has unread
+units, one fresh child per source, then runs the linked `sigil-claims check`
+and hands back its state (Coherent, Loose, Disjoint, or Incomplete) and report.
+It also copies the readings it added back to the workspace store, which the
+one-source loop never does. The contract's full-design section owns the steps.
+
 The loop's interpretation is one fresh child with no inherited conversation,
 loaded with the installed [understanding](../sigil-understand/SKILL.md) and
 [egglog](../sigil-egglog/SKILL.md) entrypoints. `sigil-understand` is the

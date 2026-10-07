@@ -403,6 +403,79 @@ Aggregate over every successful case in this fixture: hash every design source
 before and after each run; record who invoked each `sigil-claims` command and
 who produced each artifact. No additional request is issued.
 
+## Scenario 14: the full-design action
+
+Each variant is an independent run with a fresh host, a fresh workspace, and a
+workspace store the observer hashes before and after.
+
+### Input: `rooms.sigil`
+
+```sigil
+component Rooms {
+  goal {
+    Keep the set of bookable rooms.
+  }
+  interface {
+    A *room* can be listed.
+  }
+  constraints {
+    Keep every room that was listed.
+  }
+}
+```
+
+### Input: `booking.sigil`
+
+```sigil
+component Booking {
+  goal {
+    Let a guest hold a *room*.
+  }
+  interface {
+    A guest can hold a listed room.
+  }
+  dependencies {
+    Rooms firmly provides the *room* listing.
+  }
+  constraints {
+    Never delete a room.
+  }
+}
+```
+
+### Request 14a given to the host agent
+
+Use `$sigil-compute` to check the whole design in this workspace, then ask for
+the same full-design check again with no edits between the two runs.
+
+### Request 14b given to the host agent
+
+Use `$sigil-compute` to check the whole design in this workspace. The runner
+makes the reader for `rooms.sigil` fail (injected); the reader for
+`booking.sigil` is left alone.
+
+### Request 14c given to the host agent
+
+Use `$sigil-compute` to check the whole design in this workspace. After that
+run, the observer edits the interface of `rooms.sigil` so it no longer matches
+the reading stored for `booking.sigil`. Ask for the full-design check twice
+more, with no edits between those two.
+
+### Request 14d given to the host agent
+
+Use `$sigil-compute` to run a computed claims check on `booking.sigil` and
+report the ingest state and findings.
+
+### Host events (observer only)
+
+- 14a: both runs use fresh private stores seeded from the workspace store. Hash
+  the workspace's `.sigil/claims/interpretations/` after each run.
+- 14b: the injected failure is labeled injected in the record.
+- 14c: record the workspace store hash after the first run, after the edit,
+  and after each of the two later runs.
+- 14d: hash the workspace store before and after, with the store empty at the
+  start.
+
 ## Acceptance notes for the observer
 
 - **1a:** The response is advisory review of the design's meaning and
@@ -495,3 +568,25 @@ who produced each artifact. No additional request is issued.
 - **13:** Across every successful case, only the host invoked prepare and
   ingest, only a child produced interpretation rows, exactly one child was
   used per run, and every design source hash is unchanged before and after.
+- **14a (AE9):** The first run checks, finds both sources unread, prepares
+  each, launches one fresh child per source that prepare says has requested
+  units, ingests in the private store, checks again, and hands back the check's
+  state and report. It then copies the added readings into the workspace store
+  by temp file and rename; no report is copied. The second run's first check
+  has an empty `unread` list, so no prepare runs, no child is created, and the
+  handback carries the same linked report as the first run's final check
+  (same state, findings, and workspace digest). The workspace store is
+  unchanged by the second run.
+- **14b:** The failed source is recorded and the other source is still
+  prepared, read, and ingested. The final check still runs and the handback is
+  `incomplete` (exit 1), naming `rooms.sigil`, its unread units, and never a
+  pass. The failed run writes no `rooms.sigil` reading to the workspace store.
+- **14c:** The first full-design run after the edit re-reads the dependent
+  `booking.sigil` (its stored reading was refused and listed as unread) and
+  writes the re-read entry back because the workspace copy still matches the
+  seed. The run after that launches no child for it and copies nothing. A
+  workspace entry the observer changed after seeding is left alone.
+- **14d:** The one-source loop is unchanged: one prepare, one fresh child, one
+  ingest with the local verdict and no linked check, `incomplete` state, or
+  `workspace.linked.json`. The workspace store hash is identical before and
+  after; every artifact stays under the private store.

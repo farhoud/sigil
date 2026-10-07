@@ -44,7 +44,8 @@ change, and a discrepancy is reported rather than silently patched.
    contents: the seeded store, the preparation
    directory, the child's captured artifact bytes, and the report ingest
    wrote. Hash the workspace's `.sigil/claims/interpretations/` before and
-   after each run; the skill must not write there.
+   after each run; the one-source loop must not write there, and only the
+   full-design action's write-back may.
 5. Compare the observed result with the fixture's observer notes. Preserve
    failed attempts and reruns. A final clean handback does not prove the loop
    ran, the child was fresh, or the state came from a matched report; check
@@ -58,7 +59,11 @@ Use this fixture:
   edit that makes ingest refuse the binding, and the failure cases — refused artifacts
   beside a valid Disjoint, missing prerequisites, non-conforming children
   without repair or retry, input and payload mismatches, a post-report
-  operational failure, and per-run private-store isolation.
+  operational failure, and per-run private-store isolation. Scenario 14 covers
+  the full-design action: a second run with no edits launching no reader, a
+  failed reader leaving an `incomplete` handback that names its source, a
+  refused dependent reading re-read once and not again, and the one-source loop
+  staying unchanged and never writing to the workspace store.
 
 ## Fault injection and limits
 
