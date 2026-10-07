@@ -5,7 +5,7 @@ import {
   INTERPRETATION_PROMPT,
   runInterpretationAgent,
 } from "./agents.ts";
-import { runClaimsAttempt } from "./claims.ts";
+import { type ComputedState, runClaimsPass } from "./claims.ts";
 import {
   designViewFromTrees,
   type FixturePreflight,
@@ -19,12 +19,28 @@ export interface BatchSelection {
   readonly model: string;
 }
 
+/** One pass: every source read into one private store, then one linked check. */
 export interface ScheduledAttempt extends BatchSelection {
   readonly id: string;
   readonly pass: number;
-  readonly source: string;
+  readonly sources: readonly string[];
 }
 
+/** What one source's own read left behind inside a pass. */
+export interface SourceResult {
+  readonly source: string;
+  readonly status: "valid" | "invalid" | "failed" | "interrupted";
+  /** The source's own ingest verdict, before linking. */
+  readonly state: "coherent" | "loose" | "disjoint" | null;
+  readonly failureStep: string | null;
+  readonly error: string | null;
+  readonly observedModels: readonly string[];
+  readonly modelVerification: "observed" | "unverified" | "mixed";
+  readonly presentedFacets: number | null;
+  readonly coveredFacets: number | null;
+}
+
+/** A pass record. Its `state` is the linked check's. */
 export interface AttemptRecord extends ScheduledAttempt {
   readonly status:
     | "pending"
@@ -35,13 +51,14 @@ export interface AttemptRecord extends ScheduledAttempt {
     | "interrupted";
   readonly startedAt: string | null;
   readonly finishedAt: string | null;
-  readonly state: "coherent" | "loose" | "disjoint" | null;
+  readonly state: ComputedState | null;
   readonly failureStep: string | null;
   readonly error: string | null;
   readonly observedModels: readonly string[];
   readonly modelVerification: "observed" | "unverified" | "mixed";
   readonly presentedFacets: number | null;
   readonly coveredFacets: number | null;
+  readonly sourceResults: readonly SourceResult[];
   readonly outcomePath: string | null;
 }
 
@@ -128,21 +145,19 @@ export function buildSchedule(
   const schedule: ScheduledAttempt[] = [];
   for (const selection of selections) {
     for (let pass = 1; pass <= passes; pass++) {
-      for (const source of SLOTTED_FIXTURE.sources) {
-        schedule.push({
-          id: String(schedule.length + 1).padStart(6, "0"),
-          agent: selection.agent,
-          model: selection.model,
-          pass,
-          source: source.path,
-        });
-      }
+      schedule.push({
+        id: String(schedule.length + 1).padStart(6, "0"),
+        agent: selection.agent,
+        model: selection.model,
+        pass,
+        sources: SLOTTED_FIXTURE.sources.map((source) => source.path),
+      });
     }
   }
   return schedule;
 }
 
-/** Run the frozen Slotted schedule sequentially, keeping every attempt. */
+/** Run the frozen Slotted schedule sequentially, keeping every pass. */
 export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   const schedule = buildSchedule(options.selections, options.passes);
   const outputDir = resolve(options.outputDir);
@@ -208,7 +223,6 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   await copySkill(skills.understandDir, pinnedSkills.understandDir);
   await copySkill(skills.egglogDir, pinnedSkills.egglogDir);
 
-  const requests = [];
   let guidanceFingerprint: string | null = null;
   let vocabularyGeneration: number | null = null;
   let workspaceDigest: string | null = null;
@@ -261,9 +275,6 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       throw new Error("Workspace changed during preflight");
     }
     workspaceDigest = preparedResult.workspaceDigest;
-    const request = JSON.parse(
-      await Deno.readTextFile(join(prepDir, "request.json")),
-    );
     const binding = JSON.parse(
       await Deno.readTextFile(join(prepDir, "binding.json")),
     );
@@ -281,9 +292,8 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
     }
     guidanceFingerprint = binding.guidanceFingerprint;
     vocabularyGeneration = binding.vocabularyGeneration;
-    requests.push(request);
   }
-  const preflight = preflightSlottedFixture(design, requests);
+  const preflight = preflightSlottedFixture(design);
   if (!preflight.canSchedule) {
     throw new Error(
       `Slotted source drift: ${preflight.sourceDrift.join("; ")}`,
@@ -340,6 +350,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       modelVerification: "unverified",
       presentedFacets: null,
       coveredFacets: null,
+      sourceResults: [],
       outcomePath: null,
     });
   }
@@ -355,16 +366,16 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
     await writeRecord(outputDir, running);
     const attemptDir = join(outputDir, "attempts", planned.id);
     try {
-      const outcome = await runClaimsAttempt({
+      const outcome = await runClaimsPass({
         executable: pinnedClaims,
         root: workspaceDir,
-        source: planned.source,
+        sources: planned.sources,
         privateStore: join(attemptDir, "private"),
         preparationDir: join(attemptDir, "prepared"),
         evidenceDir: join(attemptDir, "evidence"),
         timeoutMs: options.timeoutMs,
         signal: options.signal,
-        interpret: (preparationDir, evidenceDir, timeoutMs) =>
+        interpret: (_source, preparationDir, evidenceDir, timeoutMs) =>
           runInterpretationAgent({
             agent: planned.agent,
             requestedModel: planned.model,
@@ -378,6 +389,31 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       });
       const outcomePath = join(attemptDir, "outcome.json");
       await writeJson(outcomePath, outcome);
+      const sourceResults: SourceResult[] = outcome.sources.map((entry) => ({
+        source: entry.source,
+        status: entry.status,
+        state: entry.state as SourceResult["state"],
+        failureStep: entry.failureStep,
+        error: entry.error,
+        observedModels: entry.agent?.observedModels ?? [],
+        modelVerification: entry.agent?.modelVerification ?? "unverified",
+        presentedFacets: Array.isArray(entry.request?.rows)
+          ? entry.request.rows.filter((row: { context?: boolean }) =>
+            row.context !== true
+          ).length
+          : null,
+        coveredFacets: entry.validation?.coveredFacets ?? null,
+      }));
+      const observedModels = [
+        ...new Set(sourceResults.flatMap((entry) => entry.observedModels)),
+      ].sort();
+      const verifications = new Set(
+        sourceResults.map((entry) => entry.modelVerification),
+      );
+      const sum = (key: "presentedFacets" | "coveredFacets") =>
+        sourceResults.some((entry) => entry[key] !== null)
+          ? sourceResults.reduce((total, entry) => total + (entry[key] ?? 0), 0)
+          : null;
       await writeRecord(outputDir, {
         ...running,
         status: outcome.status,
@@ -385,14 +421,15 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
         state: outcome.state,
         failureStep: outcome.failureStep,
         error: outcome.error,
-        observedModels: outcome.agent?.observedModels ?? [],
-        modelVerification: outcome.agent?.modelVerification ?? "unverified",
-        presentedFacets: Array.isArray(outcome.request?.rows)
-          ? outcome.request.rows.filter((row: { context?: boolean }) =>
-            row.context !== true
-          ).length
-          : null,
-        coveredFacets: outcome.validation?.coveredFacets ?? null,
+        observedModels,
+        modelVerification: verifications.size === 0
+          ? "unverified"
+          : verifications.size === 1
+          ? [...verifications][0]
+          : "mixed",
+        presentedFacets: sum("presentedFacets"),
+        coveredFacets: sum("coveredFacets"),
+        sourceResults,
         outcomePath: `attempts/${planned.id}/outcome.json`,
       });
     } catch (cause) {
@@ -445,6 +482,7 @@ function pendingRecord(planned: ScheduledAttempt): AttemptRecord {
     modelVerification: "unverified",
     presentedFacets: null,
     coveredFacets: null,
+    sourceResults: [],
     outcomePath: null,
   };
 }

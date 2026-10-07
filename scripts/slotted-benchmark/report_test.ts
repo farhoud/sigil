@@ -15,6 +15,7 @@ const fixtureIssues = SLOTTED_FIXTURE.issues.map((issue, index) => ({
     ? ["F-display"]
     : ["F-digest"],
 }));
+const sources = SLOTTED_FIXTURE.sources.map((source) => source.path);
 const manifest = {
   version: 1,
   createdAt: "2026-10-02T00:00:00Z",
@@ -26,21 +27,21 @@ const manifest = {
       agent: "claude",
       model: "sonnet",
       pass: 1,
-      source: "booking.sigil",
+      sources,
     },
     {
       id: "000002",
       agent: "claude",
       model: "sonnet",
       pass: 2,
-      source: "booking.sigil",
+      sources,
     },
     {
       id: "000003",
       agent: "claude",
       model: "sonnet",
       pass: 3,
-      source: "booking.sigil",
+      sources,
     },
   ],
   input: { workspaceDigest: "snapshot" },
@@ -64,6 +65,7 @@ function attempt(
       },
     ],
   },
+  unread: unknown[] = [],
 ): ReportAttempt {
   const planned = attemptManifest.schedule.find((row) => row.id === id)!;
   const record = {
@@ -71,25 +73,52 @@ function attempt(
     status,
     startedAt: "start",
     finishedAt: "end",
-    state: status === "valid" ? "disjoint" : null,
+    state: status === "valid"
+      ? unread.length ? "incomplete" : "disjoint"
+      : null,
     failureStep: status === "valid" ? null : "validation",
     error: status === "valid" ? null : "incomplete Facet coverage",
     observedModels: ["claude-sonnet-observed"],
     modelVerification: "observed",
     presentedFacets: 2,
     coveredFacets: status === "valid" ? 2 : 1,
+    sourceResults: [{
+      source: "booking.sigil",
+      status,
+      state: status === "valid" ? "disjoint" : null,
+      failureStep: null,
+      error: null,
+      observedModels: ["claude-sonnet-observed"],
+      modelVerification: "observed",
+      presentedFacets: 2,
+      coveredFacets: status === "valid" ? 2 : 1,
+    }],
     outcomePath: `attempts/${id}/outcome.json`,
   } as AttemptRecord;
   const outcome = {
     status,
     state: record.state,
-    report: { source: "booking.sigil", state: "disjoint", findings },
-    context,
-    agent: {
-      finalResponsePath: `attempts/${id}/evidence/child/final-response.txt`,
+    sources: [{
+      source: "booking.sigil",
+      agent: {
+        finalResponsePath:
+          `attempts/${id}/evidence/booking/child/final-response.txt`,
+      },
+    }],
+    linked: {
+      exitCode: 1,
+      validation: { valid: status === "valid" },
+      report: {
+        source: "workspace",
+        state: unread.length ? "incomplete" : "disjoint",
+        findings,
+        unread,
+        unresolvedImports: [],
+      },
+      context,
     },
   };
-  return { record, outcome, rowsText };
+  return { record, outcome, rows: new Map([["booking.sigil", rowsText]]) };
 }
 
 Deno.test("same-state runs show evidence-based 1/2 detection, extras, and exact Facet row variation", () => {
@@ -120,7 +149,7 @@ Deno.test("same-state runs show evidence-based 1/2 detection, extras, and exact 
   const failed = attempt("000003", "invalid", [contradiction], "");
   const report = renderReport(manifest, [first, second, failed]);
   matches(report, /booking-pending-range-contradiction: 1\/2/);
-  matches(report, /native finding 1, 2/);
+  matches(report, /linked finding 1, 2/);
   matches(report, /unguarded-flow/);
   matches(report, /F-range-interface/);
   matches(report, /\(claim "F-range-interface"/);
@@ -172,7 +201,7 @@ Deno.test("Calendar planted findings require the intended facet and evidence ide
         agent: "claude",
         model: "sonnet",
         pass: 1,
-        source: "calendar.sigil",
+        sources,
       },
     ],
   } as unknown as BatchManifest;
@@ -225,7 +254,7 @@ Deno.test("Calendar planted findings require the intended facet and evidence ide
   ]);
   matches(positive, /calendar-display-name-unmet-obligation: 1\/1/);
   matches(positive, /calendar-owner-digest-unreached-step: 1\/1/);
-  matches(positive, /No additional findings in valid attempts\./);
+  matches(positive, /No additional findings in scored passes\./);
 
   const invalidFindings: Array<{ label: string; finding: unknown }> = [
     {
@@ -294,10 +323,7 @@ Deno.test("moved batch report uses retained rows and links inside the moved batc
       claims: ["witness-1"],
     },
   ], '(claim "F-range-interface" "A" "provides" "B" "required" "true")\n');
-  const oldReportPath =
-    `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.json`;
-  const oldContextPath =
-    `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.context.json`;
+  const claimsDir = `${originalDir}/attempts/000001/private/.sigil/claims`;
   const outsideRowsPath = `${root}/outside-rows.txt`;
   const batchManifest = { ...manifest, schedule: [planned] };
   const record = {
@@ -306,16 +332,26 @@ Deno.test("moved batch report uses retained rows and links inside the moved batc
   };
   const outcome = {
     ...base.outcome,
-    agent: { finalResponsePath: outsideRowsPath },
-    ingestResult: {
-      report: oldReportPath,
-      judgmentContext: oldContextPath,
+    sources: [{
+      source: "booking.sigil",
+      agent: { finalResponsePath: outsideRowsPath },
+      ingestResult: {
+        report: `${claimsDir}/booking.sigil.json`,
+        judgmentContext: `${claimsDir}/booking.sigil.context.json`,
+      },
+    }],
+    linked: {
+      ...base.outcome!.linked as Record<string, unknown>,
+      result: {
+        report: `${claimsDir}/workspace.linked.json`,
+        judgmentContext: `${claimsDir}/workspace.linked.context.json`,
+      },
     },
   };
 
   try {
     await Deno.mkdir(`${originalDir}/records`, { recursive: true });
-    await Deno.mkdir(`${originalDir}/attempts/000001/evidence/child`, {
+    await Deno.mkdir(`${originalDir}/attempts/000001/evidence/booking/child`, {
       recursive: true,
     });
     await Deno.mkdir(`${originalDir}/attempts/000001/private/.sigil/claims`, {
@@ -334,18 +370,20 @@ Deno.test("moved batch report uses retained rows and links inside the moved batc
       JSON.stringify(outcome),
     );
     await Deno.writeTextFile(
-      `${originalDir}/attempts/000001/evidence/child/final-response.txt`,
-      base.rowsText!,
+      `${originalDir}/attempts/000001/evidence/booking/child/final-response.txt`,
+      base.rows.get("booking.sigil")!,
     );
-    await Deno.writeTextFile(outsideRowsPath, base.rowsText!);
-    await Deno.writeTextFile(
-      `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.json`,
-      "{}\n",
-    );
-    await Deno.writeTextFile(
-      `${originalDir}/attempts/000001/private/.sigil/claims/booking.sigil.context.json`,
-      "{}\n",
-    );
+    await Deno.writeTextFile(outsideRowsPath, base.rows.get("booking.sigil")!);
+    for (
+      const name of [
+        "booking.sigil.json",
+        "booking.sigil.context.json",
+        "workspace.linked.json",
+        "workspace.linked.context.json",
+      ]
+    ) {
+      await Deno.writeTextFile(`${claimsDir}/${name}`, "{}\n");
+    }
     await Deno.rename(originalDir, movedDir);
     const victim = `${root}/outside.md`;
     await Deno.writeTextFile(victim, "keep this file intact\n");
@@ -357,10 +395,19 @@ Deno.test("moved batch report uses retained rows and links inside the moved batc
     assert(await Deno.readTextFile(victim) === "keep this file intact\n");
     assert(!(await pathExists(originalDir)), "old batch location still exists");
     matches(report, /`booking\.sigil` \| valid \| disjoint \|/);
+    matches(report, /\| 000001 \|.*\| valid \| disjoint \|/);
     matches(report, /booking-pending-range-contradiction: 1\/1/);
     matches(
       report,
-      /\]\(attempts\/000001\/evidence\/child\/final-response\.txt\)/,
+      /\]\(attempts\/000001\/evidence\/booking\/child\/final-response\.txt\)/,
+    );
+    matches(
+      report,
+      /\]\(attempts\/000001\/private\/\.sigil\/claims\/workspace\.linked\.json\)/,
+    );
+    matches(
+      report,
+      /\]\(attempts\/000001\/private\/\.sigil\/claims\/workspace\.linked\.context\.json\)/,
     );
     matches(
       report,
@@ -371,7 +418,7 @@ Deno.test("moved batch report uses retained rows and links inside the moved batc
       /\]\(attempts\/000001\/private\/\.sigil\/claims\/booking\.sigil\.context\.json\)/,
     );
     await Deno.remove(
-      `${movedDir}/attempts/000001/evidence/child/final-response.txt`,
+      `${movedDir}/attempts/000001/evidence/booking/child/final-response.txt`,
     );
     const evidenceMissing = await writeReport(movedDir);
     const missingReport = await Deno.readTextFile(evidenceMissing);
@@ -392,30 +439,94 @@ async function pathExists(path: string): Promise<boolean> {
   }
 }
 
-Deno.test("one ownership witness counts when both fixture anchors are intact", () => {
-  const ownership = {
-    class: "ownership-conflict",
-    law: "exclusive-ownership",
+const ownership = {
+  class: "ownership-conflict",
+  law: "exclusive-ownership",
+  subject: "urn:sigil:component:booking.sigil:Booking",
+  object: "urn:sigil:component:rooms.sigil:Rooms",
+  claims: ["mark-witness"],
+};
+const markContext = (facet: string) => ({
+  units: [{ facet, asserted: [{ claim: "mark-witness" }] }],
+});
+
+Deno.test("analyze finds ownership between Booking and Rooms in either direction from the linked report and context", () => {
+  // Booking's claim, found through the linked context.
+  const forward = renderReport(manifest, [
+    attempt(
+      "000001",
+      "valid",
+      [ownership],
+      "",
+      manifest,
+      markContext("F-booking-mark"),
+    ),
+  ]);
+  matches(forward, /booking-rooms-archived-mark-ownership: 1\/1/);
+  // Rooms' claim, a Facet this pass's Booking reader never saw, is found too.
+  const reversed = renderReport(manifest, [
+    attempt(
+      "000001",
+      "valid",
+      [{ ...ownership, subject: ownership.object, object: ownership.subject }],
+      "",
+      manifest,
+      markContext("F-rooms-mark"),
+    ),
+  ]);
+  matches(reversed, /booking-rooms-archived-mark-ownership: 1\/1/);
+  // A witness on an unrelated Facet is not the planted problem.
+  const unrelated = renderReport(manifest, [
+    attempt(
+      "000001",
+      "valid",
+      [ownership],
+      "",
+      manifest,
+      markContext("F-other"),
+    ),
+  ]);
+  matches(unrelated, /booking-rooms-archived-mark-ownership: 0\/1/);
+});
+
+Deno.test("a problem anchored in an unread source is unavailable while the others still score", () => {
+  const contradiction = {
+    class: "contradiction",
+    law: "contradictory-claims",
     subject: "urn:sigil:component:booking.sigil:Booking",
-    object: "urn:sigil:component:rooms.sigil:Rooms",
-    claims: ["mark-witness"],
+    object: "urn:sigil:component:booking.sigil:Booking:tag:range%20change",
+    claims: ["witness-1"],
   };
-  const base = attempt(
-    "000001",
-    "valid",
-    [ownership],
-    '(property "F-booking-mark" "Booking" "exclusive" "true")\n',
+  const report = renderReport(manifest, [
+    attempt(
+      "000001",
+      "valid",
+      [contradiction, ownership],
+      "",
+      manifest,
+      {
+        units: [
+          { facet: "F-range-interface", asserted: [{ claim: "witness-1" }] },
+          { facet: "F-booking-mark", asserted: [{ claim: "mark-witness" }] },
+        ],
+      },
+      [{
+        source: "rooms.sigil",
+        component: "Rooms",
+        section: "state",
+        facets: ["F-rooms-mark"],
+      }],
+    ),
+  ]);
+  matches(report, /booking-pending-range-contradiction: 1\/1/);
+  matches(
+    report,
+    /booking-rooms-archived-mark-ownership: 0\/0 \(1 unavailable\)/,
   );
-  const outcome = {
-    ...base.outcome,
-    context: {
-      units: [
-        { facet: "F-booking-mark", asserted: [{ claim: "mark-witness" }] },
-      ],
-    },
-  };
-  const report = renderReport(manifest, [{ ...base, outcome }]);
-  matches(report, /booking-rooms-archived-mark-ownership: 1\/1/);
+  matches(report, /booking-rooms-archived-mark-ownership: N\/A/);
+  matches(report, /\| incomplete \|/);
+  // The ownership finding is not credited, so it needs review as extra.
+  matches(report, /ownership-conflict \/ exclusive-ownership/);
 });
 
 Deno.test("observed, unverified, and mixed model identities remain separate groups", () => {
@@ -443,7 +554,7 @@ Deno.test("observed, unverified, and mixed model identities remain separate grou
   ]);
   matches(report, /claude-sonnet-observed \(observed\)/);
   matches(report, /model-a, model-b \(mixed\)/);
-  matches(report, /\| unverified \| `booking\.sigil` \|/);
+  matches(report, /\| unverified \| 1 \| 1 \|/);
 });
 
 Deno.test("interrupted attempts are counted separately from failures", () => {
@@ -454,7 +565,7 @@ Deno.test("interrupted attempts are counted separately from failures", () => {
   ]);
   matches(
     report,
-    /\| claude \| sonnet \| claude-sonnet-observed \(observed\) \| `booking\.sigil` \| 3 \| 2 \| 0 \/ 0 \/ 1 \/ 0 \|/,
+    /\| claude \| sonnet \| claude-sonnet-observed \(observed\) \| 3 \| 2 \| 0 \/ 0 \/ 1 \/ 0 \|/,
   );
   matches(report, /\| 000001 \| claude \| sonnet \|.*\| interrupted \|/);
 });

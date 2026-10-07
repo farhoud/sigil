@@ -1,15 +1,21 @@
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { type AttemptRecord, type BatchManifest, readBatch } from "./batch.ts";
+import { sourceName } from "./claims.ts";
 import type { IssuePreflight } from "./fixture.ts";
 
 type JsonObject = Record<string, unknown>;
 export interface ReportAttempt {
   readonly record: AttemptRecord;
   readonly outcome: JsonObject | null;
-  readonly rowsText: string | null;
+  /** The exact rows each source's reader returned. */
+  readonly rows: ReadonlyMap<string, string>;
 }
 
 interface FindingAnalysis {
+  /** True once the pass's linked report validated, so its findings are scored. */
+  readonly scored: boolean;
+  /** Planted problems whose anchor Facets were unread in this pass. */
+  readonly unavailable: ReadonlySet<string>;
   readonly matched: ReadonlyMap<string, readonly number[]>;
   readonly extra: readonly number[];
   readonly findings: readonly JsonObject[];
@@ -22,7 +28,7 @@ export async function writeReport(batchDir: string): Promise<string> {
   const attempts: ReportAttempt[] = [];
   for (const record of records) {
     let outcome: JsonObject | null = null;
-    let rowsText: string | null = null;
+    const rows = new Map<string, string>();
     if (record.outcomePath) {
       try {
         outcome = object(
@@ -33,57 +39,87 @@ export async function writeReport(batchDir: string): Promise<string> {
       } catch {
         // The record remains visible; the missing artifact is a reportable limit.
       }
-      const child = object(outcome?.agent);
-      if (typeof child?.finalResponsePath === "string") {
-        const canonicalPath = resolve(
-          batchDir,
-          "attempts",
-          record.id,
-          "evidence",
-          "child",
-          "final-response.txt",
+      // The private store is `private`; runs from before `--store` kept the
+      // claims under `private/.sigil`.
+      const privateStore = resolve(batchDir, "attempts", record.id, "private");
+      const privateClaimsDir =
+        await pathExists(join(privateStore, ".sigil", "claims"))
+          ? join(privateStore, ".sigil", "claims")
+          : join(privateStore, "claims");
+      const sources: unknown[] = [];
+      for (const entry of array(outcome?.sources)) {
+        const sourceOutcome = object(entry);
+        if (!sourceOutcome || typeof sourceOutcome.source !== "string") {
+          continue;
+        }
+        const source = sourceOutcome.source;
+        let rewritten: JsonObject = sourceOutcome;
+        const child = object(sourceOutcome.agent);
+        if (typeof child?.finalResponsePath === "string") {
+          const canonicalPath = resolve(
+            batchDir,
+            "attempts",
+            record.id,
+            "evidence",
+            sourceName(source),
+            "child",
+            "final-response.txt",
+          );
+          const canonicalRows = await readFileIfPresent(canonicalPath);
+          if (canonicalRows) rows.set(source, canonicalRows.text);
+          rewritten = {
+            ...rewritten,
+            agent: { ...child, finalResponsePath: canonicalRows?.path ?? null },
+          };
+        }
+        const ingest = object(sourceOutcome.ingestResult);
+        if (ingest) {
+          const reportPath = join(privateClaimsDir, `${source}.json`);
+          const contextPath = join(privateClaimsDir, `${source}.context.json`);
+          rewritten = {
+            ...rewritten,
+            ingestResult: {
+              ...ingest,
+              report: await pathExists(reportPath) ? reportPath : null,
+              judgmentContext: await pathExists(contextPath)
+                ? contextPath
+                : null,
+            },
+          };
+        }
+        sources.push(rewritten);
+      }
+      if (outcome) outcome = { ...outcome, sources };
+      const linked = object(outcome?.linked);
+      const linkedResult = object(linked?.result);
+      if (outcome && linked && linkedResult) {
+        const reportPath = join(privateClaimsDir, "workspace.linked.json");
+        const contextPath = join(
+          privateClaimsDir,
+          "workspace.linked.context.json",
         );
-        const canonicalRows = await readFileIfPresent(canonicalPath);
-        rowsText = canonicalRows?.text ?? null;
         outcome = {
-          ...outcome!,
-          agent: {
-            ...child,
-            finalResponsePath: canonicalRows?.path ?? null,
+          ...outcome,
+          linked: {
+            ...linked,
+            result: {
+              ...linkedResult,
+              report: await pathExists(reportPath) ? reportPath : null,
+              judgmentContext: await pathExists(contextPath)
+                ? contextPath
+                : null,
+            },
           },
         };
       }
-      const ingest = object(outcome?.ingestResult);
-      if (ingest) {
-        // The private store is `private`; runs from before `--store` kept the
-        // claims under `private/.sigil`.
-        const privateStore = resolve(
-          batchDir,
-          "attempts",
-          record.id,
-          "private",
-        );
-        const privateClaimsDir =
-          await pathExists(join(privateStore, ".sigil", "claims"))
-            ? join(privateStore, ".sigil", "claims")
-            : join(privateStore, "claims");
-        const reportPath = join(privateClaimsDir, `${record.source}.json`);
-        const contextPath = join(
-          privateClaimsDir,
-          `${record.source}.context.json`,
-        );
-        const report = await pathExists(reportPath) ? reportPath : null;
-        const judgmentContext = await pathExists(contextPath)
-          ? contextPath
-          : null;
-        outcome = {
-          ...outcome!,
-          ingestResult: { ...ingest, report, judgmentContext },
-        };
-      }
     }
-    const hasEvidence = outcome && object(outcome.report) &&
-      object(outcome.context) && rowsText !== null;
+    const linked = object(outcome?.linked);
+    const hasEvidence = outcome && object(linked?.report) &&
+      object(linked?.context) &&
+      array(outcome.sources).every((entry) => {
+        const source = object(entry)?.source;
+        return typeof source === "string" && rows.has(source);
+      });
     attempts.push({
       record: record.status === "valid" && !hasEvidence
         ? {
@@ -95,7 +131,7 @@ export async function writeReport(batchDir: string): Promise<string> {
         }
         : record,
       outcome,
-      rowsText,
+      rows,
     });
   }
   const path = join(batchDir, "report.md");
@@ -158,10 +194,11 @@ export function renderReport(
         modelVerification: "unverified",
         presentedFacets: null,
         coveredFacets: null,
+        sourceResults: [],
         outcomePath: null,
       } as AttemptRecord,
       outcome: null,
-      rowsText: null,
+      rows: new Map<string, string>(),
     }
   );
   const analysis = new Map(
@@ -227,19 +264,20 @@ export function renderReport(
     "",
     "## Runs",
     "",
-    "One row per scheduled source attempt. A running record from an ended controller is shown as interrupted.",
+    "One row per scheduled pass. A pass reads every source into one private store, then runs one linked check; planted problems are scored from that linked report. A planted problem whose anchor Facets were unread in a pass is N/A for that pass. A running record from an ended controller is shown as interrupted.",
     "",
-    "| # | Agent | Requested model | Observed model | Pass | Source | Validity | State | Planted findings | Additional findings | Facet coverage | Evidence |",
-    "| --- | --- | --- | --- | ---: | --- | --- | --- | --- | ---: | --- |",
+    "| # | Agent | Requested model | Observed model | Pass | Sources read | Validity | Linked state | Planted findings | Additional findings | Facet coverage | Evidence |",
+    "| --- | --- | --- | --- | ---: | ---: | --- | --- | --- | ---: | --- | --- |",
   );
   for (const attempt of ordered) {
     const record = attempt.record;
     const finding = analysis.get(record.id)!;
-    const relevant = manifest.preflight.issues.filter((issue) =>
-      issue.anchors[0]?.source === record.source
-    );
-    const planted = relevant.map((issue) =>
+    const planted = manifest.preflight.issues.map((issue) =>
       issue.status === "drift"
+        ? `${issue.id}: N/A`
+        : !finding.scored
+        ? ""
+        : finding.unavailable.has(issue.id)
         ? `${issue.id}: N/A`
         : finding.matched.has(issue.id)
         ? issue.id
@@ -248,40 +286,79 @@ export function renderReport(
     const coverage = record.presentedFacets === null
       ? "—"
       : `${record.coveredFacets ?? 0}/${record.presentedFacets}`;
+    const read = record.sourceResults.length
+      ? `${
+        record.sourceResults.filter((entry) =>
+          entry.status === "valid"
+        ).length
+      }/${record.sources.length}`
+      : "—";
     const evidence = [`[record](records/${record.id}.json)`];
     if (record.outcomePath) {
       evidence.push(`[outcome](${record.outcomePath})`);
     }
-    const child = object(attempt.outcome?.agent);
-    if (typeof child?.finalResponsePath === "string") {
-      const link = relativeLink(batchDir, child.finalResponsePath);
-      if (link) {
-        evidence.push(`[rows](${link})`);
-      }
-    }
-    const ingest = object(attempt.outcome?.ingestResult);
+    const linked = object(object(attempt.outcome?.linked)?.result);
     for (
-      const [label, key] of [["native report", "report"], [
-        "context",
+      const [label, key] of [["linked report", "report"], [
+        "linked context",
         "judgmentContext",
       ]] as const
     ) {
-      const link = relativeLink(batchDir, ingest?.[key]);
-      if (link) {
-        evidence.push(`[${label}](${link})`);
-      }
+      const link = relativeLink(batchDir, linked?.[key]);
+      if (link) evidence.push(`[${label}](${link})`);
     }
     lines.push(
       `| ${record.id} | ${cell(record.agent)} | ${cell(record.model)} | ${
         observed(record)
-      } | ${record.pass} | \`${record.source}\` | ${
+      } | ${record.pass} | ${read} | ${
         record.status === "running" ? "interrupted" : record.status
-      } | ${record.status === "valid" ? record.state : "—"} | ${
-        cell(planted)
-      } | ${
-        record.status === "valid" ? finding.extra.length : "—"
+      } | ${finding.scored ? record.state : "—"} | ${cell(planted)} | ${
+        finding.scored ? finding.extra.length : "—"
       } | ${coverage} | ${evidence.join(", ")} |`,
     );
+  }
+
+  lines.push(
+    "",
+    "## Source readings",
+    "",
+    "One row per source in each pass. The state is the source's own ingest verdict, before linking.",
+    "",
+    "| # | Pass | Source | Validity | Own state | Facet coverage | Evidence |",
+    "| --- | ---: | --- | --- | --- | --- | --- |",
+  );
+  for (const attempt of ordered) {
+    const record = attempt.record;
+    for (const result of record.sourceResults) {
+      const evidence = [];
+      const sourceOutcome = array(attempt.outcome?.sources).map(object).find((
+        entry,
+      ) => entry?.source === result.source);
+      const rowsLink = relativeLink(
+        batchDir,
+        object(sourceOutcome?.agent)?.finalResponsePath,
+      );
+      if (rowsLink) evidence.push(`[rows](${rowsLink})`);
+      const ingest = object(sourceOutcome?.ingestResult);
+      for (
+        const [label, key] of [["native report", "report"], [
+          "context",
+          "judgmentContext",
+        ]] as const
+      ) {
+        const link = relativeLink(batchDir, ingest?.[key]);
+        if (link) evidence.push(`[${label}](${link})`);
+      }
+      lines.push(
+        `| ${record.id} | ${record.pass} | \`${result.source}\` | ${result.status} | ${
+          result.status === "valid" ? result.state : "—"
+        } | ${
+          result.presentedFacets === null
+            ? "—"
+            : `${result.coveredFacets ?? 0}/${result.presentedFacets}`
+        } | ${evidence.join(", ") || "—"} |`,
+      );
+    }
   }
 
   const groups = groupAttempts(ordered);
@@ -289,13 +366,16 @@ export function renderReport(
     "",
     "## Agent and model comparison",
     "",
-    "Counts are observations on this captured Slotted snapshot. Detection, additional findings, and repeatability are separate measures; there is no overall rank.",
+    "Counts are observations on this captured Slotted snapshot. Detection, additional findings, and repeatability are separate measures; there is no overall rank. Detection counts only passes whose linked check validated and whose anchor Facets were read.",
     "",
-    "| Agent | Requested model | Observed model | Source | Scheduled | Valid | Failed / invalid / interrupted / pending | States among valid | Planted problem detection | Additional finding frequencies (identity runs/valid) | Facet coverage |",
-    "| --- | --- | --- | --- | ---: | ---: | --- | --- | --- | --- | ---: |",
+    "| Agent | Requested model | Observed model | Passes | Valid | Failed / invalid / interrupted / pending | Linked states | Planted problem detection | Additional finding frequencies (identity passes/scored) | Facet coverage |",
+    "| --- | --- | --- | ---: | ---: | --- | --- | --- | --- | ---: |",
   );
   for (const group of groups) {
     const valid = group.filter((attempt) => attempt.record.status === "valid");
+    const scored = group.filter((attempt) =>
+      analysis.get(attempt.record.id)!.scored
+    );
     const sample = group[0].record;
     const counts = [
       group.filter((attempt) => attempt.record.status === "failed").length,
@@ -306,36 +386,43 @@ export function renderReport(
       ).length,
       group.filter((attempt) => attempt.record.status === "pending").length,
     ];
-    const states = ["coherent", "loose", "disjoint"].map((state) =>
+    const states = ["coherent", "loose", "disjoint", "incomplete"].map((
+      state,
+    ) =>
       `${state} ${
-        valid.filter((attempt) => attempt.record.state === state).length
+        scored.filter((attempt) => attempt.record.state === state).length
       }`
     ).join(", ");
-    const relevant = manifest.preflight.issues.filter((issue) =>
-      issue.anchors[0]?.source === sample.source
+    const detections = manifest.preflight.issues.map((issue) => {
+      if (issue.status === "drift") return `${issue.id}: N/A`;
+      const available = scored.filter((attempt) =>
+        !analysis.get(attempt.record.id)!.unavailable.has(issue.id)
+      );
+      const found = available.filter((attempt) =>
+        analysis.get(attempt.record.id)!.matched.has(issue.id)
+      ).length;
+      const withheld = scored.length - available.length;
+      return `${issue.id}: ${found}/${available.length}${
+        withheld ? ` (${withheld} unavailable)` : ""
+      }`;
+    }).join("; ") || "—";
+    const extraTotal = scored.reduce(
+      (sum, attempt) => sum + analysis.get(attempt.record.id)!.extra.length,
+      0,
     );
-    const detections = relevant.map((issue) =>
-      `${issue.id}: ${
-        issue.status === "drift"
-          ? "N/A"
-          : `${
-            valid.filter((attempt) =>
-              analysis.get(attempt.record.id)!.matched.has(issue.id)
-            ).length
-          }/${valid.length}`
-      }`
-    ).join("; ") || "—";
-    const extraTotal = valid.reduce((sum, attempt) =>
-      sum + analysis.get(attempt.record.id)!.extra.length, 0);
-    const extraFrequencies = additionalFindingFrequencies(valid, analysis);
-    const covered = group.reduce((sum, attempt) =>
-      sum + (attempt.record.coveredFacets ?? 0), 0);
-    const presented = group.reduce((sum, attempt) =>
-      sum + (attempt.record.presentedFacets ?? 0), 0);
+    const extraFrequencies = additionalFindingFrequencies(scored, analysis);
+    const covered = group.reduce(
+      (sum, attempt) => sum + (attempt.record.coveredFacets ?? 0),
+      0,
+    );
+    const presented = group.reduce(
+      (sum, attempt) => sum + (attempt.record.presentedFacets ?? 0),
+      0,
+    );
     lines.push(
       `| ${cell(sample.agent)} | ${cell(sample.model)} | ${
         observed(sample)
-      } | \`${sample.source}\` | ${group.length} | ${valid.length} | ${
+      } | ${group.length} | ${valid.length} | ${
         counts.join(" / ")
       } | ${states} | ${cell(detections)} | ${
         cell(
@@ -350,29 +437,30 @@ export function renderReport(
   lines.push("", "## Planted finding evidence", "");
   let knownCount = 0;
   for (const attempt of ordered) {
-    if (attempt.record.status !== "valid") continue;
-    const matched = analysis.get(attempt.record.id)!.matched;
-    for (const [issueId, indices] of matched) {
+    const analyzed = analysis.get(attempt.record.id)!;
+    if (!analyzed.scored) continue;
+    for (const [issueId, indices] of analyzed.matched) {
       knownCount++;
-      const reportLink =
-        relativeLink(batchDir, object(attempt.outcome?.ingestResult)?.report) ??
-          attempt.record.outcomePath;
+      const reportLink = relativeLink(
+        batchDir,
+        object(object(attempt.outcome?.linked)?.result)?.report,
+      ) ?? attempt.record.outcomePath;
       lines.push(
-        `- Attempt ${attempt.record.id}, \`${issueId}\`: native finding ${
+        `- Attempt ${attempt.record.id}, \`${issueId}\`: linked finding ${
           indices.map((index) => index + 1).join(", ")
         } ([report](${reportLink})).`,
       );
     }
   }
   if (!knownCount) {
-    lines.push("No planted findings were detected in valid attempts.");
+    lines.push("No planted findings were detected in scored passes.");
   }
 
   lines.push("", "## Additional findings for review", "");
   let extraCount = 0;
   for (const attempt of ordered) {
-    if (attempt.record.status !== "valid") continue;
     const analyzed = analysis.get(attempt.record.id)!;
+    if (!analyzed.scored) continue;
     for (const index of analyzed.extra) {
       const finding = analyzed.findings[index];
       extraCount++;
@@ -387,41 +475,49 @@ export function renderReport(
       );
     }
   }
-  if (!extraCount) lines.push("No additional findings in valid attempts.");
+  if (!extraCount) lines.push("No additional findings in scored passes.");
 
   lines.push("", "## Variation across valid repeated runs", "");
   let varied = 0;
   for (const group of groups) {
-    const valid = group.filter((attempt) =>
-      attempt.record.status === "valid" && attempt.rowsText !== null
-    );
-    if (valid.length < 2) continue;
-    const rowMaps = valid.map((attempt) => rowsByFacet(attempt.rowsText!));
-    const facets = [...new Set(rowMaps.flatMap((map) => [...map.keys()]))]
-      .sort();
-    for (const facet of facets) {
-      const versions = rowMaps.map((map) =>
-        (map.get(facet) ?? []).slice().sort().join("\n")
+    for (const source of manifest.fixture.sources.map((entry) => entry.path)) {
+      const valid = group.filter((attempt) =>
+        attempt.record.sourceResults.some((entry) =>
+          entry.source === source && entry.status === "valid"
+        ) && attempt.rows.has(source)
       );
-      if (new Set(versions).size <= 1) continue;
-      varied++;
-      const sample = valid[0].record;
-      lines.push(
-        `### ${sample.agent} / ${sample.model} / ${sample.source} / ${facet}`,
-        "",
+      if (valid.length < 2) continue;
+      const rowMaps = valid.map((attempt) =>
+        rowsByFacet(attempt.rows.get(source)!)
       );
-      for (let index = 0; index < valid.length; index++) {
-        const attempt = valid[index];
+      const facets = [...new Set(rowMaps.flatMap((map) => [...map.keys()]))]
+        .sort();
+      for (const facet of facets) {
+        const versions = rowMaps.map((map) =>
+          (map.get(facet) ?? []).slice().sort().join("\n")
+        );
+        if (new Set(versions).size <= 1) continue;
+        varied++;
+        const sample = valid[0].record;
         lines.push(
-          `<details><summary>Attempt ${attempt.record.id}, pass ${attempt.record.pass} — <a href="attempts/${attempt.record.id}/evidence/child/final-response.txt">original rows</a></summary>`,
-          "",
-          "```egglog",
-          versions[index] || "(no row)",
-          "```",
-          "",
-          "</details>",
+          `### ${sample.agent} / ${sample.model} / ${source} / ${facet}`,
           "",
         );
+        for (let index = 0; index < valid.length; index++) {
+          const attempt = valid[index];
+          lines.push(
+            `<details><summary>Attempt ${attempt.record.id}, pass ${attempt.record.pass} — <a href="attempts/${attempt.record.id}/evidence/${
+              sourceName(source)
+            }/child/final-response.txt">original rows</a></summary>`,
+            "",
+            "```egglog",
+            versions[index] || "(no row)",
+            "```",
+            "",
+            "</details>",
+            "",
+          );
+        }
       }
     }
   }
@@ -442,18 +538,25 @@ function analyze(
   attempt: ReportAttempt,
   issues: readonly IssuePreflight[],
 ): FindingAnalysis {
-  const findings = array(object(attempt.outcome?.report)?.findings).map(object)
+  const linked = object(attempt.outcome?.linked);
+  const report = object(linked?.report);
+  const findings = array(report?.findings).map(object)
     .filter((entry): entry is JsonObject => entry !== null);
-  if (attempt.record.status !== "valid") {
+  // A pass is scored when its linked check validated, even if the check
+  // reported the workspace incomplete: what was read is still judged.
+  if (!report || object(linked?.validation)?.valid !== true) {
     return {
+      scored: false,
+      unavailable: new Set(),
       matched: new Map(),
       extra: [],
       findings,
       claimFacet: new Map(),
     };
   }
+  // Claims of every source map to their Facets through the linked context.
   const claimFacet = new Map<string, string>();
-  for (const unit of array(object(attempt.outcome?.context)?.units)) {
+  for (const unit of array(object(linked?.context)?.units)) {
     const row = object(unit);
     if (typeof row?.facet !== "string") continue;
     for (const asserted of array(row.asserted)) {
@@ -461,13 +564,31 @@ function analyze(
       if (typeof claim === "string") claimFacet.set(claim, row.facet);
     }
   }
+  const unreadFacets = new Set<string>();
+  const unreadSources = new Set<string>();
+  for (const entry of array(report.unread)) {
+    const unread = object(entry);
+    if (!unread) continue;
+    const facets = array(unread.facets).filter((facet): facet is string =>
+      typeof facet === "string"
+    );
+    for (const facet of facets) unreadFacets.add(facet);
+    if (facets.length === 0 && typeof unread.source === "string") {
+      unreadSources.add(unread.source);
+    }
+  }
+  const unavailable = new Set<string>();
   const matched = new Map<string, number[]>();
   const consumed = new Set<number>();
   for (const issue of issues) {
+    if (issue.status !== "scorable") continue;
     if (
-      issue.status !== "scorable" ||
-      issue.anchors[0]?.source !== attempt.record.source
-    ) continue;
+      issue.facets.some((facet) => unreadFacets.has(facet)) ||
+      issue.anchors.some((anchor) => unreadSources.has(anchor.source))
+    ) {
+      unavailable.add(issue.id);
+      continue;
+    }
     const indices: number[] = [];
     for (let index = 0; index < findings.length; index++) {
       if (matchesIssue(findings[index], issue, claimFacet)) {
@@ -478,6 +599,8 @@ function analyze(
     if (indices.length) matched.set(issue.id, indices);
   }
   return {
+    scored: true,
+    unavailable,
     matched,
     extra: findings.map((_, index) => index).filter((index) =>
       !consumed.has(index)
@@ -564,7 +687,6 @@ function groupAttempts(attempts: readonly ReportAttempt[]): ReportAttempt[][] {
       r.model,
       r.modelVerification,
       [...r.observedModels].sort(),
-      r.source,
     ]);
     const group = groups.get(key) ?? [];
     group.push(attempt);

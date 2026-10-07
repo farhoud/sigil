@@ -147,16 +147,6 @@ export interface FixtureIssue {
   readonly requiresAbsentIdentityDisplayNameProvider?: true;
 }
 
-export interface PreparedFacetRequest {
-  readonly binding: { readonly source: string };
-  readonly rows: readonly {
-    readonly facet: string;
-    readonly source: string;
-    readonly section: string;
-    readonly prose: string;
-  }[];
-}
-
 export interface IssuePreflight extends FixtureIssue {
   readonly status: "scorable" | "drift";
   readonly reason: string | null;
@@ -342,11 +332,14 @@ function proseOf(
   );
 }
 
-/** Resolve the fixture against one `sigilc tree` view and its prepared source requests. */
-export function preflightSlottedFixture(
-  design: DesignView,
-  prepared: readonly PreparedFacetRequest[],
-): FixturePreflight {
+/**
+ * Resolve the fixture against one `sigilc tree` view of the workspace.
+ *
+ * Every anchor Facet is looked up in the workspace trees. No source's
+ * black-box request is consulted: the linked check reads every source's
+ * stored readings, so an anchor in a private section is scorable.
+ */
+export function preflightSlottedFixture(design: DesignView): FixturePreflight {
   const expected = new Set(
     SLOTTED_FIXTURE.sources.map((source) => source.path),
   );
@@ -421,58 +414,7 @@ export function preflightSlottedFixture(
         }, found ${unit.owner}`;
         break;
       }
-      const prose = proseOf(
-        design,
-        unit.source,
-        unit.proseRange.start,
-        unit.proseRange.end,
-      );
-      const requests = prepared.filter((request) =>
-        request.binding.source === anchor.source
-      );
-      const rows = requests.flatMap((request) => request.rows).filter((row) =>
-        row.facet === unit.id && row.source === anchor.source &&
-        row.section === anchor.section && row.prose === prose
-      );
-      if (requests.length !== 1 || rows.length !== 1) {
-        reason =
-          `prepared request does not uniquely present ${anchor.source} anchor Facet`;
-        break;
-      }
       facets.push(unit.id);
-    }
-    if (!reason) {
-      const scoringSource = issue.anchors[0].source;
-      const scoringRequests = prepared.filter((request) =>
-        request.binding.source === scoringSource
-      );
-      if (scoringRequests.length !== 1) {
-        reason =
-          `prepared ${scoringSource} scoring request is not unique for all anchor Facets`;
-      } else {
-        const scoringRequest = scoringRequests[0];
-        for (let index = 0; index < issue.anchors.length; index++) {
-          const anchor = issue.anchors[index];
-          const unit = design.units.find((candidate) =>
-            candidate.id === facets[index]
-          );
-          const prose = unit && proseOf(
-            design,
-            unit.source,
-            unit.proseRange.start,
-            unit.proseRange.end,
-          );
-          const rows = scoringRequest.rows.filter((row) =>
-            row.facet === facets[index] && row.source === anchor.source &&
-            row.section === anchor.section && row.prose === prose
-          );
-          if (!unit || rows.length !== 1) {
-            reason =
-              `${scoringSource} scoring request does not include all anchor Facets exactly once`;
-            break;
-          }
-        }
-      }
     }
     if (!reason && issue.requiresAbsentIdentityDisplayNameProvider) {
       const provider = design.units.some((unit) => {

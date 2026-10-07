@@ -2,7 +2,11 @@ import { match as matches, strictEqual as equal } from "node:assert/strict";
 import { readBatch, runBatch } from "./batch.ts";
 import { executeCommand } from "./main.ts";
 
-async function fakeClaude(root: string, planted = false): Promise<string> {
+async function fakeClaude(
+  root: string,
+  planted = false,
+  failSource: string | null = null,
+): Promise<string> {
   const path = `${root}/fake-claude.py`;
   await Deno.writeTextFile(
     path,
@@ -13,6 +17,13 @@ if '--version' in sys.argv:
     sys.exit(0)
 with open('preparation/request.json', encoding='utf8') as f:
     request = json.load(f)
+if ${
+      failSource === null
+        ? "False"
+        : "True"
+    } and request['binding']['source'] == ${JSON.stringify(failSource)}:
+    sys.stderr.write('reader failed')
+    sys.exit(3)
 rows = []
 for row in request['rows']:
     if row.get('context'):
@@ -37,7 +48,7 @@ print(json.dumps({'type': 'result', 'result': rows}))
   return path;
 }
 
-Deno.test("run launches seven fake-host interpretations and report regenerates without launch", async () => {
+Deno.test("run launches seven fake-host interpretations in one pass, ends with one check, and the report regenerates without launch", async () => {
   const root = await Deno.makeTempDir({ prefix: "slotted-cli-test-" });
   try {
     const host = await fakeClaude(root);
@@ -54,22 +65,51 @@ Deno.test("run launches seven fake-host interpretations and report regenerates w
       "10000",
     ], { agentExecutables: { claude: host } });
     equal(launched.batchDir, batch);
+    equal(launched.scheduled, 1);
     equal(
       launched.valid,
-      7,
-      `expected seven valid attempts; see ${batch}/report.md`,
+      1,
+      `expected one valid pass; see ${batch}/report.md`,
+    );
+    // Seven readings, then exactly one linked check for the pass.
+    const { records } = await readBatch(batch);
+    equal(records[0].sourceResults.length, 7);
+    equal(
+      records[0].sourceResults.every((entry) => entry.status === "valid"),
+      true,
+    );
+    equal(
+      (await Deno.readTextFile(
+        `${batch}/attempts/000001/evidence/check/check.stdout.txt`,
+      )).includes('"scope": "workspace"'),
+      true,
+    );
+    const outcome = JSON.parse(
+      await Deno.readTextFile(`${batch}/attempts/000001/outcome.json`),
+    );
+    equal(outcome.sources.length, 7);
+    equal(outcome.linked.validation.valid, true);
+    equal(outcome.linked.report.unread.length, 0);
+    await Deno.stat(
+      `${batch}/attempts/000001/private/claims/workspace.linked.json`,
     );
     const report = await Deno.readTextFile(`${batch}/report.md`);
     matches(report, /## Runs/);
     matches(report, /## Agent and model comparison/);
     matches(report, /requested-fake-model/);
     matches(report, /served-fake-model \(observed\)/);
-    equal((report.match(/\| 00000[1-7] \| claude \|/g) ?? []).length, 7);
+    equal((report.match(/\| 000001 \| claude \|/g) ?? []).length, 1);
+    matches(report, /\| 1 \| 7\/7 \| valid \|/);
+    equal((report.match(/## Source readings/g) ?? []).length, 1);
+    equal(
+      (report.match(/\| 000001 \| 1 \| `[^`]+` \| valid \|/g) ?? []).length,
+      7,
+    );
     equal(
       (report.match(
-        /\| claude \| requested-fake-model \| served-fake-model \(observed\) \| `[^`]+` \|/g,
+        /\| claude \| requested-fake-model \| served-fake-model \(observed\) \| 1 \| 1 \|/g,
       ) ?? []).length,
-      7,
+      1,
     );
     await Deno.writeTextFile(
       host,
@@ -103,22 +143,19 @@ Deno.test("failed host does not block later native detection and report", async 
     ], {
       agentExecutables: { codex: `${root}/missing`, claude: host },
     });
-    equal(result.scheduled, 14);
-    equal(result.failed, 7);
+    equal(result.scheduled, 2);
+    equal(result.failed, 1);
     equal(result.interrupted, 0);
-    equal(result.valid, 7);
+    equal(result.valid, 1);
     const { records } = await readBatch(batch);
-    equal(
-      records.slice(0, 7).every((record) => record.status === "failed"),
-      true,
-    );
-    equal(records.slice(7).every((record) => record.status === "valid"), true);
+    equal(records[0].status, "failed");
+    equal(records[1].status, "valid");
     const outcome = JSON.parse(
-      await Deno.readTextFile(`${batch}/attempts/000013/outcome.json`),
+      await Deno.readTextFile(`${batch}/attempts/000002/outcome.json`),
     );
     equal(outcome.status, "valid", outcome.error ?? "");
     equal(
-      outcome.report.findings.some((finding: { law: string }) =>
+      outcome.linked.report.findings.some((finding: { law: string }) =>
         finding.law === "contradictory-claims"
       ),
       true,
@@ -127,13 +164,62 @@ Deno.test("failed host does not block later native detection and report", async 
     matches(report, /booking-pending-range-contradiction: 1\/1/);
     matches(
       report,
-      /Attempt 000013, `booking-pending-range-contradiction`: native finding/,
+      /Attempt 000002, `booking-pending-range-contradiction`: linked finding/,
     );
     matches(
       report,
-      /\[report\]\(attempts\/000013\/private\/claims\/booking\.sigil\.json\)/,
+      /\[report\]\(attempts\/000002\/private\/claims\/workspace\.linked\.json\)/,
     );
     matches(report, /\| 000001 \| codex \| missing-model .*\| failed \|/);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
+
+Deno.test("a pass whose host fails one source names it unread, scores the rest, and fails the gate", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-incomplete-test-" });
+  try {
+    const host = await fakeClaude(root, true, "rooms.sigil");
+    const batch = `${root}/batch`;
+    const result = await executeCommand([
+      "run",
+      "--agent",
+      "claude:fake-model",
+      "--passes",
+      "1",
+      "--out",
+      batch,
+      "--timeout-ms",
+      "10000",
+    ], { agentExecutables: { claude: host } });
+    equal(result.scheduled, 1);
+    equal(result.failed, 1);
+    const { records } = await readBatch(batch);
+    // A gating finding outranks incompleteness; the unread list still names
+    // the source, and claims_test covers the `incomplete` state itself.
+    equal(records[0].state, "disjoint");
+    equal(
+      records[0].sourceResults.filter((entry) => entry.status === "valid")
+        .length,
+      6,
+    );
+    const outcome = JSON.parse(
+      await Deno.readTextFile(`${batch}/attempts/000001/outcome.json`),
+    );
+    equal(outcome.linked.exitCode, 1);
+    equal(
+      outcome.linked.report.unread.some((entry: { source: string }) =>
+        entry.source === "rooms.sigil"
+      ),
+      true,
+    );
+    const report = await Deno.readTextFile(result.reportPath);
+    // Booking's contradiction still scores; Rooms' ownership anchor was unread.
+    matches(report, /booking-pending-range-contradiction: 1\/1/);
+    matches(
+      report,
+      /booking-rooms-archived-mark-ownership: 0\/0 \(1 unavailable\)/,
+    );
   } finally {
     await Deno.remove(root, { recursive: true });
   }
@@ -185,9 +271,9 @@ Deno.test("report rebuilds a partial batch with all pending rows and no launch",
       agentExecutables: { claude: "/missing/agent" },
     });
     const result = await executeCommand(["report", batch]);
-    equal(result.unfinished, 7);
+    equal(result.unfinished, 1);
     const markdown = await Deno.readTextFile(result.reportPath);
-    equal((markdown.match(/\| pending \|/g) ?? []).length, 7);
+    equal((markdown.match(/\| pending \|/g) ?? []).length, 1);
   } finally {
     await Deno.remove(root, { recursive: true });
   }
@@ -233,13 +319,9 @@ while True: time.sleep(1)
     controller.abort();
     const result = await pending;
     equal(result.interrupted, 1);
-    equal(result.unfinished, 6);
+    equal(result.unfinished, 0);
     const { records } = await readBatch(`${root}/batch`);
     equal(records[0].status, "interrupted");
-    equal(
-      records.slice(1).every((record) => record.status === "pending"),
-      true,
-    );
   } finally {
     controller.abort();
     await Deno.remove(root, { recursive: true });
@@ -310,10 +392,6 @@ while True: time.sleep(1)
         equal(result.code, 0, new TextDecoder().decode(result.stderr));
         const { records } = await readBatch(batch);
         equal(records[0].status, "interrupted");
-        equal(
-          records.slice(1).every((record) => record.status === "pending"),
-          true,
-        );
         matches(await Deno.readTextFile(`${batch}/report.md`), /interrupted/);
       } finally {
         try {

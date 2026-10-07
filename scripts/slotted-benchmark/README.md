@@ -1,20 +1,24 @@
 # Slotted interpretation benchmark
 
 The benchmark runs Sigil's computed-claims evaluation against the seven-source
-Slotted design. It starts a fresh Claude, Codex, or Pi process for every
-source/pass attempt, validates the ingested claims, and writes a report from the
-saved evidence.
+Slotted design. One **pass** interprets every source into one private store with
+a fresh Claude, Codex, or Pi process per source, then runs one linked
+`sigil-claims check` over everything that was read. It validates each source's
+ingest and the linked report, and writes a report from the saved evidence.
 
 The benchmark owns the Slotted fixture and its four planted problems in
-[`fixture.ts`](./fixture.ts). It checks their evidence against the captured
-design before scheduling a batch. If the design has drifted, the report marks
-the affected planted-problem measure as unavailable.
+[`fixture.ts`](./fixture.ts). It checks their evidence against the workspace
+trees before scheduling a batch. If the design has drifted, the report marks the
+affected planted-problem measure as unavailable.
 
-A source is read with its imports shown as interface only. The
-`booking-rooms-archived-mark-ownership` problem depends on Rooms' `state`
-section, which Booking no longer sees, so the preflight marks it as drift and
-the report shows its measure as unavailable. The other three problems stay
-scorable.
+A source is read with its imports shown as interface only, so a model never sees
+a dependency's private sections. The linked check does not have that limit: it
+links the stored readings of every source, so a problem that spans components,
+such as `booking-rooms-archived-mark-ownership` (Booking claims a mark that
+Rooms' private `state` says Rooms owns), is scored from the linked report. A
+planted problem whose anchor Facets were unread in a pass, for example because
+one reader failed, is unavailable for that pass rather than missed, and the
+other problems still score.
 
 ## Requirements
 
@@ -26,8 +30,9 @@ The `deno task slotted-benchmark` command builds `sigilc` and `sigil-claims`
 with Cargo before running the benchmark.
 
 Every command reads the Slotted workspace with `--root` and keeps its readings
-in a private `--store` that must start empty. An attempt therefore never reuses
-an earlier reading.
+in a private `--store`. A pass's store must start empty, so a source's own units
+are always read for the first time. Within a pass the seven sources share that
+store, which is what the linked check reads.
 
 ## Run a batch
 
@@ -45,11 +50,14 @@ deno task slotted-benchmark run \
 Replace each `MODEL` with a selector supported by that CLI. For example, Pi
 selectors may include a provider such as `provider/model`.
 
-Each selected pair gets seven source attempts per pass. The runner processes
-attempts sequentially and gives each one a fresh child process and an empty
-private claims store. The default timeout is 180,000 ms per source attempt. It
-covers preparation, interpretation, and ingest. Set a different budget with
-`--timeout-ms`:
+Each selected pair gets one pass per requested pass count. A pass processes the
+seven sources sequentially, each with its own prepare, fresh child process,
+ingest, and timeout, all into one empty private claims store. After the last
+ingest it runs `sigil-claims check --root WORKSPACE --store STORE`. The linked
+state is `disjoint` or `incomplete` (exit 1) or `loose` or `coherent` (exit 0);
+`incomplete` means some unit had no valid reading. The default timeout is
+180,000 ms per source, and per check. It covers preparation, interpretation, and
+ingest. Set a different budget with `--timeout-ms`:
 
 ```sh
 deno task slotted-benchmark run \
@@ -63,23 +71,26 @@ By default, each run gets a new directory under
 different destination, pass `--out DIR`; the directory must not already exist.
 
 The command prints the report path and counts for scheduled, valid, failed or
-invalid, interrupted, and unfinished attempts. A stopped batch keeps its
-completed and pending attempt records so its report can be rebuilt later.
+invalid, interrupted, and unfinished passes. A stopped batch keeps its completed
+and pending pass records so its report can be rebuilt later.
 
 ## Read or rebuild a report
 
 Every batch contains a `report.md` with these sections:
 
-- **Runs:** one row per scheduled source attempt, including agent, requested and
-  observed model, pass, status, state, planted findings, additional findings,
-  Facet coverage, and evidence links.
-- **Agent and model comparison:** rows grouped by agent, model identity, and
-  source. The table reports state counts, planted-problem detection,
+- **Runs:** one row per scheduled pass, including agent, requested and observed
+  model, pass, sources read, status, linked state, planted findings (or N/A
+  where the anchor Facets were unread), additional findings, Facet coverage, and
+  evidence links.
+- **Source readings:** one row per source in each pass, with its own ingest
+  state and coverage.
+- **Agent and model comparison:** rows grouped by agent and model identity. The
+  table reports linked state counts, planted-problem detection,
   additional-finding frequencies, and Facet coverage. It does not assign one
   overall rank.
 - **Planted finding evidence, additional findings for review, and variation:**
   evidence links for matched planted problems, extra findings that need human
-  review, and Facet rows that differ across valid repeated attempts.
+  review, and Facet rows that differ across valid repeated passes.
 
 To rebuild a report from a saved batch without starting an agent:
 
@@ -97,9 +108,9 @@ model are labeled unverified.
 
 Each batch keeps its `sigilc tree` output, the workspace digest, fixture
 preflight, tool and guidance identities, prepared requests, exact child rows,
-raw host events, native claims reports and contexts, and one record per
-scheduled attempt. The children do not receive the planted-problem answer key or
-prior batch output.
+raw host events, each source's claims report and context, the linked report and
+context (`workspace.linked.json`), and one record per scheduled pass. The
+children do not receive the planted-problem answer key or prior batch output.
 
 See [`report.ts`](./report.ts) for report definitions and
 [`docs/computed-evaluation-demo.md`](../../docs/computed-evaluation-demo.md) for

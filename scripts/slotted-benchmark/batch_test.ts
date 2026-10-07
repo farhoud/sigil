@@ -8,20 +8,34 @@ import {
   runBatch,
   validateSelections,
 } from "./batch.ts";
+import { SLOTTED_FIXTURE } from "./fixture.ts";
 
-Deno.test("two agent/model combinations across three passes schedule 42 distinct attempts", () => {
+Deno.test("two agent/model combinations across three passes schedule six distinct passes", () => {
   const schedule = buildSchedule([
     { agent: "claude", model: "sonnet" },
     { agent: "codex", model: "gpt-6" },
   ], 3);
-  equal(schedule.length, 42);
-  equal(new Set(schedule.map((attempt) => attempt.id)).size, 42);
+  equal(schedule.length, 6);
+  equal(new Set(schedule.map((attempt) => attempt.id)).size, 6);
   deepEqual(
     new Set(schedule.map((attempt) => attempt.pass)),
     new Set([1, 2, 3]),
   );
   for (const pass of [1, 2, 3]) {
-    equal(schedule.filter((attempt) => attempt.pass === pass).length, 14);
+    equal(schedule.filter((attempt) => attempt.pass === pass).length, 2);
+  }
+});
+
+Deno.test("one selection and two passes schedule two pass records covering seven sources each", () => {
+  const schedule = buildSchedule([{ agent: "claude", model: "sonnet" }], 2);
+  equal(schedule.length, 2);
+  deepEqual(schedule.map((attempt) => attempt.pass), [1, 2]);
+  for (const attempt of schedule) {
+    deepEqual(
+      attempt.sources,
+      SLOTTED_FIXTURE.sources.map((source) => source.path),
+    );
+    equal(attempt.sources.length, 7);
   }
 });
 
@@ -51,7 +65,7 @@ Deno.test("invalid passes, unknown agents, and duplicate selections fail before 
   }
 });
 
-Deno.test("frozen batch retains seven pending records when cancelled before launches", async () => {
+Deno.test("frozen batch retains one pending pass record when cancelled before launches", async () => {
   const outputDir = await Deno.makeTempDir({ prefix: "slotted-batch-test-" });
   await Deno.remove(outputDir);
   const controller = new AbortController();
@@ -65,24 +79,25 @@ Deno.test("frozen batch retains seven pending records when cancelled before laun
       signal: controller.signal,
     });
     const retained = await readBatch(outputDir);
-    equal(manifest.schedule.length, 7);
-    equal(retained.records.length, 7);
+    equal(manifest.schedule.length, 1);
+    equal(retained.records.length, 1);
+    equal(manifest.schedule[0].sources.length, 7);
     equal(
       retained.records.every((record) => record.status === "pending"),
       true,
     );
-    // Booking is shown Rooms' interface only, so the ownership problem
-    // that Rooms states in its state section cannot be scored from it.
+    // The linked check reads every source's private sections, so the
+    // ownership problem Rooms states in its state section is scorable.
     deepEqual(
       manifest.preflight.issues.map((issue) => issue.status),
-      ["scorable", "drift", "scorable", "scorable"],
+      ["scorable", "scorable", "scorable", "scorable"],
     );
     equal(Object.keys(manifest.input.sourceSha256).length, 7);
     equal(manifest.input.workspaceMemoPresent, false);
 
     await Deno.remove(`${outputDir}/records/${manifest.schedule[0].id}.json`);
     const recovered = await readBatch(outputDir);
-    equal(recovered.records.length, 7);
+    equal(recovered.records.length, 1);
     deepEqual(recovered.records[0], {
       ...manifest.schedule[0],
       status: "pending",
@@ -95,6 +110,7 @@ Deno.test("frozen batch retains seven pending records when cancelled before laun
       modelVerification: "unverified",
       presentedFacets: null,
       coveredFacets: null,
+      sourceResults: [],
       outcomePath: null,
     });
   } finally {

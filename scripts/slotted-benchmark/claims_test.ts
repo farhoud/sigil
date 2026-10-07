@@ -4,7 +4,12 @@ import {
 } from "node:assert/strict";
 import { relative } from "node:path";
 import { blake3 } from "@noble/hashes/blake3.js";
-import { runClaimsAttempt, validateClaimsEvidence } from "./claims.ts";
+import {
+  runClaimsAttempt,
+  runClaimsPass,
+  validateClaimsEvidence,
+  validateLinkedEvidence,
+} from "./claims.ts";
 import type { AgentRunResult } from "./agents.ts";
 
 const artifact = new TextEncoder().encode(
@@ -221,16 +226,16 @@ Deno.test("native prepare and ingest retain a valid full reading and reject an o
   );
 });
 
-Deno.test("a nonempty private store stops before prepare or child launch", async () => {
+Deno.test("a nonempty private store stops the pass before prepare or child launch", async () => {
   const scratch = await Deno.makeTempDir({ prefix: "slotted-nonempty-store-" });
   const privateStore = `${scratch}/private`;
   await Deno.mkdir(privateStore);
   await Deno.writeTextFile(`${privateStore}/old.txt`, "prior interpretation");
   let launched = false;
-  const checked = await runClaimsAttempt({
+  const checked = await runClaimsPass({
     executable: "/missing/sigil-claims",
     root: "/missing/workspace",
-    source: "identity.sigil",
+    sources: ["identity.sigil"],
     privateStore,
     preparationDir: `${scratch}/prepared`,
     evidenceDir: `${scratch}/evidence`,
@@ -243,6 +248,175 @@ Deno.test("a nonempty private store stops before prepare or child launch", async
   equal(checked.status, "failed");
   equal(checked.failureStep, "prepare");
   equal(launched, false);
+});
+
+const sevenSources = [
+  "slotted.sigil",
+  "identity.sigil",
+  "rooms.sigil",
+  "shared.sigil",
+  "availability.sigil",
+  "booking.sigil",
+  "calendar.sigil",
+];
+
+/** A pass over the real fixture whose readers return no commitments. */
+async function nativePass(failing?: string) {
+  const scratch = await Deno.makeTempDir({ prefix: "slotted-native-pass-" });
+  const claims =
+    new URL("../../packages/sigilc/target/debug/sigil-claims", import.meta.url)
+      .pathname;
+  const workspace = new URL("../../examples/slotted", import.meta.url).pathname;
+  const interpreted: string[] = [];
+  const pass = await runClaimsPass({
+    executable: claims,
+    root: workspace,
+    sources: sevenSources,
+    privateStore: `${scratch}/private`,
+    preparationDir: `${scratch}/prepared`,
+    evidenceDir: `${scratch}/evidence`,
+    timeoutMs: 30_000,
+    interpret: async (source, preparationDir, evidenceDir) => {
+      interpreted.push(source);
+      await Deno.mkdir(evidenceDir, { recursive: true });
+      if (source === failing) {
+        return {
+          status: "failed",
+          finalResponsePath: null,
+          error: "reader failed",
+        } as AgentRunResult;
+      }
+      const request = JSON.parse(
+        await Deno.readTextFile(`${preparationDir}/request.json`),
+      );
+      const rows = (request.rows as { facet: string; context?: boolean }[])
+        .filter((row) => !row.context).map((row) =>
+          `(reading ${JSON.stringify(row.facet)} "no-commitment")`
+        );
+      const finalResponsePath = `${evidenceDir}/final-response.txt`;
+      await Deno.writeTextFile(finalResponsePath, `${rows.join("\n")}\n`);
+      return {
+        status: "completed",
+        finalResponsePath,
+        error: null,
+      } as AgentRunResult;
+    },
+  });
+  return { scratch, pass, interpreted };
+}
+
+Deno.test("a pass reads every source into one store, then one linked check validates", async () => {
+  const { scratch, pass, interpreted } = await nativePass();
+  try {
+    deepEqual(interpreted, sevenSources);
+    equal(pass.status, "valid", pass.error ?? "");
+    equal(pass.sources.every((entry) => entry.status === "valid"), true);
+    equal(pass.linked?.validation?.valid, true);
+    equal(pass.state === "loose" || pass.state === "coherent", true);
+    const unread = pass.linked?.report?.unread as unknown[];
+    equal(unread.length, 0);
+  } finally {
+    await Deno.remove(scratch, { recursive: true });
+  }
+});
+
+Deno.test("a pass whose reader fails still links what was read and reports incomplete", async () => {
+  const { scratch, pass, interpreted } = await nativePass("rooms.sigil");
+  try {
+    deepEqual(interpreted, sevenSources);
+    equal(pass.status, "failed");
+    equal(pass.state, "incomplete");
+    equal(pass.linked?.exitCode, 1);
+    equal(pass.linked?.validation?.valid, true);
+    const unread = pass.linked?.report?.unread as { source: string }[];
+    equal(unread.some((entry) => entry.source === "rooms.sigil"), true);
+    equal(
+      pass.sources.filter((entry) => entry.status === "valid").length,
+      6,
+    );
+  } finally {
+    await Deno.remove(scratch, { recursive: true });
+  }
+});
+
+const linkedIdentity = {
+  bindingDigest: "merged",
+  guidanceFingerprint: "guidance",
+  vocabularyGeneration: 2,
+  interpretations: ["aaa", "bbb"],
+};
+function linkedInput(state: string, exitCode: number, unread: unknown[] = []) {
+  return {
+    privateStore: root,
+    exitCode,
+    workspaceDigest: "workspace",
+    guidanceFingerprint: "guidance",
+    vocabularyGeneration: 2,
+    sources: [{ source: "booking.sigil", bindingDigest: "digest" }],
+    everySourceRead: unread.length === 0,
+    memoKeys: ["aaa", "bbb"],
+    result: {
+      version: 4,
+      scope: "workspace",
+      state,
+      findings: 0,
+      report: `${root}/claims/workspace.linked.json`,
+      judgmentContext: `${root}/claims/workspace.linked.context.json`,
+      workspaceDigest: "workspace",
+      guidanceFingerprint: "guidance",
+      vocabularyGeneration: 2,
+    },
+    report: {
+      version: 4,
+      source: "workspace",
+      state,
+      identity: linkedIdentity,
+      findings: [],
+      unread,
+      unresolvedImports: [],
+      linked: {
+        workspaceDigest: "workspace",
+        sources: [{ source: "booking.sigil", bindingDigest: "digest" }],
+      },
+    },
+    context: { source: "workspace", identity: linkedIdentity, units: [] },
+  };
+}
+
+Deno.test("a linked report exits 1 exactly when disjoint or incomplete", () => {
+  const loose = validateLinkedEvidence(linkedInput("loose", 0));
+  equal(loose.valid, true, loose.errors.join("; "));
+  equal(loose.state, "loose");
+  const looseFails = validateLinkedEvidence(linkedInput("loose", 1));
+  equal(looseFails.valid, false);
+  equal(looseFails.state, null);
+  equal(
+    looseFails.errors.some((error) => error.includes("exit code")),
+    true,
+  );
+  const disjoint = validateLinkedEvidence(linkedInput("disjoint", 1));
+  equal(disjoint.valid, true, disjoint.errors.join("; "));
+  const incomplete = validateLinkedEvidence(
+    linkedInput("incomplete", 1, [{ source: "rooms.sigil", facets: ["f"] }]),
+  );
+  equal(incomplete.valid, true, incomplete.errors.join("; "));
+  equal(incomplete.state, "incomplete");
+  equal(validateLinkedEvidence(linkedInput("incomplete", 0)).valid, false);
+});
+
+Deno.test("unread units reported as loose, or a stale workspace digest, are rejected", () => {
+  const unread = linkedInput("loose", 0, [{ source: "rooms.sigil" }]);
+  equal(validateLinkedEvidence(unread).valid, false);
+  const stale = linkedInput("loose", 0);
+  const checked = validateLinkedEvidence({
+    ...stale,
+    workspaceDigest: "other",
+  });
+  equal(checked.valid, false);
+  equal(
+    checked.errors.some((error) => error.includes("workspace digest")),
+    true,
+  );
 });
 
 Deno.test("native prepare timeout interrupts without blocking the batch", async () => {
