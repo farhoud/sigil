@@ -2,11 +2,11 @@
  * Orchestrator and child launch settings for each host, and the readers that
  * recover what each host recorded about its children.
  *
- * The benchmark's passes (`agents.ts`) and the U1 host probe
+ * The benchmark's passes (`agents.ts`) and the host probe
  * (`probe-hosts.ts`) share this module, so the settings the probe verified live
  * are the settings a pass runs with.
  *
- * Verified live in U1: Codex (0.161) and Claude Code. NOT verified live: Pi
+ * Verified live by the host probe: Codex (0.161) and Claude Code. NOT verified live: Pi
  * (0.87 with pi-subagents 0.70.1). The xAI provider answered 403 out of credits,
  * so the Pi settings below were written from the pi-subagents documentation and
  * have never been run against a real model.
@@ -199,7 +199,7 @@ export async function buildHostLaunch(
       };
     }
     case "pi": {
-      // UNTESTED LIVE: written from the pi-subagents documentation (U1 could
+      // UNTESTED LIVE: written from the pi-subagents documentation (the host probe could
       // not reach a Pi provider with credit).
       await Deno.mkdir(join(passDir, ".pi/agents"), { recursive: true });
       await Deno.writeTextFile(

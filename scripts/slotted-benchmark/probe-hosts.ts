@@ -13,7 +13,7 @@
  * not a test, and it does not build `sigil-claims`: it uses the pinned binary
  * from `packages/sigilc/target/debug` (or `--sigil-claims PATH`).
  */
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   analyzeHostStream,
@@ -24,6 +24,7 @@ import {
   HOSTS,
   parseJsonLines,
   prepareCodexHome,
+  removeCodexAuth,
 } from "./hosts.ts";
 import { settleWithin, signalOwnedProcess } from "./process.ts";
 
@@ -226,7 +227,7 @@ async function probeHost(
     passDir,
     {
       ...launch.env,
-      PATH: `${binDir}:${Deno.env.get("PATH") ?? ""}`,
+      PATH: `${binDir}${delimiter}${Deno.env.get("PATH") ?? ""}`,
     },
     options.timeoutMs,
     stdoutPath,
@@ -242,7 +243,7 @@ async function probeHost(
   const observedModel = analysis.childModels.join(",") || null;
   const observedEffort = analysis.childEfforts.join(",") || null;
   // Never leave a credential copy in retained evidence.
-  await Deno.remove(join(hostDir, "codex-home/auth.json")).catch(() => {});
+  await removeCodexAuth(join(hostDir, "codex-home"));
 
   const childWrote = (await readTrimmed(join(passDir, "child.txt")))
     ?.toUpperCase() === "OK";

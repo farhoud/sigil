@@ -51,6 +51,11 @@ pub fn is_flow_ref(name: &str) -> bool {
     name == GRAPH_REF || name.starts_with(STEP_REF)
 }
 
+/// A number counting from 1, as a step's ordinal is written.
+pub fn positive(text: &str) -> Option<u32> {
+    text.parse().ok().filter(|n| *n > 0)
+}
+
 /// A step reference as the interpretation writes it: the step's number within
 /// its own Facet, and the Facet when it is not the row's own.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,12 +71,12 @@ pub fn local_step_ref(name: &str) -> Option<LocalStepRef> {
     match rest.rsplit_once(STEP_DOT) {
         Some((facet, ordinal)) if !facet.is_empty() => Some(LocalStepRef {
             facet: Some(facet.to_owned()),
-            ordinal: ordinal.parse().ok().filter(|n| *n > 0)?,
+            ordinal: positive(ordinal)?,
         }),
         Some(_) => None,
         None => Some(LocalStepRef {
             facet: None,
-            ordinal: rest.parse().ok().filter(|n| *n > 0)?,
+            ordinal: positive(rest)?,
         }),
     }
 }
@@ -81,7 +86,7 @@ pub fn local_step_ref(name: &str) -> Option<LocalStepRef> {
 /// Ordinals start at 1 so that a missing or zero ordinal is distinguishable
 /// from a real one rather than defaulting to the first step.
 pub fn step_ordinal(name: &str) -> Option<u32> {
-    name.strip_prefix(STEP_REF)?.parse().ok().filter(|n| *n > 0)
+    positive(name.strip_prefix(STEP_REF)?)
 }
 
 /// The seven contract roles, in the order the language reference lists them.

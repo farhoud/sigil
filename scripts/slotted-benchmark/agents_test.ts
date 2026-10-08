@@ -5,7 +5,7 @@ import {
   parseHandbackState,
   runOrchestrator,
 } from "./agents.ts";
-import { exists } from "./test_support.ts";
+import { exists } from "./files.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);

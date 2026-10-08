@@ -161,13 +161,3 @@ export async function writeFakeHost(
   await Deno.chmod(path, 0o755);
   return path;
 }
-
-export async function exists(path: string): Promise<boolean> {
-  try {
-    await Deno.stat(path);
-    return true;
-  } catch (cause) {
-    if (cause instanceof Deno.errors.NotFound) return false;
-    throw cause;
-  }
-}

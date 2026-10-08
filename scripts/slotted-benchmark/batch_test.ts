@@ -2,6 +2,7 @@ import {
   deepStrictEqual as deepEqual,
   strictEqual as equal,
 } from "node:assert/strict";
+import { exists } from "./files.ts";
 import {
   buildSchedule,
   orchestratorPromptTemplate,
@@ -174,13 +175,3 @@ Deno.test("missing pinned skill fails before scheduling attempts", async () => {
     await Deno.remove(root, { recursive: true });
   }
 });
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await Deno.stat(path);
-    return true;
-  } catch (cause) {
-    if (cause instanceof Deno.errors.NotFound) return false;
-    throw cause;
-  }
-}

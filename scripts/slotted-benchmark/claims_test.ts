@@ -12,7 +12,7 @@ import {
   validateLinkedEvidence,
 } from "./claims.ts";
 import { copySkill, copyTree, treeSha256 } from "./files.ts";
-import { exists } from "./test_support.ts";
+import { exists } from "./files.ts";
 
 const claims =
   new URL("../../packages/sigilc/target/debug/sigil-claims", import.meta.url)

@@ -5,6 +5,7 @@ import {
   pendingRecord,
   readBatch,
 } from "./batch.ts";
+import { exists } from "./files.ts";
 import type { IssuePreflight } from "./fixture.ts";
 
 type JsonObject = Record<string, unknown>;
@@ -61,10 +62,8 @@ export async function writeReport(batchDir: string): Promise<string> {
             ...linked,
             result: {
               ...linkedResult,
-              report: await pathExists(reportPath) ? reportPath : null,
-              judgmentContext: await pathExists(contextPath)
-                ? contextPath
-                : null,
+              report: await exists(reportPath) ? reportPath : null,
+              judgmentContext: await exists(contextPath) ? contextPath : null,
             },
           },
         };
@@ -577,14 +576,4 @@ function relativeLink(batchDir: string, value: unknown): string | null {
   if (typeof value !== "string") return null;
   const rel = relative(resolve(batchDir), resolve(value));
   return rel && rel !== ".." && !rel.startsWith(`..${sep}`) ? rel : null;
-}
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await Deno.stat(path);
-    return true;
-  } catch (cause) {
-    if (cause instanceof Deno.errors.NotFound) return false;
-    throw cause;
-  }
 }

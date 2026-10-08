@@ -261,7 +261,6 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     let all_units = memo::units(&request);
     let split = memo::split(&request, &input, store);
     let stale_keys: BTreeSet<String> = split.stale.iter().map(|unit| unit.key.clone()).collect();
-    let stale = split.stale;
     let reused: BTreeMap<String, Vec<dialect::Row>> = split
         .reused
         .into_iter()
@@ -301,15 +300,18 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     let mut comparison_errors: Vec<String> = Vec::new();
     let mut facts: Vec<identity::Fact> = Vec::new();
     let mut comparison_facts: Vec<identity::Fact> = Vec::new();
-    let mut accepted: Vec<(&memo::Unit, Vec<dialect::Row>)> = Vec::new();
+    let mut accepted: Vec<(&memo::Unit, Vec<dialect::Row>, BTreeSet<identity::Defect>)> =
+        Vec::new();
     let mut has_cached_second_reading = false;
+    // Each unit's rows, in one pass over the answer.
+    let mut rows_of: BTreeMap<usize, Vec<dialect::Row>> = BTreeMap::new();
+    for row in &resolved.rows {
+        if let Some(index) = unit_of.get(row.facet()) {
+            rows_of.entry(*index).or_default().push(row.clone());
+        }
+    }
     for (index, unit) in all_units.iter().enumerate().filter(|(_, u)| !u.context) {
-        let mut mine: Vec<dialect::Row> = resolved
-            .rows
-            .iter()
-            .filter(|row| unit.facets.iter().any(|facet| facet == row.facet()))
-            .cloned()
-            .collect();
+        let mut mine = rows_of.remove(&index).unwrap_or_default();
         mine.sort();
         mine.dedup();
         let issues = issues_of.get(&index).map(Vec::as_slice).unwrap_or_default();
@@ -358,8 +360,12 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
                 unread.push(describe(None));
             } else {
                 comparison_facts.extend(admitted.iter().cloned());
+                let defects = admitted
+                    .iter()
+                    .flat_map(|fact| fact.defects.iter().cloned())
+                    .collect();
                 facts.extend(admitted);
-                accepted.push((unit, mine));
+                accepted.push((unit, mine, defects));
             }
         } else if let Some(stored) = reused.get(&unit.key) {
             match admitter.admit(stored) {
@@ -379,12 +385,9 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
                             comparison_errors.extend(
                                 issues
                                     .iter()
-                                    .map(|i| format!("{}: {}", i.row, i.reason))
-                                    .chain(
-                                        second_issues
-                                            .into_iter()
-                                            .map(|i| format!("{}: {}", i.row, i.reason)),
-                                    ),
+                                    .copied()
+                                    .chain(&second_issues)
+                                    .map(canon::Issue::line),
                             );
                         }
                     }
@@ -421,19 +424,13 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     // version wrote are removed first, and counted.
     let mut pruned = 0;
     let mut stored_units = 0;
-    for (unit, mine) in &accepted {
+    for (unit, mine, defects) in &accepted {
         if stored_units == 0 {
             pruned = memo::prune_older(store).map_err(operational)?;
         }
-        let defects = facts
-            .iter()
-            .filter(|f| unit.facets.contains(&f.facet))
-            .flat_map(|f| f.defects.iter().cloned())
-            .collect();
-        memo::save(store, &request, unit, mine, defects).map_err(operational)?;
+        memo::save(store, &request, unit, mine, defects.clone()).map_err(operational)?;
         stored_units += 1;
     }
-    let _ = stale;
 
     let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
     let mut comparisons = Vec::new();
@@ -453,12 +450,8 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
                 repeat
                     .issues
                     .iter()
-                    .map(|i| format!("{}: {}", i.row, i.reason))
-                    .chain(
-                        repeat_issues
-                            .into_iter()
-                            .map(|i| format!("{}: {}", i.row, i.reason)),
-                    ),
+                    .chain(&repeat_issues)
+                    .map(canon::Issue::line),
             );
         }
     }

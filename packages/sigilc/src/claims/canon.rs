@@ -28,6 +28,13 @@ pub struct Issue {
     pub reason: String,
 }
 
+impl Issue {
+    /// The issue as one line, the row and then why it was set aside.
+    pub fn line(&self) -> String {
+        format!("{}: {}", self.row, self.reason)
+    }
+}
+
 /// The rows of an interpretation in their resolved form, and what was left out.
 #[derive(Debug, Clone, Default)]
 pub struct Resolved {
@@ -152,9 +159,9 @@ pub fn resolve(request: &Request, parsed: Parsed) -> Resolved {
         }
     }
 
-    // `step:K` and `step:#N.K` as the section-wide `step:N`, from the Facet that
-    // wrote the reference.
-    let resolve_step = |from: &str, written: &str| -> Result<String, String> {
+    // `step:K` and `step:#N.K` as the step's position across its section, from
+    // the Facet that wrote the reference.
+    let step_position = |from: &str, written: &str| -> Result<u32, String> {
         let reference = vocabulary::local_step_ref(written)
             .ok_or_else(|| format!("{written:?} is not a step reference"))?;
         let home = places.get(from).ok_or_else(|| {
@@ -172,14 +179,16 @@ pub fn resolve(request: &Request, parsed: Parsed) -> Resolved {
                 .get(&(p.component, p.position, reference.ordinal))
                 .copied()
         });
-        ordinal
-            .map(|n| format!("{}{n}", vocabulary::STEP_REF))
-            .ok_or_else(|| {
-                format!(
-                    "{written:?} names a step its Logic section never declares; a row pointing \
-                     at an undeclared step would read as a dead end"
-                )
-            })
+        ordinal.ok_or_else(|| {
+            format!(
+                "{written:?} names a step its Logic section never declares; a row pointing \
+                 at an undeclared step would read as a dead end"
+            )
+        })
+    };
+    // The same position, written as the section-wide `step:N` a row carries on.
+    let resolve_step = |from: &str, written: &str| -> Result<String, String> {
+        step_position(from, written).map(|n| format!("{}{n}", vocabulary::STEP_REF))
     };
 
     for (index, (facet, row)) in rows.iter().enumerate() {
@@ -213,48 +222,20 @@ pub fn resolve(request: &Request, parsed: Parsed) -> Resolved {
                     })
                 })
             }
-            Row::Property {
-                subject,
-                property,
-                value,
-                ..
-            } => Ok(Row::Property {
-                facet: facet.clone(),
-                subject: subject.clone(),
-                property: property.clone(),
-                value: value.clone(),
-            }),
-            Row::Measure {
-                subject,
-                property,
-                number,
-                ..
-            } => Ok(Row::Measure {
-                facet: facet.clone(),
-                subject: subject.clone(),
-                property: property.clone(),
-                number: number.clone(),
-            }),
-            Row::Reading { outcome, .. } => Ok(Row::Reading {
-                facet: facet.clone(),
-                outcome: outcome.clone(),
-            }),
-            Row::Undeclared { name, .. } => Ok(Row::Undeclared {
-                facet: facet.clone(),
-                name: name.clone(),
-            }),
+            Row::Property { .. }
+            | Row::Measure { .. }
+            | Row::Reading { .. }
+            | Row::Undeclared { .. } => Ok(row.with_facet(facet.clone())),
             Row::Step { ordinal, .. } => {
-                resolve_step(facet, &format!("step:{ordinal}")).and_then(|resolved| {
-                    vocabulary::step_ordinal(&resolved)
-                        .map(|ordinal| Row::Step {
-                            facet: facet.clone(),
-                            ordinal,
-                        })
-                        .ok_or_else(|| "a step has no position in its section".to_owned())
+                step_position(facet, &format!("{}{ordinal}", vocabulary::STEP_REF)).map(|ordinal| {
+                    Row::Step {
+                        facet: facet.clone(),
+                        ordinal,
+                    }
                 })
             }
             Row::End { ordinal, .. } => {
-                resolve_step(facet, &format!("step:{ordinal}")).map(|step| {
+                resolve_step(facet, &format!("{}{ordinal}", vocabulary::STEP_REF)).map(|step| {
                     // The edge to the graph is what declares an end. The row says
                     // which step the prose ends at; the tool writes the edge.
                     Row::Claim {

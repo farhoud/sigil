@@ -99,6 +99,22 @@ impl Row {
         }
     }
 
+    /// The same row about another Facet.
+    pub fn with_facet(&self, facet: String) -> Row {
+        let mut row = self.clone();
+        match &mut row {
+            Row::Claim { facet: slot, .. }
+            | Row::Property { facet: slot, .. }
+            | Row::Measure { facet: slot, .. }
+            | Row::Reading { facet: slot, .. }
+            | Row::Step { facet: slot, .. }
+            | Row::Guard { facet: slot, .. }
+            | Row::End { facet: slot, .. }
+            | Row::Undeclared { facet: slot, .. } => *slot = facet,
+        }
+        row
+    }
+
     pub fn relation_name(&self) -> &'static str {
         match self {
             Row::Claim { .. } => "claim",
@@ -463,7 +479,7 @@ fn row(name: &str, args: &[Arg]) -> Result<Row, String> {
 
 /// A step's number within its Facet, counting from 1.
 fn local_ordinal(value: &str, what: &str, name: &str, values: &[String]) -> Result<u32, String> {
-    value.parse::<u32>().ok().filter(|n| *n > 0).ok_or_else(|| {
+    vocabulary::positive(value).ok_or_else(|| {
         format!(
             "{what} is its position within its own Facet, counting from 1; got {value:?} in {}",
             atom(name, values)

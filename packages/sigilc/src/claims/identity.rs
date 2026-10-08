@@ -338,19 +338,23 @@ impl<'a> Admitter<'a> {
         (facts, issues)
     }
 
+    /// The ids on a Facet's own list that something called `raw` could mean:
+    /// the id itself, or an entity with that label.
+    fn on_list(&self, facet: &str, raw: &str) -> Vec<&String> {
+        self.grounding
+            .allowed(facet)
+            .into_iter()
+            .flatten()
+            .filter(|id| id.as_str() == raw || self.labels.get(id.as_str()) == Some(&raw))
+            .collect()
+    }
+
     /// The entity a Facet's row names, from that Facet's own list.
     ///
     /// The list comes first so a label two entities of the design share still
     /// resolves for a Facet that can name only one of them.
     fn resolve_name(&self, facet: &str, raw: &str) -> Result<String, String> {
-        let on_list: Vec<&String> = self
-            .grounding
-            .allowed(facet)
-            .into_iter()
-            .flatten()
-            .filter(|id| id.as_str() == raw || self.labels.get(id.as_str()) == Some(&raw))
-            .collect();
-        match on_list.as_slice() {
+        match self.on_list(facet, raw).as_slice() {
             [one] => Ok((*one).clone()),
             [] => match self.names.resolve(raw) {
                 Ok(_) => Err(format!(
@@ -364,15 +368,6 @@ impl<'a> Admitter<'a> {
                 "{raw:?} names more than one entity on this Facet's list"
             )),
         }
-    }
-
-    /// Whether a Facet's list carries something called `raw`.
-    fn on_list(&self, facet: &str, raw: &str) -> bool {
-        self.grounding
-            .allowed(facet)
-            .into_iter()
-            .flatten()
-            .any(|id| id.as_str() == raw || self.labels.get(id.as_str()) == Some(&raw))
     }
 
     fn admit_row(&self, flow: &Flow, row: &Row) -> Result<Fact, String> {
@@ -505,7 +500,7 @@ impl<'a> Admitter<'a> {
                          names what the prose relies on, as the prose writes it"
                     ));
                 }
-                if self.on_list(facet, name) {
+                if !self.on_list(facet, name).is_empty() {
                     return Err(format!(
                         "{name:?} is on this Facet's list; state the claim it supports instead \
                          of calling it undeclared"

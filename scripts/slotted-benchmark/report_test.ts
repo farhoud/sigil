@@ -4,6 +4,7 @@ import {
   type BatchManifest,
   pendingRecord,
 } from "./batch.ts";
+import { exists } from "./files.ts";
 import { SLOTTED_FIXTURE } from "./fixture.ts";
 import { renderReport, type ReportAttempt, writeReport } from "./report.ts";
 
@@ -459,7 +460,7 @@ Deno.test("moved batch report points at the retained check files inside the move
     const report = await Deno.readTextFile(reportPath);
     assert(!(await Deno.lstat(reportPath)).isSymlink);
     assert(await Deno.readTextFile(victim) === "keep this file intact\n");
-    assert(!(await pathExists(originalDir)), "old batch location still exists");
+    assert(!(await exists(originalDir)), "old batch location still exists");
     matches(report, /\| 000001 \|.*\| valid \| disjoint \|/);
     matches(report, /booking-pending-range-contradiction: 1\/1/);
     matches(
@@ -478,16 +479,6 @@ Deno.test("moved batch report points at the retained check files inside the move
     await Deno.remove(root, { recursive: true });
   }
 });
-
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await Deno.stat(path);
-    return true;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return false;
-    throw error;
-  }
-}
 
 const ownership = {
   class: "ownership-conflict",

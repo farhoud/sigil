@@ -1,8 +1,8 @@
 import { match as matches, strictEqual as equal } from "node:assert/strict";
 import { readBatch, runBatch } from "./batch.ts";
-import { treeSha256 } from "./files.ts";
+import { exists, treeSha256 } from "./files.ts";
 import { executeCommand } from "./main.ts";
-import { exists, writeFakeHost } from "./test_support.ts";
+import { writeFakeHost } from "./test_support.ts";
 
 const slotted = new URL("../../examples/slotted", import.meta.url).pathname;
 
