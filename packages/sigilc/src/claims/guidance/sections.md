@@ -140,12 +140,13 @@ Return a `reading` for such a rule, or the positive requirement the flow meets.
 ## Hand over what you read
 
 Write every row from reading its Facet's prose. You may check your rows against
-the `names` lists, but fix a wrong row by reading its Facet again and rewriting
-that row. Never change the answer with a script that deletes, filters or adds
-rows. A row you cannot fix stays in: the tool refuses only its unit and asks
-about it again. A deleted row is a claim lost for good. Never write
-`no-commitment` for a Facet because its rows were removed: `no-commitment` means
-you read the Facet and it commits to nothing.
+the `names` lists, and fix a wrong row by reading its Facet again and rewriting
+that row, with whatever editing you like. What you must never do is drop rows
+in bulk, such as filtering out every row a check flags. A row you cannot fix
+stays in: the tool refuses only its unit and asks about it again. A deleted row
+is a claim lost for good. Never write `no-commitment` for a Facet because its
+rows were removed: `no-commitment` means you read the Facet and it commits to
+nothing.
 
 ## What the role does to a claim
 

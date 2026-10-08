@@ -22,7 +22,7 @@ A `rule`, `command`, `schedule`, or non-literal argument anywhere in the artifac
 
 ## Unit refuse
 
-A row that is plain data but wrong costs only its unit: one Facet, or the whole Logic section it belongs to. That covers a name outside the Facet's list, an unknown relation, property or row kind, a wrong column count, and a step reference no Facet declares. The rest of the answer is kept, and the refused unit is asked about again with the reason. So leave a doubtful row in rather than deleting it by script: a deleted row is a claim lost, and a refused one is only asked again.
+A row that is plain data but wrong costs only its unit: one Facet, or the whole Logic section it belongs to. That covers a name outside the Facet's list, an unknown relation, property or row kind, a wrong column count, and a step reference no Facet declares. The rest of the answer is kept, and the refused unit is asked about again with the reason. So leave a doubtful row in rather than dropping it: a deleted row is a claim lost, and a refused one is only asked again.
 
 Rules are not data. They register inference; they are not claim rows. Do not return `(rule ...)`, `(ruleset ...)`, `(run ...)`, or a schedule.
 

@@ -190,7 +190,9 @@ that stops before the final check writes nothing back.
 ## Re-ask what ingest left unread
 
 Both the one-source loop and the full-design action re-ask, per source, for at
-most two rounds after the first answer. A round starts only when ingest's result
+most two rounds after the first answer. Count by the answer file: a source's
+answers are `-answer-1`, `-answer-2` and `-answer-3`, and the rounds end once
+`-answer-3` is ingested or nothing is left unread. A round starts only when ingest's result
 lists `unreadUnits` (whatever its state) or the whole artifact was refused. In
 ingest's result `unreadUnits` is the list of units; in `check`'s result it is a
 count, and the list is the report's `unread`. A
@@ -229,7 +231,7 @@ does not run the tool; it reads the prepared request and returns rows.
 | `request` | Path to `request.json`: the presented Facet rows, each with its `handle` and the `names` it may use (rows marked `context` are shown for reference and take no reading: a dependency's interface, or a Constraints Facet of the section being asked again), whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
 | `binding` | Path to `binding.json`, the request's identity. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
-| `artifact` | The file the child writes its rows to, and the only file it writes: a plain-text egglog file named `<source>-answer-<round>.egg`. Its content is the claim rows exactly as the prepared guidance shows them, one row per line, and nothing else — never JSON, never an array of strings, never a markdown fence. The child writes each row from reading the prose and never changes the file with a script that deletes, filters or adds rows; a row it doubts stays in, so ingest refuses only that unit and the next round asks again. The host passes that exact file to ingest and never edits it. |
+| `artifact` | The file the child writes its rows to, and the only file it writes: a plain-text egglog file named `<source>-answer-<round>.egg`. Its content is the claim rows exactly as the prepared guidance shows them, one row per line, and nothing else — never JSON, never an array of strings, never a markdown fence. The child writes each row from reading the prose and may fix a row it re-reads however it edits the file, but never drops rows in bulk; a row it doubts stays in, so ingest refuses only that unit and the next round asks again. The host passes that exact file to ingest and never edits it, and never sets an answer aside on its own judgment: ingest decides what is accepted. |
 | `reasons` | On a re-ask, the previous round's refusals: unit, handles and reason. Absent on the first answer. |
 | `completion` | The child states it finished. For a request that presents nothing, that statement says the returned artifact is empty on purpose. |
 
