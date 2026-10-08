@@ -39,6 +39,11 @@ from the pre-filled row you were given: its `handle` (`"#3"`), or its full
 
 For the boolean properties below. `value` is `true` or `false`.
 
+`exclusive` is the one to watch for. A Facet that says a component is the only
+one that may change some state needs `(property "<facet>" "<state>" "exclusive"
+"true")` beside its `owns` claim. Without it, two owners of the same state are
+never reported as a conflict.
+
 ## `measure` — four columns
 
 ```

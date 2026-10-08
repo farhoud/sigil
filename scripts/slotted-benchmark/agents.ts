@@ -145,7 +145,7 @@ export function orchestratorPrompt(input: OrchestratorPromptInput): string {
     "",
     `- The workspace root is \`${root}\`. Pass \`--root ${root}\` to every sigil-claims command. The workspace has no stored readings, so the seed the skill takes from its store is empty.`,
     `- The private store is \`${store}\`. It starts empty. Pass \`--store ${store}\` to every sigil-claims command.`,
-    `- Keep the run directory, preparations, seeds and every answer file under \`${run}\`. A child writes its answer to a file under \`${run}\` named \`<source>-answer-<round>.egg\`, which is plain egglog text with one claim row per line — never JSON — and you pass that exact file to ingest.`,
+    `- Keep the run directory, preparations, seeds and every answer file under \`${run}\`. A child writes its answer to a file under \`${run}\` named \`<source>-answer-<round>.egg\`, which is plain egglog text with one claim row per line — never JSON. The child writes each row from reading the prose and never rewrites the file with a script that deletes, filters or adds rows, and you pass that exact file to ingest.`,
     `- Run the tool as \`./bin/sigil-claims\` wherever the skill writes \`sigil-claims\`. A \`sigil-claims\` found elsewhere on this machine is a different version and must not be used. Never edit the design files.`,
     "",
     `Every reading, including each re-ask, comes from a fresh child that inherits none of your conversation. ${input.spawnInstruction} Children run with model ${input.model} at ${effort}; the host is already set to that, so do not pass a model or effort override when starting a child. Never write, edit or repair rows yourself.`,

@@ -108,6 +108,23 @@ satisfied and reports an obligation that nothing could meet. When a Facet says
 a *booking request* must lie inside open time, the requirement belongs to the
 component that handles it: `Booking requires open time`.
 
+**Sole ownership is two rows.** When a Facet says a component owns some state
+and that it alone may change it, in words such as "the only one that may set or
+clear it", "only its workflows change it" or "no other component may write it",
+return both rows:
+
+```
+(claim "<facet>" "<component>" "owns" "<state>" "required" "true")
+(property "<facet>" "<state>" "exclusive" "true")
+```
+
+The `owns` claim alone says nothing about anyone else, so a second owner
+elsewhere in the design is never reported. This holds in every role. A
+`constraints` Facet that says who alone may change a piece of state is a
+commitment, never a `no-commitment`. Before you hand the answer over, read
+every `owns` claim you wrote against its Facet once more and add the `property`
+row wherever the prose says "only".
+
 **A scoped exception is not a global ban.** When a Facet says something is
 absent only in one case, such as "the view of a closed search, with no search
 results in it", assert the positive part and stop. Do not write the exception
@@ -119,6 +136,16 @@ thing in general. Write the positive claim and leave the exception unclaimed.
 from X" says what a flow refuses. The step that checks X is where the refusal
 happens, so a claim that the component excludes X is reported against that step.
 Return a `reading` for such a rule, or the positive requirement the flow meets.
+
+## Hand over what you read
+
+Write every row from reading its Facet's prose. You may check your rows against
+the `names` lists, but fix a wrong row by reading its Facet again and rewriting
+that row. Never change the answer with a script that deletes, filters or adds
+rows. A row you cannot fix stays in: the tool refuses only its unit and asks
+about it again. A deleted row is a claim lost for good. Never write
+`no-commitment` for a Facet because its rows were removed: `no-commitment` means
+you read the Facet and it commits to nothing.
 
 ## What the role does to a claim
 
