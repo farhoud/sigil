@@ -12,7 +12,7 @@ Do not restate column tables here. Copy row shapes from the request's `vocabular
 
 ## Data only
 
-Return a plain list of S-expression rows and nothing else, one row per line, as egglog text in a `.egg` file. A returned artifact is data-only rows with quoted string literals. It is never JSON: an array of row strings or an object holding rows is refused whole.
+Return a plain list of S-expression rows and nothing else, one row per line, as egglog text in a plain-text file. A returned artifact is data-only rows with quoted string literals. It is never JSON: an array of row strings or an object holding rows is refused whole.
 
 These kinds exist: `claim`, `property`, `measure`, `reading`, `step`, `end`, `guard`, `undeclared`. Each call's arguments are quoted string literals. Nested expressions and arithmetic are refused whole. A bare number or other literal that is not a quoted string is data in the wrong form: it refuses only the unit it is in.
 
