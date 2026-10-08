@@ -138,6 +138,13 @@ from X" says what a flow refuses. The step that checks X is where the refusal
 happens, so a claim that the component excludes X is reported against that step.
 Return a `reading` for such a rule, or the positive requirement the flow meets.
 
+**`excludes` means never, not "not when".** Write `excludes` only when the
+component never does or uses the thing at all. A rule that limits when or how,
+such as "must not change while a request is pending", "windows must not
+overlap" or "must never cancel a confirmed booking", is not an exclusion: every
+step that touches the thing would be reported against it. Return a `reading`
+for such a rule, or the positive requirement it states.
+
 ## Hand over what you read
 
 Write every row from reading its Facet's prose. You may check your rows against

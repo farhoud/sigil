@@ -427,7 +427,7 @@ impl<'a> Admitter<'a> {
                 {
                     return Err(format!(
                         "the subject of {relation:?} must be a component or a step, and \
-                         {:?} is a Tag; name the component the rule binds",
+                         {:?} is a Tag; if the rule only limits when or how, return a reading instead",
                         self.labels
                             .get(subject.as_str())
                             .copied()

@@ -144,7 +144,7 @@ export function orchestratorPrompt(input: OrchestratorPromptInput): string {
     `Read ${skill} first, then the orchestration contract it names, skills/sigil-compute/references/computed-evaluation.md. Use only these staged copies: skills/sigil-compute, skills/sigil-understand and skills/sigil-egglog sit beside each other here, and the reading children load the last two from there. Do not use a copy of any of these skills installed elsewhere on this machine.`,
     "",
     `- The workspace root is \`${root}\`. Pass \`--root ${root}\` to every sigil-claims command. The workspace has no stored readings, so the seed the skill takes from its store is empty.`,
-    `- The private store is \`${store}\`. It starts empty. Pass \`--store ${store}\` to every sigil-claims command.`,
+    `- The private store is \`${store}\`, not a directory inside \`${run}\`: this replaces the contract's default location. It starts empty. Pass \`--store ${store}\` to every sigil-claims command, including the final check.`,
     `- Keep the run directory, preparations, seeds and every answer file under \`${run}\`. A child writes its answer to a file under \`${run}\` named \`<source>-answer-<round>.egg\`, which is plain egglog text with one claim row per line — never JSON. The child writes each row from reading the prose and never drops rows in bulk. You pass that exact file to ingest and never set an answer aside yourself: ingest decides.`,
     `- Run the tool as \`./bin/sigil-claims\` wherever the skill writes \`sigil-claims\`. A \`sigil-claims\` found elsewhere on this machine is a different version and must not be used. Never edit the design files.`,
     "",
