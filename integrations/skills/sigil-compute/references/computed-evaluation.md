@@ -25,12 +25,13 @@ holds stored readings and reports (default `<root>/.sigil`). There is no
 export step.
 
 Exit codes: `0` is a pass or warning; `1` is a gate failure — a computed
-Disjoint verdict, an `incomplete` linked check, a refused artifact, or a
+Disjoint verdict, an `incomplete` result, a wholly refused artifact, or a
 saturation-limit breach; `2` is a
 usage error, including a binding that no longer matches the workspace; `3`
 is an operational failure such as an unreadable input. Exit 1 alone is never a
-verdict: a refused artifact exits 1 with an error message and no structured
-result, and only the result below plus its matching report decide a state.
+verdict: a wholly refused artifact exits 1 with an error message and no
+structured result, and only the result below plus its matching report decide a
+state.
 
 `check` reads the root and the store directly, with no preparation or binding.
 It links every valid stored reading of the workspace into one program and runs
@@ -56,25 +57,39 @@ Check prints a structured result with `version`, `scope`, `state`,
 `findings`, `unreadUnits`, `unresolvedImports`, `report`, `judgmentContext`,
 `workspaceDigest`, `vocabularyGeneration`, and `guidanceFingerprint`. Its state
 adds `incomplete`: some unit has no valid reading, or an import does not
-resolve. The report (version 4) lists `unread` units by source, component,
+resolve. The report (version 5) lists `unread` units by source, component,
 section, and Facet ids, and `unresolvedImports`. It is written to
 `<store>/claims/workspace.linked.json`, or `<store>/claims/<source>.linked.json`
 with `--source`, with a matching `.linked.context.json`; ingest's files are
 never overwritten. `incomplete` and `disjoint` exit 1; `loose` and `coherent`
-exit 0. Ingest never emits `incomplete`.
+exit 0.
 
 Stored interpretations live under `<store>/claims/interpretations`. The
 findings report and the judgment context are written under `<store>/claims`.
 
 Ingest prints a structured result with `version`, `source`, `state`,
 `findings` (a count), `report` (the path it just wrote), `judgmentContext`,
-`vocabularyGeneration`, and `guidanceFingerprint`. States serialize lowercase:
-`coherent`, `loose`, `disjoint`. The report file carries `version`, `source`,
-`identity` (`bindingDigest`, `interpretations`, `guidanceFingerprint`,
-`vocabularyGeneration`), `state`, `iterations`, `findings`, and optional
-`disagreements`. Each finding carries `class` (`contradiction`,
-`ownership-conflict`, `unmet-obligation`, `interpretation`, or `flow`), `law`,
-`subject`, `object`, `claims`, `component`, `section`, and `detail`.
+`vocabularyGeneration`, `guidanceFingerprint`, `storedUnits`, `unreadUnits`,
+`refusalCount`, `refusals` and `comparisonErrors`. States serialize lowercase:
+`coherent`, `loose`, `disjoint`, `incomplete`. The report file carries `version`,
+`source`, `identity` (`bindingDigest`, `interpretations`, `guidanceFingerprint`,
+`vocabularyGeneration`), `state`, `iterations`, `findings`, optional
+`disagreements`, and an `unread` list when ingest left units unread. Each
+finding carries `class` (`contradiction`, `ownership-conflict`,
+`unmet-obligation`, `interpretation`, `flow`, or `gap`), `law`, `subject`,
+`object`, `claims`, `component`, `section`, and `detail`.
+
+An artifact that holds anything other than data is refused whole: exit 1, an
+error message and no structured result. A row that is data but wrong refuses
+only its unit, one Facet or one Logic section. The other units are stored, and
+the result lists each refusal in `refusals` (at most 200, with the full count in
+`refusalCount`) with the unit's `section`, its Facet ids and its `handles`, the
+offending `row` and the `reason`. A refused unit, and any unit the answer left
+unread, is in `unreadUnits`; while any exists the state is `incomplete` and
+ingest exits 1 with this result. A refusal with no unit is a row about a Facet
+the request did not ask about; it costs no unit. `comparisonErrors` are mistakes
+in a second reading of a stored unit, which cost only the comparison and never
+start a re-ask.
 
 ## Select one exact source
 
@@ -139,9 +154,10 @@ model; the host orchestrates every reader.
 3. For each source in the queue, run prepare into a fresh empty preparation
    directory. Launch one fresh child only when prepare reports
    `requestedUnits` greater than zero; otherwise skip the child and the
-   ingest for that source. Then ingest the child's captured artifact in the
-   private store. Do not repair or retry. A source whose reader, prepare, or
-   ingest fails is recorded as failed, and the remaining sources still run.
+   ingest for that source. Then ingest the artifact the child wrote in the
+   private store, and re-ask what ingest left unread as the next section
+   describes. A source whose reader, prepare, or ingest fails is recorded as
+   failed, and the remaining sources still run.
 4. Run `check` again over the same private store. Hand back its state and
    report. When it is `incomplete`, name every failed source and the unread
    units the report lists, and the unresolved imports if any.
@@ -169,6 +185,32 @@ directory and rename it into place. A workspace entry that changed since
 seeding is left alone. Reports and judgment context are not copied. A run
 that stops before the final check writes nothing back.
 
+## Re-ask what ingest left unread
+
+Both the one-source loop and the full-design action re-ask, per source, for at
+most two rounds after the first answer. A round starts only when ingest's result
+has `unreadUnits` (state `incomplete`) or the whole artifact was refused. A
+result whose only refusals belong to no unit does not start a round; report them
+in the hand-back.
+
+1. Run prepare again into a new, empty preparation directory. It presents only
+   the units still unread, so the request is smaller each round, and a Logic
+   section asked alone is shown with its component's Constraints Facets as
+   context rows, so a guard can name one.
+2. Launch a fresh child with the previous round's `reasons`: for each refusal,
+   its unit, the `handles` and the `reason`, so the child can match them to the
+   new presentation. Handles are the same in every round while the binding holds.
+3. Ingest the artifact that child wrote.
+
+A whole refusal counts as a round and re-asks the whole source. If ingest or
+prepare reports that the binding no longer matches, the workspace changed under
+the run: stop that source and report the failure rather than re-asking. After
+the second re-ask, units still unread are handed back as Incomplete, each named
+with its last reason; when the last answer was refused whole there is no
+structured result to match, so no state is named and the refusal is. Each round
+is a fresh child. Never write, edit or repair rows yourself: every reading
+comes from a fresh child, and only the child writes the answer file.
+
 ## Hand one fresh child the prepared request
 
 Interpretation is one fresh child with no inherited conversation. The child
@@ -179,16 +221,18 @@ does not run the tool; it reads the prepared request and returns rows.
 | `task` | Read the prepared interpretation request and return data-only rows. This task overrides ordinary explanatory output. |
 | `skills` | Resolved installed entrypoint paths of the required `sigil-understand` and `sigil-egglog` skills. |
 | `preparation` | The preparation directory, containing the files below. |
-| `request` | Path to `request.json`: the presented Facet rows (rows marked `context` are dependency interface shown for reference and take no reading), whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
+| `request` | Path to `request.json`: the presented Facet rows, each with its `handle` and the `names` it may use (rows marked `context` are shown for reference and take no reading: a dependency's interface, or a Constraints Facet of the section being asked again), whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
 | `binding` | Path to `binding.json`, the request's identity. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
-| `artifact` | Where the host will read the returned rows. |
+| `artifact` | The file the child writes its rows to, and the only file it writes. The host passes that exact file to ingest and never edits it. |
+| `reasons` | On a re-ask, the previous round's refusals: unit, handles and reason. Absent on the first answer. |
 | `completion` | The child states it finished. For a request that presents nothing, that statement says the returned artifact is empty on purpose. |
 
 The child loads `sigil-understand` for design meaning and `sigil-egglog` for
-the claims dialect; neither replaces the request's binding guidance. Capture
-the completed artifact verbatim and pass those exact bytes to ingest. Do not
-repair rows, strip prose, or substitute host interpretation. Preserve whole
+the claims dialect; neither replaces the request's binding guidance. The child
+returns rows for its own Facets only and nothing for a row marked `context`. Pass
+the exact bytes of the file the child wrote to ingest. Do not repair rows, strip
+prose, or substitute host interpretation. Preserve whole
 Logic groupings as presented, and do not reconstruct Facets prepare omitted.
 
 Even a request whose every unit was reused from the store — one that presents
@@ -201,8 +245,9 @@ interrupted output is a failure, not rows.
 A completed ingest is all of:
 
 1. Exit 0 with a structured result whose state is `coherent` or `loose`, or
-   exit 1 with a structured result whose state is `disjoint`. A linked
-   `check` also completes on exit 1 with state `incomplete`.
+   exit 1 with a structured result whose state is `disjoint` or `incomplete`.
+   An `incomplete` ingest is a completed answer with units still unread: it
+   starts the re-ask above, and is handed back only after the rounds are spent.
 2. The result is this invocation's payload — not a bare exit code, and not a
    file left by an earlier run.
 3. The report named by the result matches the preparation: `source` is
@@ -212,7 +257,8 @@ A completed ingest is all of:
    of raw file bytes in its place; `identity.guidanceFingerprint`
    and `identity.vocabularyGeneration` equal the binding's (and the
    result's); and `identity.interpretations` records the digest of the exact
-   artifact bytes supplied, in the order supplied. That digest is the tool's
+   artifact bytes supplied to that ingest, in the order supplied. That digest is
+   the tool's
    BLAKE3 over the captured artifact: retain the captured bytes, and when you
    can compute the same digest over them, require the match.
 4. The result's `report` and `judgmentContext` paths lie under this run's
@@ -235,10 +281,11 @@ contents; the private store per run is what keeps invocations separate.
 When any step cannot finish — the tool is missing, the source
 is absent, the artifact is refused, the child is missing or interrupted, the
 payload is malformed, or the report does not match — stop. Name what broke and
-which step broke it. Emit no Coherent, Loose, or Disjoint. Do not retry the
-child and do not rerun the loop; the requester sees the real failure. In the full-design action, one source's
-failure is recorded and does not stop the other sources; the final check still
-runs and names the failed source.
+which step broke it. Emit no Coherent, Loose, or Disjoint. Apart from the
+bounded re-ask of what ingest left unread, do not retry the child and do not
+rerun the loop; the requester sees the real failure. In the full-design action,
+one source's failure is recorded and does not stop the other sources; the final
+check still runs and names the failed source.
 
 ## Hand back the result
 

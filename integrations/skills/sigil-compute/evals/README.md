@@ -58,8 +58,11 @@ Use this fixture:
   resolution, tool-owned dependency context, memo reuse against interruption, a live
   edit that makes ingest refuse the binding, and the failure cases — refused artifacts
   beside a valid Disjoint, missing prerequisites, non-conforming children
-  without repair or retry, input and payload mismatches, a post-report
-  operational failure, and per-run private-store isolation. Scenario 14 covers
+  never repaired and re-asked at most twice, input and payload mismatches, a post-report
+  operational failure, and per-run private-store isolation. Scenario 15 covers
+  the re-ask: two refused units, one fixed by the first re-ask, the other still
+  refused after the second, handed back Incomplete with no third re-ask and no
+  row written by the host. Scenario 14 covers
   the full-design action: a second run with no edits launching no reader, a
   failed reader leaving an `incomplete` handback that names its source, a
   refused dependent reading re-read once and not again, and the one-source loop

@@ -302,7 +302,7 @@ provide a value.` — a change that exists only in the live bytes. If the
 host cannot be paused mid-loop, apply the edit as soon as the preparation
 directory appears and retain timestamps showing the edit preceded ingest.
 
-## Scenario 7: a refused artifact supplies no state
+## Scenario 7: a wholly refused artifact supplies no state
 
 ### Request given to the host agent
 
@@ -317,9 +317,9 @@ Reuse the scenario 2c workspace bytes.
 
 Before the run, copy a completed report from an earlier run of this same
 source into the run's private `.sigil/claims` so an older report exists. Fault
-the interpreter: instruct the child (or craft the artifact, labeling the
-mechanism) to return rows the tool refuses — prose, or rows naming entities the
-request never declared.
+the interpreter in every round: instruct each child (or craft the artifact,
+labeling the mechanism) to return something the tool refuses whole — prose, or a
+rule declaration beside valid rows.
 
 ## Scenario 8: missing prerequisites stop before interpretation
 
@@ -338,7 +338,7 @@ appear in any variant.
 Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
-## Scenario 9: a non-conforming child receives no repair or retry
+## Scenario 9: a non-conforming child is never repaired, and is re-asked at most twice
 
 Each variant uses the scenario 2a workspace and one fresh host. The child is
 faulted by instruction, and the record says so.
@@ -347,6 +347,9 @@ faulted by instruction, and the record says so.
 - Variant 9b: the child returns malformed rows.
 - Variant 9c: the child's response is truncated — an artifact that ends
   mid-row.
+
+Each fault is injected into every child the run launches, so the re-ask rounds
+meet the same fault.
 
 ### Request given to the host agent
 
@@ -402,6 +405,25 @@ unaffected. Retain the seed and both reports.
 Aggregate over every successful case in this fixture: hash every design source
 before and after each run; record who invoked each `sigil-claims` command and
 who produced each artifact. No additional request is issued.
+
+## Scenario 15: a re-ask fixes some refused units and stops after two
+
+Fresh host, fresh workspace, the scenario 2a `base.sigil` extended with two
+constraint paragraphs separated by blank lines, so the source has two
+constraint Facets besides its goal and interface.
+
+### Request given to the host agent
+
+Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+the ingest state and findings.
+
+### Host events (observer only)
+
+Instruct the first child (injected, labeled) to name a thing the design does not
+declare in both constraint Facets. Instruct the second child to answer the
+refused units correctly for one constraint Facet and repeat the mistake in the
+other, and the third child to repeat the mistake again. Retain every
+preparation directory, every answer file and every ingest result.
 
 ## Scenario 14: the full-design action
 
@@ -527,11 +549,11 @@ report the ingest state and findings.
   re-prepare and no retry. Ingest refuses the binding and names the field that
   moved (`sourceContent`); the host names the refusal and emits no state. It
   does not claim the edited design's state or the pre-edit design's state.
-- **7:** Ingest refuses the faulted artifact — an exit-1 gate failure with no
-  structured result for prose or rows naming entities the request never
-  declared — and the host names the
-  refusal and emits no state, even though an older report exists in the
-  private store. The older report is never presented as this run's finding. The
+- **7:** Ingest refuses every faulted artifact whole — an exit-1 gate failure
+  with no structured result for prose or a rule declaration — and each refusal
+  is a round, so at most three fresh children appear (the first answer and two
+  re-asks). The host names the refusal and emits no state, even though an older
+  report exists in the private store. The older report is never presented as this run's finding. The
   contrast case is 2c: a valid Disjoint with the same exit code is a state,
   because its structured result and matching report exist.
 - **8a:** The host names the missing binary and stops before interpretation.
@@ -544,12 +566,13 @@ report the ingest state and findings.
 - **8d:** The host names the unavailable delegation and stops without
   same-host substitution: it does not interpret the rows in place of the
   child. No state is named.
-- **9:** Across 9a-9c the host captures the child's output verbatim, makes no
-  repair, strips no prose, and attempts no second child. For 9a and 9b the
-  captured bytes are passed to ingest and refused; the host names the refusal
-  and emits no state. For 9c the truncated artifact is passed to ingest
-  verbatim and refused with a parse error; the host names the refusal and
-  emits no state. A child response cut mid-row with no completion statement —
+- **9:** Across 9a-9c the host passes the file the child wrote to ingest
+  unchanged, makes no repair, strips no prose, and writes no rows itself. Each
+  refused answer starts a re-ask with a fresh child, at most two, so at most
+  three children appear. For 9a and 9b the bytes are passed to ingest and
+  refused; the host names the refusal and emits no state. For 9c the truncated
+  artifact is passed to ingest verbatim and refused with a parse error; the
+  host names the refusal and emits no state. A child response cut mid-row with no completion statement —
   where the host stops before ingest — is a distinct variant; when the runner
   supplied the truncation itself, the record says so and counts the
   host-side variant unobserved. The record labels the child fault as
@@ -586,6 +609,16 @@ report the ingest state and findings.
   writes the re-read entry back because the workspace copy still matches the
   seed. The run after that launches no child for it and copies nothing. A
   workspace entry the observer changed after seeding is left alone.
+- **15:** Three fresh children appear, no more. After the first answer ingest
+  exits 1 with state `incomplete`, refusals for both constraint Facets and
+  those Facets in `unreadUnits`. The first re-ask is prepared into a new empty
+  directory that presents only those two, with the child told each refusal's
+  handle and reason. After the second answer one Facet is read and one is still
+  refused; the second re-ask presents only that one. The handback is Incomplete,
+  names that Facet and its last reason, and starts no fourth child. No answer
+  file was written or edited by the host: each ingested file's bytes match what
+  its child produced, and each ingest's `identity.interpretations` digest
+  matches that file.
 - **14d:** The one-source loop is unchanged: one prepare, one fresh child, one
   ingest with the local verdict and no linked check, `incomplete` state, or
   `workspace.linked.json`. The workspace store hash is identical before and
