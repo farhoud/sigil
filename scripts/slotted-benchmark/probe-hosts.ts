@@ -213,125 +213,132 @@ async function probeHost(
   const expectedVersion = await commandOutput(options.sigilClaims, [
     "--version",
   ]);
-  const launch = await buildLaunch(host, options, passDir, hostDir);
-  await Deno.writeTextFile(join(hostDir, "prompt.txt"), launch.prompt);
-  const stdoutPath = join(hostDir, "stdout.jsonl");
-  const stderrPath = join(hostDir, "stderr.txt");
-  const hostVersion = await commandOutput(launch.executable, ["--version"])
-    .catch(() => null);
+  // The Codex launch copies a credential into the host directory. It is
+  // removed in the finally below, so a throw or a cancelled run never leaves it
+  // in retained evidence.
+  try {
+    const launch = await buildLaunch(host, options, passDir, hostDir);
+    await Deno.writeTextFile(join(hostDir, "prompt.txt"), launch.prompt);
+    const stdoutPath = join(hostDir, "stdout.jsonl");
+    const stderrPath = join(hostDir, "stderr.txt");
+    const hostVersion = await commandOutput(launch.executable, ["--version"])
+      .catch(() => null);
 
-  const started = performance.now();
-  const run = await runProcess(
-    launch.executable,
-    [...launch.args, launch.prompt],
-    passDir,
-    {
-      ...launch.env,
-      PATH: `${binDir}${delimiter}${Deno.env.get("PATH") ?? ""}`,
-    },
-    options.timeoutMs,
-    stdoutPath,
-    stderrPath,
-  );
-  const wallMs = Math.round(performance.now() - started);
-  const events = parseJsonLines(await Deno.readTextFile(stdoutPath));
-  const analysis = await analyzeHostStream(
-    host,
-    events,
-    join(hostDir, "codex-home"),
-  );
-  const observedModel = analysis.childModels.join(",") || null;
-  const observedEffort = analysis.childEfforts.join(",") || null;
-  // Never leave a credential copy in retained evidence.
-  await removeCodexAuth(join(hostDir, "codex-home"));
-
-  const childWrote = (await readTrimmed(join(passDir, "child.txt")))
-    ?.toUpperCase() === "OK";
-  const childContext = await readTrimmed(join(passDir, "child-context.txt"));
-  const freshEvidence = [...analysis.freshEvidence];
-  let fresh: boolean | null = null;
-  if (childContext !== null) {
-    const leaked = childContext.includes(SECRET_WORD);
-    freshEvidence.push(
-      leaked
-        ? `child-context.txt leaked the parent's secret word`
-        : `child-context.txt=${
-          JSON.stringify(childContext)
-        } (no parent secret)`,
+    const started = performance.now();
+    const run = await runProcess(
+      launch.executable,
+      [...launch.args, launch.prompt],
+      passDir,
+      {
+        ...launch.env,
+        PATH: `${binDir}${delimiter}${Deno.env.get("PATH") ?? ""}`,
+      },
+      options.timeoutMs,
+      stdoutPath,
+      stderrPath,
     );
-    fresh = !leaked && analysis.freshFlagOk !== false;
-  }
-
-  const stagedSkillRead = analysis.skillsRead.some((path) =>
-    isStaged(path, passDir)
-  );
-  const finalText = analysis.finalText ?? "";
-  const versionReported = finalText.includes(expectedVersion) ||
-    finalText.includes(expectedVersion.replace(/^\S+\s+/, ""));
-
-  const gaps: string[] = [...analysis.gaps];
-  const notes: string[] = [...analysis.notes];
-  if (!childWrote) gaps.push("child did not write child.txt with OK");
-  if (fresh !== true) gaps.push("child freshness not confirmed");
-  if (observedModel === null) {
-    gaps.push("child model not observed anywhere");
-  }
-  if (observedEffort === null) {
-    gaps.push("child effort not observed anywhere");
-  }
-  if (!analysis.exposedModel) {
-    notes.push("child model is not visible in the host's stdout stream");
-  }
-  if (!analysis.exposedEffort) {
-    notes.push("child effort is not visible in the host's stdout stream");
-  }
-  if (!stagedSkillRead) gaps.push("staged SKILL.md was not read");
-  if (!versionReported) {
-    gaps.push("orchestrator did not report the sigil-claims version");
-  }
-
-  let status: HostProbeResult["status"];
-  if (run.timedOut) status = "timeout";
-  else if (analysis.blockedReason) {
-    status = "blocked";
-    // The other checks cannot run, so they would only add noise.
-    gaps.splice(
-      0,
-      gaps.length,
-      `host could not run: ${analysis.blockedReason}`,
+    const wallMs = Math.round(performance.now() - started);
+    const events = parseJsonLines(await Deno.readTextFile(stdoutPath));
+    const analysis = await analyzeHostStream(
+      host,
+      events,
+      join(hostDir, "codex-home"),
     );
-  } else if (run.exitCode !== 0) status = "failed";
-  else status = childWrote && fresh === true && stagedSkillRead ? "ok" : "gap";
+    const observedModel = analysis.childModels.join(",") || null;
+    const observedEffort = analysis.childEfforts.join(",") || null;
 
-  return {
-    host,
-    status,
-    wallMs,
-    hostVersion,
-    flags: launch.flags,
-    orchestrator: { model: options.models[host], effort: options.effort },
-    child: {
-      wroteFile: childWrote,
-      fresh,
-      freshEvidence,
-      requestedModel: options.childModels[host],
-      requestedEffort: options.childEffort,
-      observedModel,
-      observedEffort,
-      observedFrom: analysis.observedFrom,
-    },
-    exposedToCaller: {
-      model: analysis.exposedModel,
-      effort: analysis.exposedEffort,
-    },
-    skillsRead: analysis.skillsRead,
-    stagedSkillRead,
-    versionReported,
-    gaps,
-    notes,
-    passDir,
-    exitCode: run.exitCode,
-  };
+    const childWrote = (await readTrimmed(join(passDir, "child.txt")))
+      ?.toUpperCase() === "OK";
+    const childContext = await readTrimmed(join(passDir, "child-context.txt"));
+    const freshEvidence = [...analysis.freshEvidence];
+    let fresh: boolean | null = null;
+    if (childContext !== null) {
+      const leaked = childContext.includes(SECRET_WORD);
+      freshEvidence.push(
+        leaked
+          ? `child-context.txt leaked the parent's secret word`
+          : `child-context.txt=${
+            JSON.stringify(childContext)
+          } (no parent secret)`,
+      );
+      fresh = !leaked && analysis.freshFlagOk !== false;
+    }
+
+    const stagedSkillRead = analysis.skillsRead.some((path) =>
+      isStaged(path, passDir)
+    );
+    const finalText = analysis.finalText ?? "";
+    const versionReported = finalText.includes(expectedVersion) ||
+      finalText.includes(expectedVersion.replace(/^\S+\s+/, ""));
+
+    const gaps: string[] = [...analysis.gaps];
+    const notes: string[] = [...analysis.notes];
+    if (!childWrote) gaps.push("child did not write child.txt with OK");
+    if (fresh !== true) gaps.push("child freshness not confirmed");
+    if (observedModel === null) {
+      gaps.push("child model not observed anywhere");
+    }
+    if (observedEffort === null) {
+      gaps.push("child effort not observed anywhere");
+    }
+    if (!analysis.exposedModel) {
+      notes.push("child model is not visible in the host's stdout stream");
+    }
+    if (!analysis.exposedEffort) {
+      notes.push("child effort is not visible in the host's stdout stream");
+    }
+    if (!stagedSkillRead) gaps.push("staged SKILL.md was not read");
+    if (!versionReported) {
+      gaps.push("orchestrator did not report the sigil-claims version");
+    }
+
+    let status: HostProbeResult["status"];
+    if (run.timedOut) status = "timeout";
+    else if (analysis.blockedReason) {
+      status = "blocked";
+      // The other checks cannot run, so they would only add noise.
+      gaps.splice(
+        0,
+        gaps.length,
+        `host could not run: ${analysis.blockedReason}`,
+      );
+    } else if (run.exitCode !== 0) status = "failed";
+    else {status = childWrote && fresh === true && stagedSkillRead
+        ? "ok"
+        : "gap";}
+
+    return {
+      host,
+      status,
+      wallMs,
+      hostVersion,
+      flags: launch.flags,
+      orchestrator: { model: options.models[host], effort: options.effort },
+      child: {
+        wroteFile: childWrote,
+        fresh,
+        freshEvidence,
+        requestedModel: options.childModels[host],
+        requestedEffort: options.childEffort,
+        observedModel,
+        observedEffort,
+        observedFrom: analysis.observedFrom,
+      },
+      exposedToCaller: {
+        model: analysis.exposedModel,
+        effort: analysis.exposedEffort,
+      },
+      skillsRead: analysis.skillsRead,
+      stagedSkillRead,
+      versionReported,
+      gaps,
+      notes,
+      passDir,
+      exitCode: run.exitCode,
+    };
+  } finally {
+    await removeCodexAuth(join(hostDir, "codex-home"));
+  }
 }
 
 function orchestratorPrompt(spawnStep: string): string {

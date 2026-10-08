@@ -544,19 +544,105 @@ fn an_undeclared_row_must_name_something_off_the_list_and_in_the_prose() {
 }
 
 #[test]
-fn no_report_carries_an_ungrounded_finding_and_all_report_version_five() {
+fn an_off_list_name_refuses_its_unit_and_is_never_reported_as_ungrounded() {
     let run = rooms();
     let prepared = run.prepare(ROOMS);
-    let answer = pad(&prepared, String::new(), &[]);
+    let rule = prepared.handle("framework code");
+    let answer = pad(
+        &prepared,
+        format!("(claim {rule:?} \"Rooms\" \"uses\" \"room owner\" \"required\" \"true\")\n"),
+        &[],
+    );
     let (code, summary, stderr) = run.ingest(&prepared.binding(), &answer);
-    assert_eq!(code, 0, "{summary}{stderr}");
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(summary["refusalCount"], 1, "{summary}");
     let report = report_of(&run, "rooms.sigil.json");
     assert_eq!(report["version"], 5);
     assert!(
         !laws_of(&report)
             .iter()
             .any(|(_, law)| law == "ungrounded-claim"),
-        "{report}"
+        "a name off the list is a refusal, not a finding: {report}"
+    );
+}
+
+#[test]
+fn one_unit_lists_its_resolution_and_admission_mistakes_together() {
+    let run = pair();
+    let prepared = run.prepare(BOOKING);
+    let rule = prepared.handle("Never double book");
+    let answer = pad(
+        &prepared,
+        format!(
+            "(step {rule:?} \"1\")\n\
+             (claim {rule:?} \"Booking\" \"requires\" \"requireUser\" \"required\" \"true\")\n"
+        ),
+        &[],
+    );
+    let (code, summary, stderr) = run.ingest(&prepared.binding(), &answer);
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(
+        summary["refusalCount"], 2,
+        "both mistakes in one round: {summary}"
+    );
+    let reasons: Vec<&str> = summary["refusals"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["reason"].as_str().unwrap())
+        .collect();
+    assert!(
+        reasons.iter().any(|r| r.contains("not Logic prose")),
+        "{summary}"
+    );
+    assert!(
+        reasons.iter().any(|r| r.contains("requireUser")),
+        "{summary}"
+    );
+    for refusal in summary["refusals"].as_array().unwrap() {
+        assert_eq!(refusal["unit"]["section"], "constraints", "{summary}");
+    }
+}
+
+#[test]
+fn a_contradiction_keeps_the_state_disjoint_while_a_unit_is_unread() {
+    let run = Run::new();
+    run.write(
+        "quote.sigil",
+        "component Quote {
+  goal {
+    Price a stay.
+  }
+  interface {
+    Quote provides a *price*.
+  }
+  constraints {
+    Quote never provides the price.
+  }
+}
+",
+    );
+    let prepared = run.prepare("quote.sigil");
+    let offers = prepared.handle("provides a");
+    let never = prepared.handle("never provides");
+    let goal = prepared.handle("Price a stay");
+    let answer = pad(
+        &prepared,
+        format!(
+            "(claim {offers:?} \"Quote\" \"provides\" \"price\" \"required\" \"true\")\n\
+             (claim {never:?} \"Quote\" \"provides\" \"price\" \"required\" \"false\")\n"
+        ),
+        &[goal.as_str()],
+    );
+    let (code, summary, stderr) = run.ingest(&prepared.binding(), &answer);
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(
+        summary["state"], "disjoint",
+        "a gating finding outranks an unread unit: {summary}"
+    );
+    assert!(
+        !summary["unreadUnits"].as_array().unwrap().is_empty(),
+        "{summary}"
     );
 }
 

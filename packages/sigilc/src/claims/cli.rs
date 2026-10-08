@@ -332,8 +332,11 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
                 .iter()
                 .map(|issue| (issue.row.clone(), issue.reason.clone()))
                 .collect();
+            // Admission runs even when resolution already refused a row, so
+            // every mistake in the unit is listed in this one round and the
+            // re-ask can answer all of them.
             let mut admitted = Vec::new();
-            if reasons.is_empty() && !mine.is_empty() {
+            if !mine.is_empty() {
                 let (unit_facts, unit_issues) = admitter.admit_all(&mine);
                 reasons.extend(unit_issues.into_iter().map(|i| (i.row, i.reason)));
                 if reasons.is_empty() && !unit_facts.iter().any(identity::Fact::satisfies_unit) {
@@ -372,6 +375,9 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
                 Ok(stored_facts) => {
                     facts.extend(stored_facts.iter().cloned());
                     if mine.is_empty() {
+                        // Rows for a stored unit that did not even resolve are
+                        // a mistake in a second reading, reported like one.
+                        comparison_errors.extend(issues.iter().map(|i| i.line()));
                         comparison_facts.extend(stored_facts);
                     } else {
                         // A second reading of a cached unit: compared, never

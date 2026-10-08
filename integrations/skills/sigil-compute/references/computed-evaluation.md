@@ -86,7 +86,9 @@ the result lists each refusal in `refusals` (at most 200, with the full count in
 `refusalCount`) with the unit's `section`, its Facet ids and its `handles`, the
 offending `row` and the `reason`. A refused unit, and any unit the answer left
 unread, is in `unreadUnits`; while any exists the state is `incomplete` and
-ingest exits 1 with this result. A refusal with no unit is a row about a Facet
+ingest exits 1 with this result, unless a contradiction or ownership conflict
+makes it `disjoint`, which outranks unread units; the unread list is still
+there and still starts a re-ask. A refusal with no unit is a row about a Facet
 the request did not ask about; it costs no unit. `comparisonErrors` are mistakes
 in a second reading of a stored unit, which cost only the comparison and never
 start a re-ask.
@@ -189,7 +191,9 @@ that stops before the final check writes nothing back.
 
 Both the one-source loop and the full-design action re-ask, per source, for at
 most two rounds after the first answer. A round starts only when ingest's result
-has `unreadUnits` (state `incomplete`) or the whole artifact was refused. A
+lists `unreadUnits` (whatever its state) or the whole artifact was refused. In
+ingest's result `unreadUnits` is the list of units; in `check`'s result it is a
+count, and the list is the report's `unread`. A
 result whose only refusals belong to no unit does not start a round; report them
 in the hand-back.
 
@@ -199,7 +203,8 @@ in the hand-back.
    context rows, so a guard can name one.
 2. Launch a fresh child with the previous round's `reasons`: for each refusal,
    its unit, the `handles` and the `reason`, so the child can match them to the
-   new presentation. Handles are the same in every round while the binding holds.
+   new presentation. After a whole refusal there are no per-unit refusals;
+   the reason is ingest's error message, passed verbatim. Handles are the same in every round while the binding holds.
 3. Ingest the artifact that child wrote.
 
 A whole refusal counts as a round and re-asks the whole source. If ingest or
@@ -292,7 +297,8 @@ check still runs and names the failed source.
 
 After a completed ingest, hand back:
 
-- The ingest state, presented as Coherent, Loose, or Disjoint. For the
+- The ingest state, presented as Coherent, Loose, Disjoint, or Incomplete; for
+  Incomplete, each unread unit with its last refusal reason. For the
   full-design action, the check's state, which may also be Incomplete, with
   its `unread` units, `unresolvedImports`, and any failed source named. An
   incomplete check is not a pass.

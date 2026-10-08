@@ -481,6 +481,11 @@ export async function readBatch(
   const manifest = JSON.parse(
     await Deno.readTextFile(join(outputDir, "manifest.json")),
   ) as BatchManifest;
+  if (manifest.version !== 2) {
+    throw new Error(
+      `${outputDir} was written by an older benchmark (manifest version ${manifest.version}); this one reads version 2 batches`,
+    );
+  }
   const records: AttemptRecord[] = [];
   for (const planned of manifest.schedule) {
     try {

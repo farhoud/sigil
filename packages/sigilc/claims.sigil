@@ -125,7 +125,8 @@ component SigilComputedClaims {
       that step produced: a later step, or the flow's result. What a step reads,
       writes and calls are claims about that step rather than edge targets. An
       edge may cross from one Facet of the section to another. An end row is
-      what declares an end, and a graph declaring no end is refused.
+      what declares an end, and a step that reaches no declared end is reported as
+      unreached.
 
       A step row names the Facet it was authored in, and identity, grounding and
       the Facet's own *claim interpretation* all follow that naming. A Facet that

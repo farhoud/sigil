@@ -21,7 +21,7 @@ const fixtureIssues = SLOTTED_FIXTURE.issues.map((issue, index) => ({
     : ["F-digest"],
 }));
 const manifest = {
-  version: 1,
+  version: 2,
   createdAt: "2026-10-02T00:00:00Z",
   fixture: SLOTTED_FIXTURE,
   preflight: { canSchedule: true, sourceDrift: [], issues: fixtureIssues },

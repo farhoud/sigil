@@ -12,7 +12,7 @@ that is not published, a step number that does not exist — costs only the unit
 it is in: that Facet, or that Logic section. The rest of the answer is kept, and
 you are asked about the refused unit again with the reason.
 
-Six row shapes exist. Each begins with the Facet it came from, which you copy
+Eight row shapes exist. Each begins with the Facet it came from, which you copy
 from the pre-filled row you were given: its `handle` (`"#3"`), or its full
 `facet` id. Prefer the handle.
 
@@ -83,7 +83,8 @@ minted after your answer is read, so it does not exist yet when you write.
 
 Says that step `ordinal` of this Facet ends the flow. It is the only way to end
 one. Write it only where the prose says the flow ends there: the step returns a
-result, refuses, or says the flow is finished. A flow with no `end` is refused.
+result, refuses, or says the flow is finished. A flow has only the ends its
+prose declares; a step the prose never ends is reported as unreached.
 A branching flow ends once per branch.
 
 ## `guard` — four columns

@@ -158,8 +158,14 @@ export async function buildHostLaunch(
       };
       // `--safe-mode` is deliberately absent: it disables `--agents`, so the
       // Agent tool then reports the child type as not found.
+      // The prompt has the orchestrator run the pinned tool as
+      // `./bin/sigil-claims`, so that exact command must be allowed as well.
       const shell = settings.allowedShell.flatMap((program) =>
-        program === "ls" ? ["Bash(ls)", "Bash(ls *)"] : [`Bash(${program} *)`]
+        program === "ls"
+          ? ["Bash(ls)", "Bash(ls *)"]
+          : program === "sigil-claims"
+          ? ["Bash(sigil-claims *)", "Bash(./bin/sigil-claims *)"]
+          : [`Bash(${program} *)`]
       );
       const args = [
         "--print",

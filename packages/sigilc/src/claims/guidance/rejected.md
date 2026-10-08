@@ -103,7 +103,7 @@ not exist; the three are `required`, `permitted`, and `assumed`.
 ```
 
 **Refuses the unit on arity.** A claim has six columns and none of them is the contract
-role. The tool fills the role from the export. Supplying it is not merely
+role. The tool fills the role from the workspace. Supplying it is not merely
 redundant — it is the drift the tool exists to detect, so the column is not
 yours to write.
 

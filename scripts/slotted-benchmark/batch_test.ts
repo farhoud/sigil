@@ -175,3 +175,22 @@ Deno.test("missing pinned skill fails before scheduling attempts", async () => {
     await Deno.remove(root, { recursive: true });
   }
 });
+
+Deno.test("a batch written by an older benchmark is refused by name", async () => {
+  const root = await Deno.makeTempDir({ prefix: "slotted-old-batch-" });
+  try {
+    await Deno.writeTextFile(
+      `${root}/manifest.json`,
+      JSON.stringify({ version: 1, schedule: [] }),
+    );
+    let message = "";
+    try {
+      await readBatch(root);
+    } catch (error) {
+      message = String(error);
+    }
+    equal(message.includes("manifest version 1"), true, message);
+  } finally {
+    await Deno.remove(root, { recursive: true });
+  }
+});
