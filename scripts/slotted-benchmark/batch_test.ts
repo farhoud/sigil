@@ -4,11 +4,12 @@ import {
 } from "node:assert/strict";
 import {
   buildSchedule,
+  orchestratorPromptTemplate,
+  pendingRecord,
   readBatch,
   runBatch,
   validateSelections,
 } from "./batch.ts";
-import { SLOTTED_FIXTURE } from "./fixture.ts";
 
 Deno.test("two agent/model combinations across three passes schedule six distinct passes", () => {
   const schedule = buildSchedule([
@@ -26,16 +27,12 @@ Deno.test("two agent/model combinations across three passes schedule six distinc
   }
 });
 
-Deno.test("one selection and two passes schedule two pass records covering seven sources each", () => {
+Deno.test("one selection and two passes schedule two whole-design passes with no per-source work", () => {
   const schedule = buildSchedule([{ agent: "claude", model: "sonnet" }], 2);
   equal(schedule.length, 2);
   deepEqual(schedule.map((attempt) => attempt.pass), [1, 2]);
   for (const attempt of schedule) {
-    deepEqual(
-      attempt.sources,
-      SLOTTED_FIXTURE.sources.map((source) => source.path),
-    );
-    equal(attempt.sources.length, 7);
+    equal("sources" in attempt, false);
   }
 });
 
@@ -81,7 +78,7 @@ Deno.test("frozen batch retains one pending pass record when cancelled before la
     const retained = await readBatch(outputDir);
     equal(manifest.schedule.length, 1);
     equal(retained.records.length, 1);
-    equal(manifest.schedule[0].sources.length, 7);
+    equal(manifest.version, 2);
     equal(
       retained.records.every((record) => record.status === "pending"),
       true,
@@ -94,25 +91,33 @@ Deno.test("frozen batch retains one pending pass record when cancelled before la
     );
     equal(Object.keys(manifest.input.sourceSha256).length, 7);
     equal(manifest.input.workspaceMemoPresent, false);
+    equal(typeof manifest.input.fixtureStateSha256, "string");
+    // The staged skills and the prompt template are pinned by hash.
+    for (
+      const key of [
+        "computeSha256",
+        "understandSha256",
+        "egglogSha256",
+        "promptSha256",
+        "claimsSha256",
+      ] as const
+    ) {
+      equal(/^[0-9a-f]{64}$/.test(manifest.tools[key]), true, key);
+    }
+    equal(
+      orchestratorPromptTemplate().includes("skills/sigil-compute/SKILL.md"),
+      true,
+    );
+    for (const skill of ["sigil-compute", "sigil-understand", "sigil-egglog"]) {
+      await Deno.stat(`${outputDir}/pinned/${skill}/SKILL.md`);
+    }
 
     await Deno.remove(`${outputDir}/records/${manifest.schedule[0].id}.json`);
     const recovered = await readBatch(outputDir);
     equal(recovered.records.length, 1);
-    deepEqual(recovered.records[0], {
-      ...manifest.schedule[0],
-      status: "pending",
-      startedAt: null,
-      finishedAt: null,
-      state: null,
-      failureStep: null,
-      error: null,
-      observedModels: [],
-      modelVerification: "unverified",
-      presentedFacets: null,
-      coveredFacets: null,
-      sourceResults: [],
-      outcomePath: null,
-    });
+    deepEqual(recovered.records[0], pendingRecord(manifest.schedule[0]));
+    equal(recovered.records[0].unreadUnits, null);
+    equal(recovered.records[0].childEffortVerification, "unverified");
   } finally {
     await Deno.remove(outputDir, { recursive: true });
   }
@@ -154,6 +159,7 @@ Deno.test("missing pinned skill fails before scheduling attempts", async () => {
         outputDir: `${root}/batch`,
         timeoutMs: 1000,
         skillDirs: {
+          computeDir: "integrations/skills/sigil-compute",
           understandDir: missing,
           egglogDir: "integrations/skills/sigil-egglog",
         },
