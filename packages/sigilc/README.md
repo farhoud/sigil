@@ -168,11 +168,20 @@ reading, or an import no source resolves, makes the state `incomplete`, listing
 the `unread` units and `unresolvedImports`; that exits 1, as does `disjoint`.
 
 Claims come back as data-only egglog atoms. An artifact containing a rule,
-command, schedule or non-literal argument is refused whole. Relation and
+command, schedule or nested expression is refused whole. A row that is data but
+wrong refuses only its own unit, one Facet or one Logic section: the other units
+are stored, every refusal is listed in the result, and the refused unit stays
+unread, so `prepare` asks for it again. Until every unit is read, ingest and
+`check` report `incomplete` and exit 1. Relation and
 property names are closed over the compiler's published ontology, read through
 `turtle::vocabulary()`. The tool mints every claim identity, fills the contract
-role from the source tree, and refuses an entity the design does not declare in the
-selected closure.
+role from the source tree, and refuses a name that is not on its Facet's list.
+Each Facet in a request carries a short handle (`#3`, accepted wherever an answer
+names a Facet) and the list of names it may use: its own component, the
+components its source imports from, and the Tags its prose references or
+introduces. A flow's steps are numbered within their own Facet, and a flow ends
+with an `end` row. An `undeclared` row says the prose relies on something no Tag
+declares.
 
 Every claim carries the role it was authored under, which is what the
 compiler's RDF-shaped facts could not express. A claim from a `decisions` Facet
@@ -184,9 +193,8 @@ ones oblige the design to state what it leans on.
 Findings cite the claims and the law that produced them. A declared role the
 interpretation returned nothing for is named with its component and attributed
 to the interpretation, not the design. A claim whose subject and object coincide
-is degenerate, and one naming an entity absent from its own Facet's resolved
-references, owning component and import providers is ungrounded; neither
-satisfies its unit.
+is degenerate and does not satisfy its unit. A name the prose relies on that
+its Facet's list lacks is a warning about the design, and never fails it.
 
 Alongside the report, `ingest` writes a judgment context covering every unit in
 the design — including units nothing was found about — with derived facts, their

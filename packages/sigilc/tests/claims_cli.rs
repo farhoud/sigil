@@ -412,7 +412,7 @@ fn a_cached_logic_step_is_available_when_admitting_a_second_reading() {
 }
 
 #[test]
-fn a_claim_for_a_facet_outside_the_request_is_refused() {
+fn a_claim_for_a_facet_outside_the_request_is_refused_on_its_own() {
     let (scratch, binding) = prepared("foreign-facet");
     let artifact = scratch.0.join("result.egg");
     fs::write(
@@ -424,7 +424,7 @@ fn a_claim_for_a_facet_outside_the_request_is_refused() {
     )
     .unwrap();
 
-    let (code, _, stderr) = claims(&[
+    let (code, stdout, stderr) = claims(&[
         "ingest",
         "--binding",
         binding.to_str().unwrap(),
@@ -433,9 +433,27 @@ fn a_claim_for_a_facet_outside_the_request_is_refused() {
         "--root",
         scratch.0.to_str().unwrap(),
     ]);
-    assert_eq!(code, 1, "{stderr}");
-    assert!(stderr.contains("facet:foreign.sigil:0"), "{stderr}");
-    assert!(stderr.contains("did not ask about"), "{stderr}");
+    // The row belongs to no unit, so it costs no unit: the clean rows beside it
+    // are still read.
+    assert_eq!(code, 0, "{stderr}");
+    let result: serde_json::Value = serde_json::from_str(&stdout).unwrap();
+    assert_eq!(result["refusalCount"], 1, "{stdout}");
+    let refusal = &result["refusals"][0];
+    assert!(refusal["unit"].is_null(), "{stdout}");
+    assert!(
+        refusal["reason"]
+            .as_str()
+            .unwrap()
+            .contains("did not ask about"),
+        "{stdout}"
+    );
+    assert!(
+        refusal["row"]
+            .as_str()
+            .unwrap()
+            .contains("facet:foreign.sigil:0"),
+        "{stdout}"
+    );
 }
 
 // ----------------------------------------------------------- binding refusal

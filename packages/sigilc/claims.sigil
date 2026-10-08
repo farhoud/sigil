@@ -51,7 +51,9 @@ component SigilComputedClaims {
       An artifact carrying one valid claim beside one rule declaration is refused
       whole. A claim relating a *local Facet* to a Tag imported from a source in the
       closure is accepted. A guard comparing an input value to a state read is
-      accepted. An edge naming an ordinal no step declares is refused.
+      accepted. An edge naming a step no Facet declares refuses its Logic section
+      and nothing else, and a claim naming a Tag its Facet's list does not carry
+      refuses that Facet and nothing else.
     }
   }
 
@@ -71,7 +73,8 @@ component SigilComputedClaims {
       Project one design source and the interfaces it imports into an interpretation
       directory. Carry each Facet's exact prose slice with the contract role its
       unit belongs to, taken from the source tree rather than inferred, and
-      emit one pre-filled row per Facet identifying that Facet alone. Write an
+      emit one pre-filled row per Facet identifying that Facet alone by a short
+      handle, with the names that Facet may use. Write an
       immutable binding over the source tree id, the imported interface
       hashes, the selected source, the guidance
       fingerprint and the vocabulary generation. The caller keeps the directory
@@ -114,16 +117,15 @@ component SigilComputedClaims {
       else is an ordinary claim about those entities — a state the step reads or
       writes, an operation it calls, an edge to a later step.
 
-      A returned row names a step by its ordinal and the graph by its component
-      and section, never by an identity. An ordinal is unique across the
-      presented section, and a row naming one that no step declaration carries
-      is refused.
+      A returned row names a step by its number within its own Facet, never by an
+      identity, and the tool places each step in its section. A row naming a step
+      no step declaration carries is refused.
 
       An edge runs from a *step* to whatever the prose describes as consuming what
       that step produced: a later step, or the flow's result. What a step reads,
       writes and calls are claims about that step rather than edge targets. An
-      edge may cross from one Facet of the section to another. An edge to the
-      graph is what declares an end, and a graph declaring no end is refused.
+      edge may cross from one Facet of the section to another. An end row is
+      what declares an end, and a graph declaring no end is refused.
 
       A step row names the Facet it was authored in, and identity, grounding and
       the Facet's own *claim interpretation* all follow that naming. A Facet that
@@ -147,8 +149,13 @@ component SigilComputedClaims {
       interpretation remains the sole basis for findings, and the comparison
       gates no acceptance.
 
-      Refusing any row refuses the whole supplied interpretation, never its
-      valid portion.
+      A name the prose relies on that no Tag declares is returned as such and
+      reported as a warning about the design, which never fails it.
+
+      An artifact that holds anything other than data is refused whole. A row
+      that is data but wrong refuses its own unit, one Facet or one Logic
+      section, and the rest of the interpretation is kept. A refused unit is
+      stored as nothing and stays unread until it is interpreted again.
     }
 
     SectionAwareClosure {
@@ -171,13 +178,14 @@ component SigilComputedClaims {
 
       Grounding asks whether the entity a *row names* could have come from the
       Facet that names it, and reads the kind of what it names: a Tag or
-      Component against that Facet's resolved references, its owning component
-      and its providers; a step against the Facet its declaration names; a graph
-      against the section it is minted from. It applies to every returned row,
-      including a guard's operands, at admission. A degenerate or ungrounded row
-      in a graph suppresses that graph's reachability check, and both the row
-      and the suppression are reported. An edge from a step to itself is a loop
-      rather than a claim that says nothing.
+      Component against that Facet's own list, which is its resolved references,
+      its owning component and its providers; a step against the Facet its
+      declaration names; a graph against the section it is minted from. It
+      applies to every returned row, including a guard's operands, at admission,
+      and a name off the list refuses that Facet's unit. A degenerate row in a
+      graph suppresses that graph's reachability check, and both the row and the
+      suppression are reported. An edge from a step to itself is a loop rather
+      than a claim that says nothing.
 
       A claim whose role is Constraints reaches the flow graphs its own
       component owns and those of every component it transitively depends on,
@@ -197,8 +205,9 @@ component SigilComputedClaims {
       Report contradictions, ownership conflicts and unmet obligations with the
       law that produced each one, with the claims it rests on where it rests on
       any, and with the *steps* and the graph where steps produced it. Report a
-      claim whose subject and object coincide as degenerate, and one that
-      grounding refuses as ungrounded; neither satisfies its unit. Name a Facet
+      claim whose subject and object coincide as degenerate; it does not satisfy
+      its unit. Report a name the prose relies on that its Facet's list lacks as
+      a warning about the design. Name a Facet
       of the selected source in a declared role that yielded nothing — no
       interpretation satisfying its unit and no reading row — and attribute that
       gap to the interpretation.
@@ -234,8 +243,8 @@ component SigilComputedClaims {
       three for operational failure. Only a contradiction or an ownership
       conflict the closure derives without reading a flow is a gate failure;
       every other finding, including one resting on the interpretation's reading
-      of a flow, is a warning. A check that cannot read every unit is
-      incomplete, and an incomplete check is a gate failure.
+      of a flow, is a warning. A check or an ingest that cannot read every unit
+      is incomplete, and an incomplete result is a gate failure.
     }
   }
 

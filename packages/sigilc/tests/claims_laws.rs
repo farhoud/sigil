@@ -27,6 +27,8 @@ fn request(roles: &[(&str, &str, &str)]) -> Request {
             section: (*section).to_string(),
             source: SRC.to_string(),
             prose: "prose".to_string(),
+            handle: String::new(),
+            names: Vec::new(),
             context: false,
         })
         .collect();
@@ -552,22 +554,20 @@ fn the_emitted_program_carries_the_laws_and_only_parsed_values() {
     assert!(text.contains(&format!("(facet \"f1\" {A:?}")));
 }
 
-// ------------------------------------------------- ungrounded claims (P0 fix)
+// ------------------------------------------------- defective claims (P0 fix)
 
 #[test]
-fn an_ungrounded_claim_cannot_manufacture_a_violation_against_an_unrelated_entity() {
-    // A claim naming an entity the Facet never grounds is flagged Ungrounded by
-    // identity::admit (tested in claims_dialect.rs), but must not be allowed to
-    // reach saturation and forge a contradiction, ownership conflict, or
-    // obligation the design never actually stated. Constructed directly with a
-    // defect, mirroring how admit() would have flagged it, since this test
-    // targets the saturation boundary rather than the grounding check itself.
+fn a_defective_claim_cannot_manufacture_a_violation_against_an_unrelated_entity() {
+    // A claim carrying a defect, such as one with the same subject and object,
+    // is flagged by identity::admit (tested in claims_dialect.rs), but must not
+    // be allowed to reach saturation and forge a contradiction, ownership
+    // conflict, or obligation the design never actually stated. Constructed
+    // directly with a defect, mirroring how admit() would have flagged it,
+    // since this test targets the saturation boundary rather than the check.
     let req = request(&[("f1", A, "interface"), ("f2", A, "constraints")]);
 
     let mut forged = claim("f1", "interface", A, "provides", CAP, "required", "true");
-    forged.defects = vec![sigilc::claims::identity::Defect::Ungrounded(
-        CAP.to_string(),
-    )];
+    forged.defects = vec![sigilc::claims::identity::Defect::Degenerate];
     let real = claim("f2", "constraints", A, "provides", CAP, "required", "false");
 
     let world = run(&req, &[forged.clone(), real.clone()]);
@@ -600,9 +600,7 @@ fn an_ungrounded_claim_cannot_manufacture_a_violation_against_an_unrelated_entit
 fn a_defect_carrying_property_or_measure_is_also_excluded_from_the_program() {
     let req = request(&[("f1", A, "state")]);
     let mut prop = property("f1", "state", CAP, "exclusive", "true");
-    prop.defects = vec![sigilc::claims::identity::Defect::Ungrounded(
-        CAP.to_string(),
-    )];
+    prop.defects = vec![sigilc::claims::identity::Defect::Degenerate];
     let text = program::program(&req, std::slice::from_ref(&prop));
     assert!(!text.contains(&prop.id));
 

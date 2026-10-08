@@ -476,7 +476,7 @@ fn editing_a_guards_target_requests_the_target_and_the_guards_unit() {
     let (code, summary, stderr) = run.ingest(
         &prepared.binding(),
         &format!(
-            "(step {logic:?} \"1\")\n(guard {logic:?} \"1\" \"constraint\" {rule:?})\n\
+            "(step {logic:?} \"1\")\n(guard {logic:?} \"step:1\" \"constraint\" {rule:?})\n\
              (reading {rule:?} \"no-commitment\")\n(reading {other:?} \"no-commitment\")\n"
         ),
     );
@@ -551,14 +551,17 @@ fn a_defect_admission_already_accepted_does_not_force_a_reread() {
         .filter(|t| t.0 != goal)
         .map(|(facet, _, _)| format!("(reading {facet:?} \"no-commitment\")\n"))
         .collect();
-    // `Y` is visible through A's interface but this Facet never references it:
-    // admitted, flagged as ungrounded.
+    // `B uses B` asserts nothing: admitted and flagged degenerate, beside a
+    // reading that makes the unit usable.
     let (code, summary, stderr) = run.ingest(
         &prepared.binding(),
-        &format!("(claim {goal:?} \"B\" \"uses\" \"Y\" \"required\" \"true\")\n{readings}"),
+        &format!(
+            "(claim {goal:?} \"B\" \"uses\" \"B\" \"required\" \"true\")\n\
+             (reading {goal:?} \"no-commitment\")\n{readings}"
+        ),
     );
     assert_eq!(code, 0, "{summary}{stderr}");
-    assert!(laws(&run.report(B)).contains(&"ungrounded-claim".to_owned()));
+    assert!(laws(&run.report(B)).contains(&"degenerate-claim".to_owned()));
 
     // An unrelated change to A's interface.
     run.write(A, &a_source("A *X* is exposed and a *Y* too, plus a note."));
@@ -568,7 +571,7 @@ fn a_defect_admission_already_accepted_does_not_force_a_reread() {
 }
 
 #[test]
-fn a_constraint_naming_a_visible_but_unreferenced_entity_is_an_ungrounded_row() {
+fn a_constraint_naming_a_visible_but_unreferenced_entity_refuses_its_unit() {
     let run = pair();
     run.read(A);
     let prepared = run.prepare(B);
@@ -583,11 +586,22 @@ fn a_constraint_naming_a_visible_but_unreferenced_entity_is_an_ungrounded_row() 
         &prepared.binding(),
         &format!("(claim {rule:?} \"B\" \"uses\" \"X\" \"required\" \"true\")\n{readings}"),
     );
-    assert_eq!(code, 0, "{summary}{stderr}");
-    let report = run.report(B);
+    // The name is declared but this Facet never references it, so the unit is
+    // refused and read again; the other units are stored.
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(summary["state"], "incomplete", "{summary}");
+    assert_eq!(summary["refusalCount"], 1, "{summary}");
     assert!(
-        laws(&report).contains(&"ungrounded-claim".to_owned()),
-        "{report}"
+        summary["refusals"][0]["reason"]
+            .as_str()
+            .unwrap()
+            .contains("not on this Facet's list"),
+        "{summary}"
+    );
+    assert_eq!(
+        run.prepare(B).requested(),
+        1,
+        "only the refused unit is asked"
     );
 }
 
@@ -597,12 +611,18 @@ fn a_constraint_naming_an_entity_that_is_not_visible_is_refused_not_admitted() {
     run.read(A);
     let prepared = run.prepare(B);
     let rule = prepared.facet("Keep it quick");
-    let (code, _, stderr) = run.ingest(
+    let (code, summary, stderr) = run.ingest(
         &prepared.binding(),
         &format!("(claim {rule:?} \"B\" \"uses\" \"private ledger\" \"required\" \"true\")\n"),
     );
     assert_eq!(code, 1, "{stderr}");
-    assert!(stderr.contains("private ledger"), "{stderr}");
+    assert!(
+        summary["refusals"][0]["reason"]
+            .as_str()
+            .unwrap()
+            .contains("private ledger"),
+        "{summary}"
+    );
 }
 
 // ----------------------------------------------------------- black box
@@ -647,9 +667,18 @@ fn a_dependencys_flow_cannot_be_answered_from_a_dependents_run() {
         .id
         .clone();
     let prepared = run.prepare(B);
-    let (code, _, stderr) = run.ingest(&prepared.binding(), &format!("(step {a_logic:?} \"1\")\n"));
+    let (code, summary, stderr) =
+        run.ingest(&prepared.binding(), &format!("(step {a_logic:?} \"1\")\n"));
     assert_eq!(code, 1, "{stderr}");
-    assert!(stderr.contains("did not ask about"), "{stderr}");
+    let refusal = &summary["refusals"][0];
+    assert!(refusal["unit"].is_null(), "no unit of B's: {summary}");
+    assert!(
+        refusal["reason"]
+            .as_str()
+            .unwrap()
+            .contains("did not ask about"),
+        "{summary}"
+    );
 }
 
 // ------------------------------------------------------------- binding

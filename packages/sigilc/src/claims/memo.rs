@@ -26,7 +26,7 @@ const DIR: &str = "claims/interpretations";
 
 /// The layout version of a stored entry and of its key. An entry written under
 /// any other version reads as absent and is pruned at the next write.
-pub const MEMO_VERSION: u32 = 5;
+pub const MEMO_VERSION: u32 = 6;
 
 /// One thing the interpreter is shown, and the unit staleness is judged in.
 ///

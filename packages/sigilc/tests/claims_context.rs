@@ -303,10 +303,12 @@ fn the_context_round_trips_through_its_serialized_form() {
     // The report and the context agree on identity, so a consumer can pair them.
     // Pinned, and moved deliberately: the generation is what tells an already
     // prepared directory that what it may return has changed. 2 is the step and
-    // guard rows and the step and graph reference forms.
-    assert_eq!(context.identity.vocabulary_generation, 2);
+    // guard rows and the step and graph reference forms; 3 numbers steps within
+    // their Facet, adds the end and undeclared rows and names Facets by handle.
+    assert_eq!(context.identity.vocabulary_generation, 3);
     // Pinned and moved with what changed the report's shape: 2 added the flow
     // classes, 3 replaced the export digest with the tree binding's digest, 4
-    // added the linked check's report.
-    assert_eq!(findings::REPORT_VERSION, 4);
+    // added the linked check's report, 5 reports an ingest with unread units as
+    // incomplete and adds the gap class.
+    assert_eq!(findings::REPORT_VERSION, 5);
 }

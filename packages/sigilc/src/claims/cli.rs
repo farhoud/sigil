@@ -4,7 +4,7 @@
 //! options. The external interpretation is an input the caller supplies and can
 //! supply again, which is what makes a run reproducible.
 use super::{
-    context, dialect, findings, guidance, identity, link, memo, prepare, program, vocabulary,
+    canon, context, dialect, findings, guidance, identity, link, memo, prepare, program, vocabulary,
 };
 use crate::{
     cli::{Output, store_dir},
@@ -244,29 +244,20 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
 
     let limits = dialect::Limits::default();
     let first_text = artifact(&claims_path, limits)?;
-    let supplied = dialect::parse(&first_text, limits).map_err(gate)?;
-    let requested_facets: BTreeSet<String> =
-        request.own_rows().map(|row| row.facet.clone()).collect();
-    if let Some(row) = supplied
-        .iter()
-        .find(|row| !requested_facets.contains(row.facet()))
-    {
-        return Err(gate(format!(
-            "row ({} ...) names {:?}, which this request did not ask about",
-            row.relation_name(),
-            row.facet()
-        )));
-    }
+    // Anything that is not data refuses the whole artifact here. A row that is
+    // data but wrong is set aside with the unit it belongs to.
+    let parsed = dialect::read(&first_text, limits).map_err(gate)?;
+    let resolved = canon::resolve(&request, parsed);
 
     // Stored rows join first readings before admission, so the program sees the
     // whole design the request presents. A supplied reading for a cached unit
-    // is composed with the other units' first readings before admission, then
-    // compared against that stored answer; it never replaces the cache. Reused
-    // rows are re-admitted: grounding runs here, so a stored claim naming an
-    // entity that has since left the request is refused like any other. Stored
-    // readings of imported interface Facets join as context; one this
-    // source's request cannot admit is dropped rather than refusing the run,
-    // because it was read in its own source's world, not this one's.
+    // is admitted beside the other units' readings, then compared against that
+    // stored answer; it never replaces the cache. Reused rows are re-admitted:
+    // grounding runs here, so a stored claim naming an entity that has since
+    // left the request is refused like any other. Stored readings of imported
+    // interface Facets join as context; one this source's request cannot admit
+    // is dropped rather than refusing the run, because it was read in its own
+    // source's world, not this one's.
     let all_units = memo::units(&request);
     let split = memo::split(&request, &input, store);
     let stale_keys: BTreeSet<String> = split.stale.iter().map(|unit| unit.key.clone()).collect();
@@ -277,25 +268,130 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         .map(|(unit, rows)| (unit.key, rows))
         .collect();
     let admitter = identity::Admitter::new(&request, &input);
-    let mut rows = Vec::new();
-    let mut comparison_rows = Vec::new();
+    let handles: BTreeMap<&str, &str> = request
+        .rows
+        .iter()
+        .map(|row| (row.facet.as_str(), row.handle.as_str()))
+        .collect();
+    let labels: BTreeMap<&str, &str> = request
+        .rows
+        .iter()
+        .map(|row| (row.component.as_str(), row.component_label.as_str()))
+        .collect();
+
+    // A unit's issues, by the unit its Facet belongs to. An issue with no unit
+    // is a row about nothing this request asked for, refused on its own.
+    let unit_of: BTreeMap<&str, usize> = all_units
+        .iter()
+        .enumerate()
+        .filter(|(_, unit)| !unit.context)
+        .flat_map(|(index, unit)| unit.facets.iter().map(move |facet| (facet.as_str(), index)))
+        .collect();
+    let mut issues_of: BTreeMap<usize, Vec<&canon::Issue>> = BTreeMap::new();
+    let mut loose: Vec<&canon::Issue> = Vec::new();
+    for issue in &resolved.issues {
+        match issue.facet.as_deref().and_then(|facet| unit_of.get(facet)) {
+            Some(index) => issues_of.entry(*index).or_default().push(issue),
+            None => loose.push(issue),
+        }
+    }
+
+    let mut refusals: Vec<Refusal> = Vec::new();
+    let mut unread: Vec<link::Unread> = Vec::new();
+    let mut comparison_errors: Vec<String> = Vec::new();
+    let mut facts: Vec<identity::Fact> = Vec::new();
+    let mut comparison_facts: Vec<identity::Fact> = Vec::new();
+    let mut accepted: Vec<(&memo::Unit, Vec<dialect::Row>)> = Vec::new();
     let mut has_cached_second_reading = false;
-    for unit in all_units.iter().filter(|u| !u.context) {
-        let mine: Vec<_> = supplied
+    for (index, unit) in all_units.iter().enumerate().filter(|(_, u)| !u.context) {
+        let mut mine: Vec<dialect::Row> = resolved
+            .rows
             .iter()
             .filter(|row| unit.facets.iter().any(|facet| facet == row.facet()))
             .cloned()
             .collect();
+        mine.sort();
+        mine.dedup();
+        let issues = issues_of.get(&index).map(Vec::as_slice).unwrap_or_default();
+        let describe = |refusal: Option<String>| link::Unread {
+            source: unit.source.clone(),
+            component: labels
+                .get(unit.component.as_str())
+                .copied()
+                .unwrap_or_default()
+                .to_owned(),
+            section: unit.section.clone(),
+            facets: unit.facets.clone(),
+            refusal,
+        };
+
         if stale_keys.contains(&unit.key) {
-            rows.extend(mine.iter().cloned());
-            comparison_rows.extend(mine);
-        } else if let Some(stored) = reused.get(&unit.key) {
-            rows.extend(stored.iter().cloned());
-            if mine.is_empty() {
-                comparison_rows.extend(stored.iter().cloned());
+            let mut reasons: Vec<(String, String)> = issues
+                .iter()
+                .map(|issue| (issue.row.clone(), issue.reason.clone()))
+                .collect();
+            let mut admitted = Vec::new();
+            if reasons.is_empty() && !mine.is_empty() {
+                let (unit_facts, unit_issues) = admitter.admit_all(&mine);
+                reasons.extend(unit_issues.into_iter().map(|i| (i.row, i.reason)));
+                if reasons.is_empty() && !unit_facts.iter().any(identity::Fact::satisfies_unit) {
+                    reasons.push((
+                        String::new(),
+                        "none of this unit's rows is usable: every claim has the same subject and object"
+                            .into(),
+                    ));
+                }
+                admitted = unit_facts;
+            }
+            if !reasons.is_empty() {
+                for (row, reason) in &reasons {
+                    refusals.push(Refusal::new(unit, &handles, row, reason));
+                }
+                unread.push(describe(Some(
+                    reasons
+                        .iter()
+                        .map(|(_, reason)| reason.as_str())
+                        .collect::<Vec<_>>()
+                        .join("; "),
+                )));
+            } else if mine.is_empty() {
+                unread.push(describe(None));
             } else {
-                comparison_rows.extend(mine);
-                has_cached_second_reading = true;
+                comparison_facts.extend(admitted.iter().cloned());
+                facts.extend(admitted);
+                accepted.push((unit, mine));
+            }
+        } else if let Some(stored) = reused.get(&unit.key) {
+            match admitter.admit(stored) {
+                Ok(stored_facts) => {
+                    facts.extend(stored_facts.iter().cloned());
+                    if mine.is_empty() {
+                        comparison_facts.extend(stored_facts);
+                    } else {
+                        // A second reading of a cached unit: compared, never
+                        // stored, and a mistake in it costs only the comparison.
+                        let (second, second_issues) = admitter.admit_all(&mine);
+                        if issues.is_empty() && second_issues.is_empty() {
+                            comparison_facts.extend(second);
+                            has_cached_second_reading = true;
+                        } else {
+                            comparison_facts.extend(stored_facts);
+                            comparison_errors.extend(
+                                issues
+                                    .iter()
+                                    .map(|i| format!("{}: {}", i.row, i.reason))
+                                    .chain(
+                                        second_issues
+                                            .into_iter()
+                                            .map(|i| format!("{}: {}", i.row, i.reason)),
+                                    ),
+                            );
+                        }
+                    }
+                }
+                Err(reason) => unread.push(describe(Some(format!(
+                    "the stored reading no longer admits: {reason}"
+                )))),
             }
         } else {
             return Err(operational(format!(
@@ -304,45 +400,40 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
             )));
         }
     }
+    for issue in &loose {
+        refusals.push(Refusal::alone(&issue.row, &issue.reason));
+    }
     for (_, stored) in &split.context {
-        if admitter.admit(stored).is_ok() {
-            rows.extend(stored.iter().cloned());
-            comparison_rows.extend(stored.iter().cloned());
+        if let Ok(context_facts) = admitter.admit(stored) {
+            facts.extend(context_facts.iter().cloned());
+            comparison_facts.extend(context_facts);
         }
     }
-    rows.sort();
-    rows.dedup();
-    comparison_rows.sort();
-    comparison_rows.dedup();
-    let facts = identity::admit(&request, &input, &rows).map_err(gate)?;
-    let comparison_facts = identity::admit(&request, &input, &comparison_rows).map_err(gate)?;
+    facts.sort();
+    facts.dedup();
+    comparison_facts.sort();
+    comparison_facts.dedup();
 
     // Only first readings of stale units are stored, and only after admission,
-    // so a refused artifact or second reading leaves the cache untouched. Each
-    // is stored with the defects admission accepted, so a later re-grounding
-    // does not read them as new. Entries another memo version wrote are
-    // removed first, and counted.
+    // so a refused unit, a refused artifact or a second reading leaves the
+    // cache untouched. Each is stored with the defects admission accepted, so a
+    // later re-grounding does not read them as new. Entries another memo
+    // version wrote are removed first, and counted.
     let mut pruned = 0;
     let mut stored_units = 0;
-    for unit in &stale {
-        let mine: Vec<_> = supplied
-            .iter()
-            .filter(|r| unit.facets.iter().any(|f| f == r.facet()))
-            .cloned()
-            .collect();
-        if !mine.is_empty() {
-            if stored_units == 0 {
-                pruned = memo::prune_older(store).map_err(operational)?;
-            }
-            let defects = facts
-                .iter()
-                .filter(|f| unit.facets.contains(&f.facet))
-                .flat_map(|f| f.defects.iter().cloned())
-                .collect();
-            memo::save(store, &request, unit, &mine, defects).map_err(operational)?;
-            stored_units += 1;
+    for (unit, mine) in &accepted {
+        if stored_units == 0 {
+            pruned = memo::prune_older(store).map_err(operational)?;
         }
+        let defects = facts
+            .iter()
+            .filter(|f| unit.facets.contains(&f.facet))
+            .flat_map(|f| f.defects.iter().cloned())
+            .collect();
+        memo::save(store, &request, unit, mine, defects).map_err(operational)?;
+        stored_units += 1;
     }
+    let _ = stale;
 
     let mut digests = vec![crate::sources::hash(first_text.as_bytes())];
     let mut comparisons = Vec::new();
@@ -352,8 +443,24 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     if let Some(path) = options.get("--claims-repeat") {
         let text = artifact(path, limits)?;
         digests.push(crate::sources::hash(text.as_bytes()));
-        let rows = dialect::parse(&text, limits).map_err(gate)?;
-        comparisons.push(identity::admit(&request, &input, &rows).map_err(gate)?);
+        let repeat = dialect::read(&text, limits).map_err(gate)?;
+        let repeat = canon::resolve(&request, repeat);
+        let (repeat_facts, repeat_issues) = admitter.admit_all(&repeat.rows);
+        if repeat.issues.is_empty() && repeat_issues.is_empty() {
+            comparisons.push(repeat_facts);
+        } else {
+            comparison_errors.extend(
+                repeat
+                    .issues
+                    .iter()
+                    .map(|i| format!("{}: {}", i.row, i.reason))
+                    .chain(
+                        repeat_issues
+                            .into_iter()
+                            .map(|i| format!("{}: {}", i.row, i.reason)),
+                    ),
+            );
+        }
     }
 
     let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
@@ -367,6 +474,8 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         disagreements.dedup();
         findings::attach(&mut report, disagreements);
     }
+    unread.sort();
+    findings::mark_unread(&mut report, unread.clone());
     let context = context::build(&request, &facts, &world, report.identity.clone());
 
     let report_path = findings::write(&report, store).map_err(operational)?;
@@ -374,9 +483,11 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         findings::store(&context, store, &context.source, context::SUFFIX).map_err(operational)?;
 
     let code = match report.state {
-        findings::State::Disjoint => 1,
+        findings::State::Disjoint | findings::State::Incomplete => 1,
         _ => 0,
     };
+    let refusal_count = refusals.len();
+    refusals.truncate(MAX_REFUSALS);
     json(
         code,
         &serde_json::json!({
@@ -390,8 +501,66 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
             "guidanceFingerprint": report.identity.guidance_fingerprint,
             "storedUnits": stored_units,
             "prunedMemoEntries": pruned,
+            "unreadUnits": unread,
+            "refusalCount": refusal_count,
+            "refusals": refusals,
+            "comparisonErrors": comparison_errors,
         }),
     )
+}
+
+/// How many refusals one result lists. The count is always complete.
+const MAX_REFUSALS: usize = 200;
+
+/// One row ingest could not accept, and the unit it cost.
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Refusal {
+    /// The unit refused, or `None` for a row that belongs to no unit.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    unit: Option<RefusedUnit>,
+    row: String,
+    reason: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RefusedUnit {
+    section: String,
+    facets: Vec<String>,
+    handles: Vec<String>,
+}
+
+impl Refusal {
+    fn new(unit: &memo::Unit, handles: &BTreeMap<&str, &str>, row: &str, reason: &str) -> Self {
+        Self {
+            unit: Some(RefusedUnit {
+                section: unit.section.clone(),
+                facets: unit.facets.clone(),
+                handles: unit
+                    .facets
+                    .iter()
+                    .map(|facet| {
+                        handles
+                            .get(facet.as_str())
+                            .copied()
+                            .unwrap_or_default()
+                            .to_owned()
+                    })
+                    .collect(),
+            }),
+            row: row.to_owned(),
+            reason: reason.to_owned(),
+        }
+    }
+
+    fn alone(row: &str, reason: &str) -> Self {
+        Self {
+            unit: None,
+            row: row.to_owned(),
+            reason: reason.to_owned(),
+        }
+    }
 }
 
 /// Name every field that differs, so a caller can see which input moved.

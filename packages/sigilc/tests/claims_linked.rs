@@ -251,7 +251,7 @@ fn rooms_rows(p: &Prepared) -> String {
         "(claim {state:?} \"Rooms\" \"owns\" \"Mark\" \"required\" \"true\")
 (step {logic:?} \"1\")
 (claim {logic:?} \"step:1\" \"writes\" \"Mark\" \"required\" \"true\")
-(claim {logic:?} \"step:1\" \"to\" \"graph\" \"required\" \"true\")
+(end {logic:?} \"1\")
 "
     )
 }
@@ -268,7 +268,7 @@ fn booking_rows(p: &Prepared) -> String {
 (property {rule:?} \"Mark\" \"exclusive\" \"true\")
 (step {logic:?} \"1\")
 (claim {logic:?} \"step:1\" \"writes\" \"Mark\" \"required\" \"true\")
-(claim {logic:?} \"step:1\" \"to\" \"graph\" \"required\" \"true\")
+(end {logic:?} \"1\")
 "
     )
 }
@@ -296,7 +296,7 @@ fn a_dependents_ownership_claim_meets_its_dependencys_private_reading() {
     assert_eq!(code, 1, "{summary}{stderr}");
     assert_eq!(summary["state"], "disjoint");
     let report = run.report(&summary);
-    assert_eq!(report["version"], 4);
+    assert_eq!(report["version"], 5);
     assert!(laws(&report).contains(&"exclusive-ownership".to_owned()));
 
     // Both authors see the finding in their own view.
@@ -369,7 +369,7 @@ fn a_step_writing_state_a_dependency_privately_marks_exclusive_is_a_foreign_writ
         format!(
             "(step {logic:?} \"1\")
 (claim {logic:?} \"step:1\" \"writes\" \"Mark\" \"required\" \"true\")
-(claim {logic:?} \"step:1\" \"to\" \"graph\" \"required\" \"true\")
+(end {logic:?} \"1\")
 "
         )
     });
@@ -435,7 +435,10 @@ fn a_facet_the_reader_skipped_keeps_the_check_incomplete() {
         &prepared,
         &format!("(claim {state:?} \"Rooms\" \"owns\" \"Mark\" \"required\" \"true\")\n"),
     );
-    assert_eq!(code, 0, "{summary}{stderr}");
+    // Ingest itself already says the source is not fully read.
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(summary["state"], "incomplete");
+    assert!(!summary["unreadUnits"].as_array().unwrap().is_empty());
     let (code, summary, _) = run.check(None);
     assert_eq!(code, 1);
     assert_eq!(summary["state"], "incomplete");

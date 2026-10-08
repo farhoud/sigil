@@ -15,6 +15,20 @@
   interface. `sigil-claims check` applies every law across components,
   including `step-excluded-action`, `step-negated-action` and `unguarded-flow`,
   over the stored readings.
+- `sigil-claims` interpretation is more forgiving of a model's mistakes. Each
+  Facet in a request carries a short handle (`#3`) and the list of names it may
+  use; a row names a Facet by handle or by id. A flow's steps are numbered within
+  their own Facet (`step:2`, or `step:#7.1` across Facets), and a flow ends with
+  an `end` row instead of an edge to the graph. An `undeclared` row says the
+  prose relies on something no Tag declares and is reported as a warning (the
+  new `gap` class) that never fails the design. Ingest refuses a whole artifact
+  only when it holds something that is not data. A data mistake refuses only its
+  unit, one Facet or one Logic section; every refusal is listed at once, the
+  other units are stored, and the refused unit stays unread, so `prepare` asks
+  for it again and the result is `incomplete` until it is read. A name outside a
+  Facet's list now refuses the unit instead of being kept and flagged
+  `ungrounded`, and that finding is gone. Request format 6, accepted profile 3,
+  stored readings 6 and reports 5: run `prepare` again after upgrading.
 - `sigil-claims check [--source PATH]` links every valid stored reading of the
   workspace into one program, runs every claims law and writes
   `workspace.linked.json` (or `<source>.linked.json`) with a matching

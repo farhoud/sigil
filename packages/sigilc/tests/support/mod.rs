@@ -86,6 +86,22 @@ pub fn project(
     sigilc::claims::prepare::project(input, &basis, source)
 }
 
+/// The rows of `artifact` in the form admission reads: read, then resolved
+/// against `request` the way ingest does it. Any row that does not resolve is
+/// a bug in the test, so it panics with the reason.
+pub fn resolved(
+    request: &sigilc::claims::prepare::Request,
+    artifact: &str,
+) -> Vec<sigilc::claims::dialect::Row> {
+    let parsed =
+        sigilc::claims::dialect::read(artifact, sigilc::claims::dialect::Limits::default())
+            .unwrap();
+    assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
+    let resolved = sigilc::claims::canon::resolve(request, parsed);
+    assert!(resolved.issues.is_empty(), "{:?}", resolved.issues);
+    resolved.rows
+}
+
 /// The id of the one Facet `source` holds in `section`.
 pub fn facet_in(input: &DesignInput, source: &str, section: &str) -> String {
     let mut found = input

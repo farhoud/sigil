@@ -22,8 +22,11 @@ use std::{
 /// identity's export digest with the digest of the tree-based binding and adds
 /// the `uninterpreted-context` finding. 4 adds the linked check's report: the
 /// `incomplete` state, the `unread` and `unresolvedImports` lists and the
-/// `linked` evidence. An ingest report carries none of them.
-pub const REPORT_VERSION: u32 = 4;
+/// `linked` evidence. 5 reports an ingest that left units unread as
+/// `incomplete` with the same `unread` list, adds the `gap` class and drops the
+/// `ungrounded-claim` finding: a name outside a Facet's list now refuses the
+/// unit rather than being kept and flagged.
+pub const REPORT_VERSION: u32 = 5;
 
 /// The suffix of a linked report, so it never overwrites an ingest report.
 pub const LINKED_SUFFIX: &str = ".linked.json";
@@ -51,6 +54,14 @@ pub enum Class {
     /// weighting that the same as a derived contradiction would fail a build
     /// on a misreading. `state_of` below is what keeps it a warning.
     Flow,
+    /// Something the interpretation says the design leaves out: a name the
+    /// prose relies on that no Tag declares, or that the Facet never
+    /// references.
+    ///
+    /// A warning, like a flow finding: many such mentions are harmless context,
+    /// such as a constraint forbidding "framework code". `state_of` below is
+    /// what keeps it from failing a design.
+    Gap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -297,32 +308,54 @@ fn derive(request: &Request, facts: &[Fact], world: &Saturated) -> Vec<Finding> 
     // Defects in the interpretation, not the design.
     for fact in facts {
         for defect in &fact.defects {
-            let (law, object, detail) = match defect {
+            let (law, detail) = match defect {
                 Defect::Degenerate => (
                     "degenerate-claim",
-                    subject_of(&fact.body),
-                    "subject and object are the same entity, so the claim asserts nothing"
-                        .to_string(),
-                ),
-                Defect::Ungrounded(entity) => (
-                    "ungrounded-claim",
-                    entity.clone(),
-                    format!(
-                        "{entity} does not occur in this Facet's resolved references, its owning component, or a provider its source imports"
-                    ),
+                    "subject and object are the same entity, so the claim asserts nothing",
                 ),
             };
             findings.push(Finding {
                 class: Class::Interpretation,
                 law: law.into(),
                 subject: subject_of(&fact.body),
-                object,
+                object: subject_of(&fact.body),
                 claims: vec![fact.id.clone()],
                 component: fact.component.clone(),
                 section: fact.section.clone(),
-                detail,
+                detail: detail.to_string(),
             });
         }
+    }
+
+    // What a Facet's prose relies on that the design does not give it.
+    for fact in facts {
+        let Body::Undeclared { name, declared } = &fact.body else {
+            continue;
+        };
+        let (law, object, detail) = match declared {
+            Some(entity) => (
+                "unreferenced-name",
+                entity.clone(),
+                format!(
+                    "the prose relies on {name:?}, which the design declares, but this Facet never references it"
+                ),
+            ),
+            None => (
+                "undeclared-name",
+                name.clone(),
+                format!("the prose relies on {name:?}, which no Tag in the design declares"),
+            ),
+        };
+        findings.push(Finding {
+            class: Class::Gap,
+            law: law.into(),
+            subject: fact.component.clone(),
+            object,
+            claims: vec![fact.id.clone()],
+            component: fact.component.clone(),
+            section: fact.section.clone(),
+            detail,
+        });
     }
 
     // A declared role the interpretation left untouched. Attributed to the
@@ -458,6 +491,18 @@ pub fn linked_report(linked: &Linked, world: &Saturated, view: Option<&str>) -> 
     }
 }
 
+/// Record the units an ingest left unread, which keeps its state from reading
+/// as a pass: the design is not checked where nothing was read.
+pub fn mark_unread(report: &mut Report, unread: Vec<Unread>) {
+    if unread.is_empty() {
+        return;
+    }
+    report.unread = Some(unread);
+    if report.state != State::Disjoint {
+        report.state = State::Incomplete;
+    }
+}
+
 /// Which source authored each part a finding can name.
 struct Involvement<'a> {
     /// Fact id to the source of the Facet it reads.
@@ -521,7 +566,9 @@ fn subject_of(body: &Body) -> String {
         | Body::Measure { subject, .. } => subject.clone(),
         // U2 mints the Step entity these resolve to; until then they have no
         // subject to report, and no finding is built from them.
-        Body::Reading { .. } | Body::Step { .. } | Body::Guard { .. } => String::new(),
+        Body::Reading { .. } | Body::Step { .. } | Body::Guard { .. } | Body::Undeclared { .. } => {
+            String::new()
+        }
     }
 }
 

@@ -556,17 +556,144 @@ fn a_logic_section_groups_under_its_own_source() {
 #[test]
 fn the_request_format_moves_when_presentation_narrows() {
     // A directory prepared under format 4 presented a whole closure and bound
-    // the whole input. Pairing it with this binding must fail loudly.
+    // the whole input; one prepared under 5 carried no handles or names.
+    // Pairing it with this binding must fail loudly.
     let input = shared_input();
     let request = support::project(&input, CONSUMER).unwrap();
     assert_eq!(request.binding.format, prepare::REQUEST_FORMAT);
-    assert_eq!(prepare::REQUEST_FORMAT, 5);
+    assert_eq!(prepare::REQUEST_FORMAT, 6);
 
     let mut stale = request.binding.clone();
     stale.format = 4;
     assert_ne!(
         request.binding, stale,
         "an older request format must not compare equal to the current one"
+    );
+}
+
+// ------------------------------------------ handles and each Facet's names
+
+#[test]
+fn own_facets_get_handles_in_facet_id_order() {
+    let request = support::project(&shared_input(), BASE).unwrap();
+    let handles: Vec<&str> = request.rows.iter().map(|r| r.handle.as_str()).collect();
+    assert_eq!(handles, ["#1", "#2", "#3"], "rows are sorted by Facet id");
+    let ids: Vec<&str> = request.rows.iter().map(|r| r.facet.as_str()).collect();
+    let mut sorted = ids.clone();
+    sorted.sort_unstable();
+    assert_eq!(ids, sorted);
+}
+
+#[test]
+fn handles_do_not_move_when_a_presentation_narrows() {
+    let input = shared_input();
+    let request = support::project(&input, BASE).unwrap();
+    let units = memo::units(&request);
+    let one = units
+        .iter()
+        .find(|u| u.facets == [request.rows[2].facet.clone()])
+        .unwrap();
+    let asked = prepare::presenting(&request, std::slice::from_ref(one));
+    let own: Vec<_> = asked.own_rows().collect();
+    assert_eq!(own.len(), 1);
+    assert_eq!(own[0].handle, "#3", "numbered over the whole source");
+}
+
+#[test]
+fn a_facet_lists_its_component_its_providers_and_the_tags_it_references() {
+    let input = shared_input();
+    let request = support::project(&input, BASE).unwrap();
+    let constraints = request
+        .rows
+        .iter()
+        .find(|r| r.section == "constraints")
+        .unwrap();
+    assert_eq!(constraints.names, ["Base", "result", "value"]);
+    let goal = request.rows.iter().find(|r| r.section == "goal").unwrap();
+    assert_eq!(
+        goal.names,
+        ["Base"],
+        "a goal that references no Tag lists none"
+    );
+
+    let consumer = support::project(&input, CONSUMER).unwrap();
+    let goal = consumer
+        .rows
+        .iter()
+        .find(|r| !r.context && r.section == "goal")
+        .unwrap();
+    assert_eq!(
+        goal.names,
+        ["Base", "Consumer"],
+        "an imported component is on every Facet's list, its Tags are not"
+    );
+}
+
+#[test]
+fn imported_context_rows_carry_no_handle_and_no_names() {
+    let request = support::project(&shared_input(), CONSUMER).unwrap();
+    let context: Vec<_> = request.rows.iter().filter(|r| r.context).collect();
+    assert!(!context.is_empty());
+    for row in context {
+        assert!(row.handle.is_empty() && row.names.is_empty(), "{row:?}");
+    }
+}
+
+#[test]
+fn an_unresolved_import_does_not_put_its_provider_on_a_list() {
+    let root = Workspace::new();
+    root.write(
+        "c.sigil",
+        b"@gone.sigil from Gone import { thing }\ncomponent C {\n  goal {\n    Use thing.\n  }\n}\n",
+    );
+    let (input, basis) = root.load();
+    let request = prepare::project(&input, &basis, "c.sigil").unwrap();
+    let goal = request.rows.iter().find(|r| r.section == "goal").unwrap();
+    assert_eq!(goal.names, ["C"], "{:?}", goal.names);
+}
+
+#[test]
+fn a_logic_section_lists_the_handles_of_its_facets_in_order() {
+    let input = logic_input(&[("Alpha", &["a one", "a two"])]);
+    let request = support::project(&input, "flows.sigil").unwrap();
+    let flow = &request.flows[0];
+    assert_eq!(flow.facets.len(), flow.handles.len());
+    for (facet, handle) in flow.facets.iter().zip(&flow.handles) {
+        let row = request.rows.iter().find(|r| &r.facet == facet).unwrap();
+        assert_eq!(&row.handle, handle);
+    }
+}
+
+#[test]
+fn asking_a_logic_section_again_shows_its_constraints_as_read_only_context() {
+    let root = Workspace::new();
+    root.write(
+        "f.sigil",
+        b"component F {\n  logic {\n    one\n\n    two\n  }\n  constraints {\n    must not do x\n  }\n  goal {\n    a goal\n  }\n}\n",
+    );
+    let (input, basis) = root.load();
+    let request = prepare::project(&input, &basis, "f.sigil").unwrap();
+    let logic = memo::units(&request)
+        .into_iter()
+        .find(|u| u.section == "logic")
+        .unwrap();
+    let asked = prepare::presenting(&request, std::slice::from_ref(&logic));
+
+    let constraint = asked
+        .rows
+        .iter()
+        .find(|r| r.section == "constraints")
+        .expect("the constraint a guard would name is shown");
+    assert!(constraint.context, "shown for its prose, never answered");
+    assert!(!constraint.handle.is_empty(), "so a guard can name it");
+    assert!(
+        !asked.rows.iter().any(|r| r.section == "goal"),
+        "only what a flow can be guarded on is added"
+    );
+    assert_eq!(
+        asked.own_rows().count(),
+        2,
+        "the two Logic Facets are asked"
     );
 }
 
@@ -902,9 +1029,9 @@ fn a_moved_context_that_still_admits_cleanly_reuses_and_refreshes() {
 }
 
 #[test]
-fn a_new_ungrounded_entity_makes_a_moved_context_stale() {
-    // `beta` is visible but this Facet never references it; the reading was
-    // stored with no defects, so admission now finds one the reading lacked.
+fn a_reading_naming_a_visible_but_unreferenced_entity_goes_stale_when_context_moves() {
+    // `beta` is visible but this Facet never references it, so it is not on the
+    // Facet's list and admission now refuses the stored reading.
     let (root, split) = stored_under_an_older_context("new-defect", "beta", Default::default());
     assert_eq!(split.stale.len(), 1);
     assert!(split.reused.is_empty());
@@ -912,20 +1039,19 @@ fn a_new_ungrounded_entity_makes_a_moved_context_stale() {
 }
 
 #[test]
+fn a_new_defect_makes_a_moved_context_stale() {
+    // B uses B asserts nothing. The reading was stored without that defect
+    // recorded, so admission now finds one the reading lacked.
+    let (root, split) = stored_under_an_older_context("degenerate", "B", Default::default());
+    assert_eq!(split.stale.len(), 1);
+    fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
 fn a_defect_the_reading_already_carried_does_not_make_it_stale() {
     use sigilc::claims::identity::Defect;
-    let workspace = grounding_workspace();
-    let (input, basis) = workspace.load();
-    let request = prepare::project(&input, &basis, "b.sigil").unwrap();
-    let beta = request
-        .entities
-        .iter()
-        .find(|e| e.label == "beta")
-        .unwrap()
-        .id
-        .clone();
     let (root, split) =
-        stored_under_an_older_context("old-defect", "beta", [Defect::Ungrounded(beta)].into());
+        stored_under_an_older_context("old-defect", "B", [Defect::Degenerate].into());
     assert!(split.stale.is_empty());
     assert_eq!(split.refreshed.len(), 1);
     fs::remove_dir_all(&root).unwrap();

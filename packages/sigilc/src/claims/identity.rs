@@ -6,28 +6,28 @@
 //! request's entity list, grounding asks whether *this Facet* could have been
 //! talking about it.
 use super::{
-    dialect::Row,
+    canon::Issue,
+    dialect::{Row, render_row},
     prepare::{FacetRow, Request},
     vocabulary,
 };
 use crate::{
     sources,
-    structure::{DesignInput, ReferenceStatus},
+    structure::{DesignInput, ImportStatus, ReferenceStatus},
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A defect a row carries without being refused.
 ///
-/// Both stop the row from satisfying its unit, and both are reported, but
-/// neither is a reason to discard the interpretation: a reader needs to see
-/// what the model actually said.
+/// It stops the row from satisfying its unit and is reported, but it is not a
+/// reason to discard the interpretation: a reader needs to see what the model
+/// actually said. A name outside the Facet's list is not one of these. It
+/// refuses the unit, so the unit is asked again.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Defect {
     /// Subject and object are the same entity.
     Degenerate,
-    /// The named entity could not have come from this Facet.
-    Ungrounded(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -63,6 +63,16 @@ pub enum Body {
         operand: String,
         value: String,
     },
+    /// A name the Facet's prose relies on that its list does not carry. It
+    /// reaches no law: it is reported as a warning about the design.
+    Undeclared {
+        /// The name as the prose writes it.
+        name: String,
+        /// The design entity of that name when the design declares one the Facet
+        /// does not reference, which is a missing reference rather than a
+        /// missing Tag.
+        declared: Option<String>,
+    },
 }
 
 /// An accepted fact: tool-minted identity, tool-filled role, resolved entities.
@@ -93,7 +103,7 @@ impl Fact {
 }
 
 /// Entity names a Facet could legitimately be talking about.
-struct Grounding {
+pub(super) struct Grounding {
     /// Facet identity to the entities reachable from that Facet.
     per_facet: BTreeMap<String, BTreeSet<String>>,
 }
@@ -101,11 +111,16 @@ struct Grounding {
 impl Grounding {
     /// Built from what the trees already resolved, not from matching names
     /// against prose. The resolver has already done the hard part.
-    fn build(input: &DesignInput, request: &Request) -> Self {
+    ///
+    /// This set is what a request publishes as each Facet's list and what
+    /// admission checks a row against, so the two cannot disagree.
+    pub(super) fn build(input: &DesignInput, rows: &[FacetRow]) -> Self {
         // Provider components of each source, through its resolved imports.
         let mut providers: BTreeMap<&str, BTreeSet<String>> = BTreeMap::new();
         for import in &input.imports {
-            if let Some(id) = &import.provider_id {
+            if import.status == ImportStatus::Resolved
+                && let Some(id) = &import.provider_id
+            {
                 providers
                     .entry(import.source.as_str())
                     .or_default()
@@ -114,11 +129,11 @@ impl Grounding {
         }
 
         let mut per_facet: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
-        for row in &request.rows {
+        for row in rows {
             let mut set = BTreeSet::new();
             // The Facet's own component. Without this, a claim relating a
-            // component to its own capability reads as ungrounded, which is
-            // what a Goal Facet almost always says.
+            // component to its own capability would be refused, which is what
+            // a Goal Facet almost always says.
             set.insert(row.component.clone());
             if let Some(from_source) = providers.get(row.source.as_str()) {
                 set.extend(from_source.iter().cloned());
@@ -147,10 +162,9 @@ impl Grounding {
         Self { per_facet }
     }
 
-    fn grounds(&self, facet: &str, entity: &str) -> bool {
-        self.per_facet
-            .get(facet)
-            .is_some_and(|set| set.contains(entity))
+    /// The entity ids a Facet may name.
+    pub(super) fn allowed(&self, facet: &str) -> Option<&BTreeSet<String>> {
+        self.per_facet.get(facet)
     }
 }
 
@@ -165,17 +179,15 @@ struct Flow {
     steps: BTreeMap<String, BTreeMap<u32, String>>,
     /// Owning component to minted graph identity.
     graphs: BTreeMap<String, String>,
-    /// Every identity minted here, for the grounding carve-out below.
-    minted: BTreeSet<String>,
 }
 
 impl Flow {
-    fn build(rows: &[Row], roles: &BTreeMap<&str, (&str, &str)>) -> Result<Self, String> {
+    fn build(rows: &[Row], roles: &BTreeMap<&str, (&str, &str)>) -> (Self, Vec<Issue>) {
         let mut flow = Self {
             steps: BTreeMap::new(),
             graphs: BTreeMap::new(),
-            minted: BTreeSet::new(),
         };
+        let mut issues = Vec::new();
         // Which Facet claimed each ordinal, so a collision can name both.
         let mut claimed: BTreeMap<(String, u32), String> = BTreeMap::new();
         for row in rows {
@@ -183,24 +195,33 @@ impl Flow {
                 continue;
             };
             let Some((component, section)) = roles.get(facet.as_str()) else {
-                continue; // the main loop refuses this, with a better message
+                continue; // the row loop refuses this, with a better message
             };
             if *section != "logic" {
-                return Err(format!(
-                    "(step {facet:?} {ordinal}) declares a step in a {section} Facet;                      a flow is Logic prose"
-                ));
+                issues.push(Issue {
+                    facet: Some(facet.clone()),
+                    row: render_row(row),
+                    reason: format!("declares a step in a {section} Facet; a flow is Logic prose"),
+                });
+                continue;
             }
             // An ordinal runs across the whole section, so a collision between
             // two Facets of one section is the case worth catching: without
             // uniqueness a bare ordinal does not resolve to one identity.
             if let Some(first) = claimed.insert(((*component).to_owned(), *ordinal), facet.clone())
             {
-                return Err(format!(
-                    "two steps of one Logic section both claim ordinal {ordinal}:                      {first:?} and {facet:?}. An ordinal is that step's position across                      the section, so it names exactly one step"
-                ));
+                issues.push(Issue {
+                    facet: Some(facet.clone()),
+                    row: render_row(row),
+                    reason: format!(
+                        "two steps of one Logic section both claim ordinal {ordinal}: {first:?} \
+                         and {facet:?}. An ordinal is that step's position across the section, \
+                         so it names exactly one step"
+                    ),
+                });
+                continue;
             }
             let id = Fact::mint(facet, component, section, &Body::Step { ordinal: *ordinal });
-            flow.minted.insert(id.clone());
             flow.steps
                 .entry((*component).to_owned())
                 .or_default()
@@ -211,10 +232,9 @@ impl Flow {
                 &serde_json::to_vec(&("sigil-flow-graph-v1", component, "logic"))
                     .expect("graph identity serialization"),
             );
-            flow.minted.insert(id.clone());
             flow.graphs.insert(component.clone(), id);
         }
-        Ok(flow)
+        (flow, issues)
     }
 
     /// Resolve a reference the interpretation wrote to a minted identity.
@@ -232,7 +252,8 @@ impl Flow {
             .cloned()
             .ok_or_else(|| {
                 format!(
-                    "{name:?} names a step this section never declares;                      a row pointing at an undeclared step would read as a dead end"
+                    "{name:?} names a step this section never declares; \
+                     a row pointing at an undeclared step would read as a dead end"
                 )
             })
     }
@@ -240,10 +261,10 @@ impl Flow {
 
 /// Admit rows against the design, minting identity and filling the role.
 ///
-/// Refuses the artifact when a row speaks about a Facet the request did not ask
-/// about, or names an entity the design does not declare in the request's
-/// entity list. Degenerate and ungrounded rows are accepted and flagged,
-/// because they are findings a reader has to see rather than transport errors.
+/// Refuses the rows when one speaks about a Facet the request did not ask
+/// about, or names an entity its Facet's list does not carry. A degenerate row
+/// is accepted and flagged, because it is a finding a reader has to see rather
+/// than a transport error.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ReturnedClaims interface,constraints,cases
 pub fn admit(request: &Request, input: &DesignInput, rows: &[Row]) -> Result<Vec<Fact>, String> {
     Admitter::new(request, input).admit(rows)
@@ -255,7 +276,9 @@ pub fn admit(request: &Request, input: &DesignInput, rows: &[Row]) -> Result<Vec
 /// same code both times, so a dry run cannot disagree with the real one.
 pub struct Admitter<'a> {
     roles: BTreeMap<&'a str, (&'a str, &'a str)>,
+    prose: BTreeMap<&'a str, &'a str>,
     names: EntityNames,
+    labels: BTreeMap<&'a str, &'a str>,
     grounding: Grounding,
 }
 
@@ -267,176 +290,254 @@ impl<'a> Admitter<'a> {
                 .iter()
                 .map(|r| (r.facet.as_str(), (r.component.as_str(), r.section.as_str())))
                 .collect(),
+            prose: request
+                .rows
+                .iter()
+                .map(|r| (r.facet.as_str(), r.prose.as_str()))
+                .collect(),
             names: EntityNames::build(request),
-            grounding: Grounding::build(input, request),
+            labels: request
+                .entities
+                .iter()
+                .map(|e| (e.id.as_str(), e.label.as_str()))
+                .collect(),
+            grounding: Grounding::build(input, &request.rows),
         }
     }
 
-    /// Admit `rows`; see [`admit`].
+    /// Admit `rows`, refusing them on the first problem; see [`admit`].
     pub fn admit(&self, rows: &[Row]) -> Result<Vec<Fact>, String> {
-        let (roles, names, grounding) = (&self.roles, &self.names, &self.grounding);
-        let flow = Flow::build(rows, roles)?;
+        let (facts, issues) = self.admit_all(rows);
+        match issues.into_iter().next() {
+            Some(issue) => Err(issue.reason),
+            None => Ok(facts),
+        }
+    }
+
+    /// Admit every row that can be, and say what was wrong with the rest.
+    ///
+    /// The facts are those of the rows that admitted cleanly. A caller that
+    /// refuses a unit on any issue discards them with it.
+    pub fn admit_all(&self, rows: &[Row]) -> (Vec<Fact>, Vec<Issue>) {
+        let (flow, mut issues) = Flow::build(rows, &self.roles);
         let mut facts = Vec::new();
         for row in rows {
-            let facet = row.facet();
-            let (component, section) = *roles.get(facet).ok_or_else(|| {
-                format!(
-                    "row ({} ...) names {facet:?}, which this request did not ask about",
-                    row.relation_name()
-                )
-            })?;
-
-            let mut defects = Vec::new();
-            let body = match row {
-                Row::Claim {
-                    subject,
-                    relation,
-                    object,
-                    modality,
-                    expected,
-                    ..
-                } => {
-                    // A step or a graph reference resolves through the flow pass,
-                    // never through entity-name lookup: that lookup refuses an
-                    // unknown name by refusing the whole artifact, so routing a
-                    // reference through it unchanged would reject every flow.
-                    let flow_subject = vocabulary::is_flow_ref(subject);
-                    let flow_object = vocabulary::is_flow_ref(object);
-                    let subject = if flow_subject {
-                        flow.resolve(subject, component)?
-                    } else {
-                        names.resolve(subject)?
-                    };
-                    let object = if flow_object {
-                        flow.resolve(object, component)?
-                    } else {
-                        names.resolve(object)?
-                    };
-
-                    // Same subject and object is a claim that asserts nothing --
-                    // unless both are steps, in which case it is an edge from a
-                    // step to itself, an ordinary loop. Flagging a loop would
-                    // suppress its whole graph's reachability check under the
-                    // defect rule, and do it without erroring.
-                    if subject == object && !(flow_subject && flow_object) {
-                        defects.push(Defect::Degenerate);
-                    }
-
-                    // Grounding asks whether the entity a row names could have come
-                    // from the Facet naming it. A minted step or graph could only
-                    // have come from here, so it grounds by construction; checking
-                    // it against the workspace's references would flag every flow
-                    // claim and, again, silently switch the graph's check off.
-                    for named in [&subject, &object] {
-                        if !flow.minted.contains(named) && !grounding.grounds(facet, named) {
-                            defects.push(Defect::Ungrounded(named.clone()));
-                        }
-                    }
-                    Body::Claim {
-                        subject,
-                        relation: relation.clone(),
-                        object,
-                        modality: modality.clone(),
-                        expected: expected.clone(),
-                    }
-                }
-                Row::Property {
-                    subject,
-                    property,
-                    value,
-                    ..
-                } => {
-                    let subject = names.resolve(subject)?;
-                    if !grounding.grounds(facet, &subject) {
-                        defects.push(Defect::Ungrounded(subject.clone()));
-                    }
-                    Body::Property {
-                        subject,
-                        property: property.clone(),
-                        value: value.clone(),
-                    }
-                }
-                Row::Measure {
-                    subject,
-                    property,
-                    number,
-                    ..
-                } => {
-                    let subject = names.resolve(subject)?;
-                    if !grounding.grounds(facet, &subject) {
-                        defects.push(Defect::Ungrounded(subject.clone()));
-                    }
-                    Body::Measure {
-                        subject,
-                        property: property.clone(),
-                        number: number.clone(),
-                    }
-                }
-                Row::Reading { outcome, .. } => Body::Reading {
-                    outcome: outcome.clone(),
-                },
-                // U2 owns minting a Step entity from this row and grounding what
-                // refers to it. Admitted unchanged here so the crate compiles with
-                // the row kinds registered and the admission still to come.
-                Row::Step { ordinal, .. } => {
-                    // Resolving proves the section declared it, which Flow::build
-                    // has already checked; this keeps the body beside its identity.
-                    flow.resolve(&format!("{}{ordinal}", vocabulary::STEP_REF), component)?;
-                    Body::Step { ordinal: *ordinal }
-                }
-                Row::Guard {
-                    step,
-                    operand,
-                    value,
-                    ..
-                } => {
-                    flow.resolve(&format!("{}{step}", vocabulary::STEP_REF), component)?;
-                    let value = match operand.as_str() {
-                        // A state operand is a declared entity and grounds like
-                        // any other. An input is a literal and never resolves. A
-                        // constraint names a Facet, which the request already
-                        // bounds, so it is checked against that rather than
-                        // against the entity set.
-                        "state" => {
-                            let resolved = names.resolve(value)?;
-                            if !grounding.grounds(facet, &resolved) {
-                                defects.push(Defect::Ungrounded(resolved.clone()));
-                            }
-                            resolved
-                        }
-                        "constraint" => {
-                            if !roles.contains_key(value.as_str()) {
-                                return Err(format!(
-                                    "a guard names the Constraints Facet it guards on;                                  {value:?} is not a Facet this request presented"
-                                ));
-                            }
-                            value.clone()
-                        }
-                        _ => value.clone(),
-                    };
-                    Body::Guard {
-                        step: *step,
-                        operand: operand.clone(),
-                        value,
-                    }
-                }
-            };
-
-            defects.sort();
-            defects.dedup();
-            facts.push(Fact {
-                id: Fact::mint(facet, component, section, &body),
-                facet: facet.to_owned(),
-                component: component.to_owned(),
-                section: section.to_owned(),
-                body,
-                defects,
-            });
+            match self.admit_row(&flow, row) {
+                Ok(fact) => facts.push(fact),
+                Err(reason) => issues.push(Issue {
+                    facet: Some(row.facet().to_owned()),
+                    row: render_row(row),
+                    reason,
+                }),
+            }
         }
         facts.sort();
         facts.dedup();
-        Ok(facts)
+        issues.sort();
+        issues.dedup();
+        (facts, issues)
     }
+
+    /// The entity a Facet's row names, from that Facet's own list.
+    ///
+    /// The list comes first so a label two entities of the design share still
+    /// resolves for a Facet that can name only one of them.
+    fn resolve_name(&self, facet: &str, raw: &str) -> Result<String, String> {
+        let on_list: Vec<&String> = self
+            .grounding
+            .allowed(facet)
+            .into_iter()
+            .flatten()
+            .filter(|id| id.as_str() == raw || self.labels.get(id.as_str()) == Some(&raw))
+            .collect();
+        match on_list.as_slice() {
+            [one] => Ok((*one).clone()),
+            [] => match self.names.resolve(raw) {
+                Ok(_) => Err(format!(
+                    "{raw:?} is declared in this design but is not on this Facet's list: a \
+                     Facet may name its own component, the components its source imports from, \
+                     and the Tags its prose references or introduces"
+                )),
+                Err(unknown) => Err(unknown),
+            },
+            _ => Err(format!(
+                "{raw:?} names more than one entity on this Facet's list"
+            )),
+        }
+    }
+
+    /// Whether a Facet's list carries something called `raw`.
+    fn on_list(&self, facet: &str, raw: &str) -> bool {
+        self.grounding
+            .allowed(facet)
+            .into_iter()
+            .flatten()
+            .any(|id| id.as_str() == raw || self.labels.get(id.as_str()) == Some(&raw))
+    }
+
+    fn admit_row(&self, flow: &Flow, row: &Row) -> Result<Fact, String> {
+        let facet = row.facet();
+        let (component, section) = *self.roles.get(facet).ok_or_else(|| {
+            format!(
+                "row ({} ...) names {facet:?}, which this request did not ask about",
+                row.relation_name()
+            )
+        })?;
+
+        let mut defects = Vec::new();
+        let body = match row {
+            Row::Claim {
+                subject,
+                relation,
+                object,
+                modality,
+                expected,
+                ..
+            } => {
+                // A step or a graph reference resolves through the flow pass,
+                // never through entity-name lookup: that lookup refuses an
+                // unknown name, so routing a reference through it unchanged
+                // would reject every flow.
+                let flow_subject = vocabulary::is_flow_ref(subject);
+                let flow_object = vocabulary::is_flow_ref(object);
+                if (flow_subject || flow_object) && section != "logic" {
+                    return Err(format!(
+                        "a {section} Facet names a step; only a Logic Facet can"
+                    ));
+                }
+                let subject = if flow_subject {
+                    flow.resolve(subject, component)?
+                } else {
+                    self.resolve_name(facet, subject)?
+                };
+                let object = if flow_object {
+                    flow.resolve(object, component)?
+                } else {
+                    self.resolve_name(facet, object)?
+                };
+
+                // Same subject and object is a claim that asserts nothing --
+                // unless both are steps, in which case it is an edge from a
+                // step to itself, an ordinary loop. Flagging a loop would
+                // suppress its whole graph's reachability check under the
+                // defect rule, and do it without erroring.
+                if subject == object && !(flow_subject && flow_object) {
+                    defects.push(Defect::Degenerate);
+                }
+                Body::Claim {
+                    subject,
+                    relation: relation.clone(),
+                    object,
+                    modality: modality.clone(),
+                    expected: expected.clone(),
+                }
+            }
+            Row::Property {
+                subject,
+                property,
+                value,
+                ..
+            } => Body::Property {
+                subject: self.resolve_name(facet, subject)?,
+                property: property.clone(),
+                value: value.clone(),
+            },
+            Row::Measure {
+                subject,
+                property,
+                number,
+                ..
+            } => Body::Measure {
+                subject: self.resolve_name(facet, subject)?,
+                property: property.clone(),
+                number: number.clone(),
+            },
+            Row::Reading { outcome, .. } => Body::Reading {
+                outcome: outcome.clone(),
+            },
+            Row::Step { ordinal, .. } => {
+                // Resolving proves the section declared it, which Flow::build
+                // has already checked; this keeps the body beside its identity.
+                flow.resolve(&format!("{}{ordinal}", vocabulary::STEP_REF), component)?;
+                Body::Step { ordinal: *ordinal }
+            }
+            Row::Guard {
+                step,
+                operand,
+                value,
+                ..
+            } => {
+                let ordinal = vocabulary::step_ordinal(step)
+                    .ok_or_else(|| format!("{step:?} is not a resolved step"))?;
+                flow.resolve(step, component)?;
+                let value = match operand.as_str() {
+                    // A state operand is a declared entity and resolves like
+                    // any other. An input is a literal and never resolves. A
+                    // constraint names a Facet, which the request already
+                    // bounds, so it is checked against that rather than
+                    // against the entity set.
+                    "state" => self.resolve_name(facet, value)?,
+                    "constraint" => {
+                        if !self.roles.contains_key(value.as_str()) {
+                            return Err(format!(
+                                "a guard names the Constraints Facet it guards on; \
+                                 {value:?} is not a Facet this request presented"
+                            ));
+                        }
+                        value.clone()
+                    }
+                    _ => value.clone(),
+                };
+                Body::Guard {
+                    step: ordinal,
+                    operand: operand.clone(),
+                    value,
+                }
+            }
+            Row::End { .. } => {
+                return Err("an end row is resolved into an edge before admission".into());
+            }
+            Row::Undeclared { name, .. } => {
+                let prose = self.prose.get(facet).copied().unwrap_or_default();
+                if !squash(prose).contains(&squash(name)) {
+                    return Err(format!(
+                        "the prose of this Facet does not contain {name:?}; an undeclared row \
+                         names what the prose relies on, as the prose writes it"
+                    ));
+                }
+                if self.on_list(facet, name) {
+                    return Err(format!(
+                        "{name:?} is on this Facet's list; state the claim it supports instead \
+                         of calling it undeclared"
+                    ));
+                }
+                Body::Undeclared {
+                    name: name.clone(),
+                    declared: self.names.resolve(name).ok(),
+                }
+            }
+        };
+
+        defects.sort();
+        defects.dedup();
+        Ok(Fact {
+            id: Fact::mint(facet, component, section, &body),
+            facet: facet.to_owned(),
+            component: component.to_owned(),
+            section: section.to_owned(),
+            body,
+            defects,
+        })
+    }
+}
+
+/// Text with every run of whitespace collapsed and its case folded, so a name
+/// matches the prose wherever the prose wrapped the line.
+fn squash(text: &str) -> String {
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
 }
 
 /// Entity names a claim may use, and what they resolve to.

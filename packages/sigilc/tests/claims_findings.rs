@@ -425,7 +425,7 @@ fn flow_design(paragraphs: &[&str]) -> (sigilc::structure::DesignInput, Vec<Stri
 fn run_flow(paragraphs: &[&str], artifact: &str) -> Report {
     let (input, _) = flow_design(paragraphs);
     let request = support::project(&input, "flow.sigil").unwrap();
-    let rows = dialect::parse(artifact, Limits::default()).unwrap();
+    let rows = support::resolved(&request, artifact);
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
     findings::report(&request, &facts, &world, &["artifact-digest".into()])
@@ -437,8 +437,7 @@ fn a_dead_end_step_is_reported_and_does_not_fail_the_build() {
     let report = run_flow(
         &["first", "second"],
         &format!(
-            "(step {0:?} \"1\")\n(step {1:?} \"2\")\n\
-             (claim {1:?} \"step:2\" \"to\" \"graph\" \"required\" \"true\")\n",
+            "(step {0:?} \"1\")\n(step {1:?} \"1\")\n(end {1:?} \"1\")\n",
             f[0], f[1]
         ),
     );
@@ -517,9 +516,9 @@ fn two_runs_over_one_unchanged_interpretation_report_identically() {
     let artifact = {
         let (_, f) = flow_design(&["first", "second"]);
         format!(
-            "(step {0:?} \"1\")\n(step {1:?} \"2\")\n\
-             (claim {0:?} \"step:1\" \"to\" \"step:2\" \"required\" \"true\")\n\
-             (claim {1:?} \"step:2\" \"to\" \"graph\" \"required\" \"true\")\n",
+            "(step {0:?} \"1\")\n(step {1:?} \"1\")\n\
+             (claim {0:?} \"step:1\" \"to\" \"step:{1}.1\" \"required\" \"true\")\n\
+             (end {1:?} \"1\")\n",
             f[0], f[1]
         )
     };
@@ -528,8 +527,8 @@ fn two_runs_over_one_unchanged_interpretation_report_identically() {
     assert_eq!(a.findings, b.findings);
     assert_eq!(a.state, b.state);
     assert_eq!(
-        a.version, 4,
-        "the report version moved with the linked check's report"
+        a.version, 5,
+        "the report version moved with ingest's incomplete state"
     );
 }
 
@@ -568,8 +567,7 @@ fn a_facet_whose_only_interpretation_is_a_step_is_not_a_gap() {
     let report = run_flow(
         &["first", "second"],
         &format!(
-            "(step {0:?} \"1\")\n(step {1:?} \"2\")\n\
-             (claim {1:?} \"step:2\" \"to\" \"graph\" \"required\" \"true\")\n\
+            "(step {0:?} \"1\")\n(step {1:?} \"1\")\n(end {1:?} \"1\")\n\
              (reading {2:?} \"no-commitment\")\n",
             f[0], f[1], f[2]
         ),
@@ -629,7 +627,7 @@ fn a_dependencys_finding_is_not_repeated_in_its_dependents_report() {
 fn admit_flow(paragraphs: &[&str], artifact: &str) -> (Request, Vec<Fact>) {
     let (input, _) = flow_design(paragraphs);
     let request = support::project(&input, "flow.sigil").unwrap();
-    let rows = dialect::parse(artifact, Limits::default()).unwrap();
+    let rows = support::resolved(&request, artifact);
     let facts = identity::admit(&request, &input, &rows).unwrap();
     (request, facts)
 }
@@ -638,16 +636,15 @@ fn admit_flow(paragraphs: &[&str], artifact: &str) -> (Request, Vec<Fact>) {
 fn two_readings_differing_in_one_edge_disagree_about_that_facet_only() {
     let (_, f) = flow_design(&["first", "second"]);
     let base = format!(
-        "(step {0:?} \"1\")\n(step {1:?} \"2\")\n\
-         (claim {1:?} \"step:2\" \"to\" \"graph\" \"required\" \"true\")\n",
+        "(step {0:?} \"1\")\n(step {1:?} \"1\")\n(end {1:?} \"1\")\n",
         f[0], f[1]
     );
     let (_, first) = admit_flow(&["first", "second"], &base);
     let (_, repeat) = admit_flow(
         &["first", "second"],
         &format!(
-            "{base}(claim {0:?} \"step:1\" \"to\" \"step:2\" \"required\" \"true\")\n",
-            f[0]
+            "{base}(claim {0:?} \"step:1\" \"to\" \"step:{1}.1\" \"required\" \"true\")\n",
+            f[0], f[1]
         ),
     );
 
@@ -667,10 +664,7 @@ fn two_readings_differing_in_one_edge_disagree_about_that_facet_only() {
 #[test]
 fn two_identical_readings_carrying_graph_rows_disagree_about_nothing() {
     let (_, f) = flow_design(&["first"]);
-    let artifact = format!(
-        "(step {0:?} \"1\")\n(claim {0:?} \"step:1\" \"to\" \"graph\" \"required\" \"true\")\n",
-        f[0]
-    );
+    let artifact = format!("(step {0:?} \"1\")\n(end {0:?} \"1\")\n", f[0]);
     let (_, a) = admit_flow(&["first"], &artifact);
     let (_, b) = admit_flow(&["first"], &artifact);
     assert!(findings::disagreements(&a, &b).is_empty());
@@ -680,8 +674,7 @@ fn two_identical_readings_carrying_graph_rows_disagree_about_nothing() {
 fn a_second_reading_suppresses_no_finding_from_the_first() {
     let (_, f) = flow_design(&["first", "second"]);
     let first_text = format!(
-        "(step {0:?} \"1\")\n(step {1:?} \"2\")\n\
-         (claim {1:?} \"step:2\" \"to\" \"graph\" \"required\" \"true\")\n",
+        "(step {0:?} \"1\")\n(step {1:?} \"1\")\n(end {1:?} \"1\")\n",
         f[0], f[1]
     );
     let report = run_flow(&["first", "second"], &first_text);
@@ -695,8 +688,8 @@ fn a_second_reading_suppresses_no_finding_from_the_first() {
     let (_, repeat) = admit_flow(
         &["first", "second"],
         &format!(
-            "{first_text}(claim {0:?} \"step:1\" \"to\" \"step:2\" \"required\" \"true\")\n",
-            f[0]
+            "{first_text}(claim {0:?} \"step:1\" \"to\" \"step:{1}.1\" \"required\" \"true\")\n",
+            f[0], f[1]
         ),
     );
     let mut report = report;
@@ -720,12 +713,12 @@ fn a_repeat_that_splits_one_step_in_two_disagrees_in_bounded_fashion() {
     let (_, f) = flow_design(&["first", "second"]);
     let (_, first) = admit_flow(
         &["first", "second"],
-        &format!("(step {0:?} \"1\")\n(step {1:?} \"2\")\n", f[0], f[1]),
+        &format!("(step {0:?} \"1\")\n(step {1:?} \"1\")\n", f[0], f[1]),
     );
     let (_, repeat) = admit_flow(
         &["first", "second"],
         &format!(
-            "(step {0:?} \"1\")\n(step {0:?} \"2\")\n(step {1:?} \"3\")\n",
+            "(step {0:?} \"1\")\n(step {0:?} \"2\")\n(step {1:?} \"1\")\n",
             f[0], f[1]
         ),
     );
@@ -749,7 +742,7 @@ fn a_logic_facet_yielding_only_graph_rows_is_interpreted() {
     let report = run_flow(
         &["first"],
         &format!(
-            "(step {0:?} \"1\")\n(claim {0:?} \"step:1\" \"to\" \"graph\" \"required\" \"true\")\n\
+            "(step {0:?} \"1\")\n(end {0:?} \"1\")\n\
              (reading {1:?} \"no-commitment\")\n",
             f[0], f[1]
         ),

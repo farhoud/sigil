@@ -7,7 +7,10 @@ use std::{collections::BTreeSet, sync::LazyLock};
 /// 2 adds the step and guard rows and the reference forms a row uses to name a
 /// step or a graph. An interpretation produced against generation 1 knows
 /// neither, so a directory prepared under it can no longer be answered.
-pub const VOCABULARY_GENERATION: u32 = 2;
+/// 3 numbers steps within their own Facet, ends a flow with an `end` row instead
+/// of an edge to the graph, names Facets by handle, and adds the `undeclared`
+/// row.
+pub const VOCABULARY_GENERATION: u32 = 3;
 
 /// How a returned row names a step, which it cannot name by identity.
 ///
@@ -16,6 +19,17 @@ pub const VOCABULARY_GENERATION: u32 = 2;
 /// both sides can compute: the interpretation reads the prose and numbers the
 /// steps, and the tool mints from the Facet and that number.
 pub const STEP_REF: &str = "step:";
+
+/// What a Facet handle starts with.
+///
+/// A handle is `#` and a number, assigned over the request's own Facets in
+/// Facet-id order, so the same Facet has the same handle in every presentation
+/// of one binding. A full Facet id is accepted wherever a handle is.
+pub const HANDLE_PREFIX: &str = "#";
+
+/// A step named from another Facet: `step:#N.K`, step K of Facet `#N`. Within
+/// its own Facet a step is `step:K`.
+pub const STEP_DOT: char = '.';
 
 /// How a returned row names the graph of its Facet's Logic section.
 ///
@@ -35,6 +49,31 @@ pub const GUARD_OPERANDS: &[&str] = &["state", "input", "constraint"];
 /// entity the workspace declares.
 pub fn is_flow_ref(name: &str) -> bool {
     name == GRAPH_REF || name.starts_with(STEP_REF)
+}
+
+/// A step reference as the interpretation writes it: the step's number within
+/// its own Facet, and the Facet when it is not the row's own.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalStepRef {
+    /// The handle or Facet id the reference names, or `None` for the row's own.
+    pub facet: Option<String>,
+    pub ordinal: u32,
+}
+
+/// Read `step:K` or `step:<facet>.K`, where `<facet>` is a handle or Facet id.
+pub fn local_step_ref(name: &str) -> Option<LocalStepRef> {
+    let rest = name.strip_prefix(STEP_REF)?;
+    match rest.rsplit_once(STEP_DOT) {
+        Some((facet, ordinal)) if !facet.is_empty() => Some(LocalStepRef {
+            facet: Some(facet.to_owned()),
+            ordinal: ordinal.parse().ok().filter(|n| *n > 0)?,
+        }),
+        Some(_) => None,
+        None => Some(LocalStepRef {
+            facet: None,
+            ordinal: rest.parse().ok().filter(|n| *n > 0)?,
+        }),
+    }
 }
 
 /// The ordinal a step reference carries, if it is well formed.
@@ -117,10 +156,23 @@ pub const RETURNED: &[Returned] = &[
         columns: &["facet", "ordinal"],
     },
     // A guard on a step. This stays a row of its own because an input-value
-    // operand is a literal, and a claim row has no column that takes one.
+    // operand is a literal, and a claim row has no column that takes one. Its
+    // step column is a step reference, the same form a claim uses.
     Returned {
         name: "guard",
         columns: &["facet", "step", "operand", "value"],
+    },
+    // The step that ends its flow. The tool writes the edge to the graph; the
+    // interpretation only says which step the prose ends at.
+    Returned {
+        name: "end",
+        columns: &["facet", "ordinal"],
+    },
+    // A name the Facet's prose relies on that its list does not carry. It is a
+    // statement about the design, so the name is free text, never an entity.
+    Returned {
+        name: "undeclared",
+        columns: &["facet", "name"],
     },
 ];
 

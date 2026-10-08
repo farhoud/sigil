@@ -223,6 +223,10 @@ pub fn program(request: &Request, facts: &[Fact]) -> String {
                 quote(&fact.facet),
                 quote(outcome)
             )),
+            // A name the prose relies on is reported from the fact itself. It
+            // is a statement about the design's declarations, not a claim any
+            // law reads.
+            Body::Undeclared { .. } => {}
             // A step is an entity this tool minted, so it is emitted as one.
             // This is the single place where an `entity` row stops meaning
             // "the design declares this" and starts meaning "the design

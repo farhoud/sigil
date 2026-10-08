@@ -9,7 +9,7 @@
 //! read-only context. A dependency's Logic, State, Constraints, Cases and
 //! Decisions Facets are never presented, and neither is any entity introduced
 //! only there.
-use super::{guidance, vocabulary};
+use super::{guidance, identity::Grounding, vocabulary};
 use crate::{
     inputs::DesignBasis,
     sources,
@@ -33,7 +33,9 @@ use std::{
 /// the Tags those interfaces expose. The binding stops covering the whole input
 /// and covers the source's content id and its imports' interface hashes
 /// instead. A directory prepared under an earlier format must be re-prepared.
-pub const REQUEST_FORMAT: u32 = 5;
+/// 6 gives each own Facet a handle and the list of names it may use, and each
+/// Logic section the handles of its Facets.
+pub const REQUEST_FORMAT: u32 = 6;
 
 /// One Facet handed to the interpreter, pre-filled with its own identity.
 ///
@@ -51,6 +53,17 @@ pub struct FacetRow {
     pub section: String,
     pub source: String,
     pub prose: String,
+    /// A short name for this Facet, `#N`, which an answer may use wherever it
+    /// names the Facet. Numbered over the request's own Facets in id order, so a
+    /// handle means the same Facet in every presentation of one binding. An
+    /// imported component's interface Facet has none.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub handle: String,
+    /// The names this Facet may use, as labels: its own component, the
+    /// components its source imports from, and the Tags its prose references or
+    /// introduces. A row naming anything else is refused.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub names: Vec<String>,
     /// An imported component's interface Facet. Read-only context: the
     /// interpreter reads it to understand the names it exposes and returns
     /// nothing for it. Its own reading comes from its own source's run.
@@ -164,6 +177,9 @@ pub struct LogicSection {
     /// across this whole list, which is what lets an edge cross from one Facet
     /// to another.
     pub facets: Vec<String>,
+    /// The handles of those Facets, in the same order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub handles: Vec<String>,
 }
 
 /// A prepared interpretation request, before it reaches disk.
@@ -212,14 +228,39 @@ pub fn presenting(request: &Request, units: &[super::memo::Unit]) -> Request {
         .flat_map(|u| u.facets.iter().map(String::as_str))
         .collect();
     let any = !asked.is_empty();
+    // A flow's guard names the Constraints Facet it guards on. When a Logic
+    // section is asked again alone, that Facet may be stored already and so not
+    // asked, and the interpreter could not name what it cannot see. It is shown
+    // as context: read for its prose and handle, answered by nothing.
+    let flowing: BTreeSet<&str> = request
+        .flows
+        .iter()
+        .filter(|f| f.facets.iter().any(|x| asked.contains(x.as_str())))
+        .map(|f| f.component.as_str())
+        .collect();
+    let rows = request
+        .rows
+        .iter()
+        .filter_map(|r| {
+            if asked.contains(r.facet.as_str()) || (any && r.context) {
+                Some(r.clone())
+            } else if !r.context
+                && r.section == "constraints"
+                && flowing.contains(r.component.as_str())
+            {
+                Some(FacetRow {
+                    context: true,
+                    names: Vec::new(),
+                    ..r.clone()
+                })
+            } else {
+                None
+            }
+        })
+        .collect();
     Request {
         binding: request.binding.clone(),
-        rows: request
-            .rows
-            .iter()
-            .filter(|r| asked.contains(r.facet.as_str()) || (any && r.context))
-            .cloned()
-            .collect(),
+        rows,
         flows: request
             .flows
             .iter()
@@ -314,15 +355,46 @@ pub fn project(input: &DesignInput, basis: &DesignBasis, source: &str) -> Result
     context_rows.dedup_by(|a, b| a.facet == b.facet);
     rows.extend(context_rows);
 
+    // A handle and a list of names for each of the source's own Facets. The
+    // handle is numbered over the whole source, never over what a later
+    // presentation narrows to, so it stays the same across a re-ask.
+    for (index, row) in rows.iter_mut().filter(|r| !r.context).enumerate() {
+        row.handle = format!("{}{}", vocabulary::HANDLE_PREFIX, index + 1);
+    }
+    let grounding = Grounding::build(input, &rows);
+    let entity_label: BTreeMap<&str, &str> = input
+        .entities
+        .iter()
+        .map(|e| (e.id.as_str(), e.label.as_str()))
+        .collect();
+    for row in rows.iter_mut().filter(|r| !r.context) {
+        let names: BTreeSet<&str> = grounding
+            .allowed(&row.facet)
+            .into_iter()
+            .flatten()
+            .filter_map(|id| entity_label.get(id.as_str()).copied())
+            .collect();
+        row.names = names.into_iter().map(str::to_owned).collect();
+    }
+    let handle_of: BTreeMap<String, String> = rows
+        .iter()
+        .map(|r| (r.facet.clone(), r.handle.clone()))
+        .collect();
+
     let flows: Vec<LogicSection> = flows
         .into_iter()
         .map(|((component, component_label, source), mut facets)| {
             facets.sort_by_key(|(offset, _)| *offset);
+            let facets: Vec<String> = facets.into_iter().map(|(_, facet)| facet).collect();
             LogicSection {
                 component,
                 component_label,
                 source,
-                facets: facets.into_iter().map(|(_, facet)| facet).collect(),
+                handles: facets
+                    .iter()
+                    .map(|facet| handle_of.get(facet).cloned().unwrap_or_default())
+                    .collect(),
+                facets,
             }
         })
         .collect();
@@ -487,6 +559,8 @@ fn facet_row(input: &DesignInput, unit: &Unit, context: bool) -> Result<Option<F
         section: vocabulary::section_name(&unit.section).to_owned(),
         source: unit.source.clone(),
         prose: prose.to_owned(),
+        handle: String::new(),
+        names: Vec::new(),
         context,
     }))
 }
