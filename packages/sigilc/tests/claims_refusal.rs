@@ -221,6 +221,44 @@ fn one_bad_name_refuses_only_its_facet_and_the_next_prepare_asks_for_it() {
     assert_eq!(asked[0].handle, rule, "the handle is the same on a re-ask");
 }
 
+#[test]
+fn a_tag_as_the_subject_of_a_requirement_refuses_its_facet() {
+    let run = Run::new();
+    run.write(
+        BOOKING,
+        "component Booking {
+  goal {
+    Book a room with a *request form*.
+  }
+  constraints {
+    A request form needs a signed booking.
+  }
+}
+",
+    );
+    let prepared = run.prepare(BOOKING);
+    let rule = prepared.handle("A request form needs");
+    let answer = pad(
+        &prepared,
+        format!(
+            "(claim {rule:?} \"request form\" \"requires\" \"Booking\" \"required\" \"true\")\n"
+        ),
+        &[],
+    );
+    let (code, summary, stderr) = run.ingest(&prepared.binding(), &answer);
+    assert_eq!(code, 1, "{summary}{stderr}");
+    assert_eq!(summary["refusalCount"], 1);
+    let refusal = &summary["refusals"][0];
+    assert_eq!(refusal["unit"]["handles"][0], rule.as_str());
+    assert!(
+        refusal["reason"]
+            .as_str()
+            .unwrap()
+            .contains("must be a component or a step"),
+        "{summary}"
+    );
+}
+
 // ------------------------------------------------------------------- AE2
 
 #[test]

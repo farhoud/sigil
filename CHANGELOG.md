@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `sigil-claims` refuses a unit whose `requires`, `provides`, `owns`,
+  `dependsOn` or `excludes` row has a Tag as its subject, and asks for it
+  again. A step-level ban now binds only its subject's flows and those of the
+  components the subject depends on, so one ban no longer flags every step
+  that touches its object. The vocabulary generation is 4, so stored readings
+  are asked for again once.
 - `sigilc` and `sigil-claims` read `.sigil` sources directly through `--root`
   (default `.`) and an optional `--store`, and keep one content-addressed tree
   per source with an interface hash per component. A reformat or an edit that

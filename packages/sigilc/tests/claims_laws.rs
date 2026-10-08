@@ -1041,6 +1041,32 @@ fn a_governed_step_doing_what_a_constraint_forbids_contradicts_it() {
 }
 
 #[test]
+fn a_ban_binds_its_subject_and_not_every_flow_its_constraint_reaches() {
+    // A's constraint governs A's graph, but the ban is about B, which neither
+    // owns that graph nor depends on its owner.
+    let request = request(&[("f1", A, "constraints"), ("f2", A, "logic")]);
+    let s = step("f2", 1);
+    let world = run(
+        &request,
+        &[
+            claim("f1", "constraints", B, "excludes", CAP, "required", "true"),
+            claim("f1", "constraints", B, "invokes", CAP, "required", "false"),
+            s.clone(),
+            claim("f2", "logic", &s.id, "invokes", CAP, "required", "true"),
+        ],
+    );
+    assert!(
+        !world.table("constraint-governs").is_empty(),
+        "the constraint still reaches A's graph"
+    );
+    assert!(
+        step_violations(&world).is_empty(),
+        "{:?}",
+        step_violations(&world)
+    );
+}
+
+#[test]
 fn a_step_calling_another_components_operation_is_no_ownership_conflict() {
     // The regression test for the first withdrawn draft, which fired on every
     // cross-component call because these flows are written as delegation.

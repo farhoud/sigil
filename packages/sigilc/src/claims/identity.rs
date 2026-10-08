@@ -279,6 +279,7 @@ pub struct Admitter<'a> {
     prose: BTreeMap<&'a str, &'a str>,
     names: EntityNames,
     labels: BTreeMap<&'a str, &'a str>,
+    kinds: BTreeMap<&'a str, &'a str>,
     grounding: Grounding,
 }
 
@@ -300,6 +301,11 @@ impl<'a> Admitter<'a> {
                 .entities
                 .iter()
                 .map(|e| (e.id.as_str(), e.label.as_str()))
+                .collect(),
+            kinds: request
+                .entities
+                .iter()
+                .map(|e| (e.id.as_str(), e.kind.as_str()))
                 .collect(),
             grounding: Grounding::build(input, &request.rows),
         }
@@ -411,6 +417,23 @@ impl<'a> Admitter<'a> {
                 } else {
                     self.resolve_name(facet, object)?
                 };
+                // Only a component, or a step for a flow, can require, provide,
+                // own, depend on or exclude something. A Tag in that place
+                // raises an obligation nothing can meet, or a ban that reaches
+                // every step touching its object.
+                if vocabulary::ACTOR_RELATIONS.contains(&relation.as_str())
+                    && !flow_subject
+                    && self.kinds.get(subject.as_str()) != Some(&"Component")
+                {
+                    return Err(format!(
+                        "the subject of {relation:?} must be a component or a step, and \
+                         {:?} is a Tag; name the component the rule binds",
+                        self.labels
+                            .get(subject.as_str())
+                            .copied()
+                            .unwrap_or(&subject)
+                    ));
+                }
 
                 // Same subject and object is a claim that asserts nothing --
                 // unless both are steps, in which case it is an edge from a

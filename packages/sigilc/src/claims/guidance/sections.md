@@ -101,8 +101,9 @@ introduce is on the entity list. A Constraints Facet of your own source can also
 be marked `"context": true` when only its Logic section is asked again: it is
 shown so a guard can name it, and it is answered by nothing.
 
-**Who does the requiring.** For `requires`, `provides`, `owns`, and `dependsOn`,
-the subject is a component (or a step, for a flow). Never a Tag. A Tag cannot
+**Who does the requiring.** For `requires`, `provides`, `owns`, `dependsOn` and
+`excludes`, the subject is a component (or a step, for a flow). Never a Tag: the
+tool refuses the unit and asks again. A Tag cannot
 provide anything, so `booking request requires open time` can never be
 satisfied and reports an obligation that nothing could meet. When a Facet says
 a *booking request* must lie inside open time, the requirement belongs to the

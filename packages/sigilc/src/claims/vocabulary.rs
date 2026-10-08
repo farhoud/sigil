@@ -10,7 +10,9 @@ use std::{collections::BTreeSet, sync::LazyLock};
 /// 3 numbers steps within their own Facet, ends a flow with an `end` row instead
 /// of an edge to the graph, names Facets by handle, and adds the `undeclared`
 /// row.
-pub const VOCABULARY_GENERATION: u32 = 3;
+/// 4 refuses a Tag as the subject of `requires`, `provides`, `owns`,
+/// `dependsOn` or `excludes`, which generation 3 admitted.
+pub const VOCABULARY_GENERATION: u32 = 4;
 
 /// How a returned row names a step, which it cannot name by identity.
 ///
@@ -26,6 +28,9 @@ pub const STEP_REF: &str = "step:";
 /// Facet-id order, so the same Facet has the same handle in every presentation
 /// of one binding. A full Facet id is accepted wherever a handle is.
 pub const HANDLE_PREFIX: &str = "#";
+
+/// Relations whose subject acts: a component, or a step for a flow, never a Tag.
+pub const ACTOR_RELATIONS: &[&str] = &["requires", "provides", "owns", "dependsOn", "excludes"];
 
 /// A step named from another Facet: `step:#N.K`, step K of Facet `#N`. Within
 /// its own Facet a step is `step:K`.

@@ -8,6 +8,7 @@ use sigilc::{
         program,
     },
     eqval,
+    structure::DesignInput,
 };
 use std::{fs, path::PathBuf};
 
@@ -15,8 +16,11 @@ mod support;
 use support::{BASE, base_constraints, base_goal, base_interface, shared_input};
 
 fn run(artifact: &str) -> (Request, Vec<Fact>, Context) {
-    let input = shared_input();
-    let request = support::project(&input, BASE).unwrap();
+    run_on(shared_input(), BASE, artifact)
+}
+
+fn run_on(input: DesignInput, source: &str, artifact: &str) -> (Request, Vec<Fact>, Context) {
+    let request = support::project(&input, source).unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
     let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
@@ -91,8 +95,7 @@ fn a_derived_conclusion_carries_the_law_and_witness_that_reached_it() {
     let base_interface = base_interface();
     // R20. The judge reads the conclusion rather than re-deriving it.
     let (_, _, context) = run(&format!(
-        "(claim {base_interface:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
-         (claim {base_interface:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n"
+        "(claim {base_interface:?} \"Base\" \"provides\" \"result\" \"required\" \"true\")\n"
     ));
     let unit = context
         .units
@@ -207,12 +210,20 @@ fn the_same_proposition_in_two_units_is_proposed_without_a_verdict() {
 
 #[test]
 fn a_claim_the_laws_already_derive_is_proposed_as_subsumed() {
-    let base_interface = base_interface();
-    let (_, _, context) = run(&format!(
-        "(claim {base_interface:?} \"Base\" \"delegates\" \"result\" \"required\" \"true\")\n\
-         (claim {base_interface:?} \"result\" \"provides\" \"value\" \"required\" \"true\")\n\
-         (claim {base_interface:?} \"Base\" \"provides\" \"value\" \"required\" \"true\")\n"
-    ));
+    // Delegation needs a second component, so this runs on the cycle fixture,
+    // where A imports B.
+    let root = support::cycle_workspace();
+    let input = support::cycle_input(&root);
+    let a_interface = support::facet_with(&input, "a.sigil", "Use b");
+    let (_, _, context) = run_on(
+        input,
+        "a.sigil",
+        &format!(
+            "(claim {a_interface:?} \"A\" \"delegates\" \"B\" \"required\" \"true\")\n\
+             (claim {a_interface:?} \"B\" \"provides\" \"b\" \"required\" \"true\")\n\
+             (claim {a_interface:?} \"A\" \"provides\" \"b\" \"required\" \"true\")\n"
+        ),
+    );
     let subsumed: Vec<_> = context
         .simplification
         .iter()
@@ -304,8 +315,9 @@ fn the_context_round_trips_through_its_serialized_form() {
     // Pinned, and moved deliberately: the generation is what tells an already
     // prepared directory that what it may return has changed. 2 is the step and
     // guard rows and the step and graph reference forms; 3 numbers steps within
-    // their Facet, adds the end and undeclared rows and names Facets by handle.
-    assert_eq!(context.identity.vocabulary_generation, 3);
+    // their Facet, adds the end and undeclared rows and names Facets by handle;
+    // 4 refuses a Tag as the subject of an acting relation.
+    assert_eq!(context.identity.vocabulary_generation, 4);
     // Pinned and moved with what changed the report's shape: 2 added the flow
     // classes, 3 replaced the export digest with the tree binding's digest, 4
     // added the linked check's report, 5 reports an ingest with unread units as
