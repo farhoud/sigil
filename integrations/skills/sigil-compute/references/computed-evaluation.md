@@ -123,8 +123,9 @@ One run uses one preparation and a private claims store.
   fresh, initially empty preparation directory inside it.
 - Before prepare, copy any existing workspace
   `.sigil/claims/interpretations/` into `claims/interpretations/` under a
-  private store directory in the run directory. An absent store starts empty.
-  Retain the seed as evidence.
+  private store directory: the one the request names when it names one,
+  otherwise one in the run directory. An absent store starts empty. Retain the
+  seed as evidence.
 - Pass the workspace as `--root` and this same private directory as `--store`
   to both prepare and ingest. Memo writes stay private: in the one-source loop, never merge them back
   into the workspace, and never write to the workspace's own store. The
