@@ -360,7 +360,8 @@ impl<'a> Admitter<'a> {
                 Ok(_) => Err(format!(
                     "{raw:?} is declared in this design but is not on this Facet's list: a \
                      Facet may name its own component, the components its source imports from, \
-                     and the Tags its prose references or introduces"
+                     and the Tags its prose references or introduces. If its prose relies on \
+                     {raw:?}, say so with an (undeclared ...) row instead"
                 )),
                 Err(unknown) => Err(unknown),
             },

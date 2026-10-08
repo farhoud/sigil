@@ -165,6 +165,13 @@ pub fn read(source: &str, limits: Limits) -> Result<Parsed, String> {
             limits.max_document_bytes
         ));
     }
+    if matches!(source.trim_start().chars().next(), Some('[' | '{')) {
+        return Err(
+            "a claims artifact is plain egglog rows, one per line, and not JSON: \
+                    write each row as (claim \"#1\" ...) with nothing around it"
+                .into(),
+        );
+    }
     refuse_deep_nesting(source)?;
     let atoms = atoms(source, limits)?;
     let mut parsed = Parsed::default();

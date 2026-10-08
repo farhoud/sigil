@@ -1,6 +1,8 @@
 # The rows you may return
 
-Return a plain list of S-expression rows and nothing else. No rules, no
+Return a plain list of S-expression rows and nothing else, one row per line, as
+egglog text. It is not JSON: no array, no object, no quotes around a whole row,
+no markdown fence. No rules, no
 commands, no schedules, no nested expressions, no arithmetic — every argument is
 a quoted string literal. One rule declaration anywhere in the artifact and the
 whole thing is refused, including the valid rows beside it.

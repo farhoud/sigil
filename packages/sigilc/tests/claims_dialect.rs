@@ -1073,3 +1073,14 @@ fn a_step_reference_reads_a_local_step_or_another_facets_step() {
         assert_eq!(vocabulary::local_step_ref(bad), None, "{bad}");
     }
 }
+
+#[test]
+fn an_answer_written_as_json_is_refused_whole_with_the_format_named() {
+    for artifact in [
+        "[\n  \"(reading \\\"#1\\\" \\\"no-commitment\\\")\"\n]\n",
+        "{\"rows\": [\"(reading \\\"#1\\\" \\\"no-commitment\\\")\"]}",
+    ] {
+        let error = dialect::read(artifact, Limits::default()).unwrap_err();
+        assert!(error.contains("not JSON"), "got: {error}");
+    }
+}

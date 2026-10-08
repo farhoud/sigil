@@ -224,7 +224,7 @@ does not run the tool; it reads the prepared request and returns rows.
 | `request` | Path to `request.json`: the presented Facet rows, each with its `handle` and the `names` it may use (rows marked `context` are shown for reference and take no reading: a dependency's interface, or a Constraints Facet of the section being asked again), whole Logic groupings, admissible entities, the components each source imports from, and declared roles. |
 | `binding` | Path to `binding.json`, the request's identity. |
 | `guidance` | Paths of every guidance file prepare wrote. The prepared guidance is binding for row shapes and accepted names. |
-| `artifact` | The file the child writes its rows to, and the only file it writes. The host passes that exact file to ingest and never edits it. |
+| `artifact` | The file the child writes its rows to, and the only file it writes: a plain-text egglog file named `<source>-answer-<round>.egg`. Its content is the claim rows exactly as the prepared guidance shows them, one row per line, and nothing else — never JSON, never an array of strings, never a markdown fence. The host passes that exact file to ingest and never edits it. |
 | `reasons` | On a re-ask, the previous round's refusals: unit, handles and reason. Absent on the first answer. |
 | `completion` | The child states it finished. For a request that presents nothing, that statement says the returned artifact is empty on purpose. |
 
@@ -267,8 +267,9 @@ A completed ingest is all of:
    somewhere else; this check is what catches it.
 
 For a linked `check`, the same rules apply with the check's result: the
-report's `scope` and `state` equal the result's, its `identity` carries the
-`workspaceDigest`, `guidanceFingerprint`, and `vocabularyGeneration` the
+report's `source` equals the result's `scope` and its `state` equals the
+result's, `linked.workspaceDigest` equals the result's `workspaceDigest`, its
+`identity` carries the `guidanceFingerprint` and `vocabularyGeneration` the
 result names, and both paths lie under the private store.
 
 Anything else — a bare exit code, an old report, a malformed payload, a
