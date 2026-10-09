@@ -747,7 +747,7 @@ repository.
 ## Coding-Agent Skills
 
 The bundle provides four Sigil 0.9 design entry points, an implementation
-alignment skill, and one egglog language skill:
+alignment skill, its computed partner, and one egglog language skill:
 
 | Skill | Use it to |
 | --- | --- |
@@ -756,6 +756,7 @@ alignment skill, and one egglog language skill:
 | [sigil-compute-design](integrations/skills/sigil-compute-design/SKILL.md) | Run the claims loop on an existing design and hand back the computed Coherent, Loose, Disjoint, or Incomplete ingest state with findings, distinct from advisory review. |
 | [sigil-write](integrations/skills/sigil-write/SKILL.md) | Write compact contracts and apply supported corrections through independent delegated review. |
 | [sigil-align](integrations/skills/sigil-align/SKILL.md) | Review and repair a selected component's implementation against its accepted contract, then report code and test evidence. |
+| [sigil-compute-align](integrations/skills/sigil-compute-align/SKILL.md) | Run the design-first computed implementation check and hand back Closed, Converged, Drift, or Incomplete with findings and proposed excludes. |
 | [sigil-egglog](integrations/skills/sigil-egglog/SKILL.md) | Teach egglog/datalog for claims data-only rows and `.egg` law programs. |
 
 The four design skills and `sigil-align` start at artifact version 0.1.0 and
@@ -767,6 +768,10 @@ at 0.1.0 with no design-skill dependency. Install the complete catalog with
 `sigil-egglog`; it routes only explicit claims or computed-check requests, so a
 generic review stays on `sigil-evaluate`. It needs the `sigilc` binary and
 a host that can delegate a fresh child.
+`sigil-compute-align` starts at 0.1.0 and requires `sigil-compute-design`,
+`sigil-understand`, and `sigil-egglog`, plus `sigilc` and fresh-child delegation.
+It needs configured implementation selection and proposes excludes as output only;
+a plain implementation review stays on `sigil-align`.
 `sigil-align` requires `sigil-understand`, `sigil-evaluate`, and `sigil-write`.
 Use it for implementation conformance and determinate code repairs; use
 `sigil-evaluate` for read-only design review. A consequential contract change
