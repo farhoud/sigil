@@ -1,5 +1,5 @@
 use crate::{
-    assertions::quote,
+    engine::quote,
     eqval::{self, DesignState, DesignWorld, Limits, SaturatedWorld},
     sources::hash,
 };
@@ -134,10 +134,10 @@ pub fn compare(
     graph
         .parse_and_run_program(Some("sigil-comparison".into()), &program)
         .map_err(|e| e.to_string())?;
-    eqval::fixedpoint(&mut graph, limits, started)?;
-    result.satisfied = ids(eqval::rows(&graph, "satisfied", 1, limits)?)?;
-    result.unresolved = ids(eqval::rows(&graph, "unresolved", 1, limits)?)?;
-    result.disagreements = eqval::rows(&graph, "disagreement", 3, limits)?;
+    crate::engine::fixedpoint(&mut graph, limits, started)?;
+    result.satisfied = ids(crate::engine::rows(&graph, "satisfied", 1, limits)?)?;
+    result.unresolved = ids(crate::engine::rows(&graph, "unresolved", 1, limits)?)?;
+    result.disagreements = crate::engine::rows(&graph, "disagreement", 3, limits)?;
     result.implementation_contradictions = implementation.tables["violation"].clone();
     result.implementation = Some(
         if !result.disagreements.is_empty() || !result.implementation_contradictions.is_empty() {
@@ -151,7 +151,7 @@ pub fn compare(
             ImplementationState::Converged
         },
     );
-    eqval::check_limits(&graph, limits, started)?;
+    crate::engine::check_limits(&graph, limits, started)?;
     Ok(result)
 }
 

@@ -7,9 +7,9 @@ use super::{
     canon, context, dialect, findings, guidance, identity, link, memo, prepare, program, vocabulary,
 };
 use crate::{
-    cli::{Output, store_dir},
-    eqval,
-    inputs::DesignBasis,
+    basis::DesignBasis,
+    command::{Output, store_dir},
+    engine,
     structure::{DesignInput, Severity, Stage},
     tree::design_input::load_design,
 };
@@ -184,7 +184,7 @@ fn check(source: Option<&str>, root: &str, store: &Path) -> Output {
         return Err((2, format!("design source not found: {source}")));
     }
     let linked = link::link(&input, &basis, store).map_err(operational)?;
-    let world = program::saturate(&linked.request, &linked.facts, eqval::Limits::default())
+    let world = program::saturate(&linked.request, &linked.facts, engine::Limits::default())
         .map_err(gate)?;
     let report = findings::linked_report(&linked, &world, source);
     let mut context = context::build(
@@ -229,7 +229,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
     );
     let (input, basis) = workspace(root, store)?;
     let supplied: prepare::Binding = serde_json::from_slice(
-        &crate::cli::read(&binding_path, MAX_BINDING_BYTES).map_err(operational)?,
+        &crate::command::read(&binding_path, MAX_BINDING_BYTES).map_err(operational)?,
     )
     .map_err(|e| operational(format!("{binding_path}: {e}")))?;
 
@@ -462,7 +462,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
         }
     }
 
-    let world = program::saturate(&request, &facts, eqval::Limits::default()).map_err(gate)?;
+    let world = program::saturate(&request, &facts, engine::Limits::default()).map_err(gate)?;
     let mut report = findings::report(&request, &facts, &world, &digests);
     let mut disagreements = Vec::new();
     for repeat in &comparisons {
@@ -627,7 +627,8 @@ fn workspace(root: &str, store: &Path) -> Result<(DesignInput, DesignBasis), (u8
 }
 
 fn artifact(path: &str, limits: dialect::Limits) -> Result<String, (u8, String)> {
-    let bytes = crate::cli::read(path, limits.max_document_bytes as u64).map_err(operational)?;
+    let bytes =
+        crate::command::read(path, limits.max_document_bytes as u64).map_err(operational)?;
     String::from_utf8(bytes).map_err(|_| gate("claims artifact is not valid UTF-8".to_string()))
 }
 

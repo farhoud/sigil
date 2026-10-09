@@ -1,7 +1,7 @@
 //! `sigilc tree [--source PATH] [--diff] [--root DIR] [--store DIR]`: the
 //! resolved trees as deterministic JSON, or what changed since the previous one.
 use super::{ResolvedTree, Snapshot, cache::TreeCache, diff::diff_trees};
-use crate::{cli::Output, language::workspace::Workspace};
+use crate::{command::Output, language::workspace::Workspace};
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -64,7 +64,7 @@ pub fn run(args: &[&str]) -> Output {
         }
     }
     let root = PathBuf::from(root.unwrap_or("."));
-    let store = crate::cli::store_dir(&root, store);
+    let store = crate::command::store_dir(&root, store);
     if !root.is_dir() {
         return Err((
             3,

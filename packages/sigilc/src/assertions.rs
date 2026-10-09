@@ -1,4 +1,5 @@
 //! Restricted data-only .egg transport, adapted from the former native reader.
+use crate::engine::quote;
 use crate::turtle::{Assertion, Object, TurtleLimits, validate};
 use egglog::{
     EGraph,
@@ -95,16 +96,4 @@ pub fn parse(source: &str, limits: TurtleLimits) -> Result<Vec<Assertion>, Strin
         })?);
     }
     Ok(assertions.into_iter().collect())
-}
-
-/// Egglog accepts four escapes; JSON's additional \r/\u escapes are invalid here.
-pub fn quote(value: &str) -> String {
-    format!(
-        "\"{}\"",
-        value
-            .replace('\\', "\\\\")
-            .replace('"', "\\\"")
-            .replace('\n', "\\n")
-            .replace('\t', "\\t")
-    )
 }

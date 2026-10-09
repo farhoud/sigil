@@ -1,4 +1,5 @@
 //! The deterministic command boundary. No process launchers or model options.
+pub use crate::command::{Output, read, store_dir};
 use crate::{
     catalog, comparison, design,
     eqval::{DesignState, Limits},
@@ -14,16 +15,9 @@ use serde::Serialize;
 use std::{
     collections::BTreeMap,
     fs::{self, OpenOptions},
-    io::{self, Read, Write},
+    io::Write,
     path::{Path, PathBuf},
 };
-
-pub type Output = Result<(u8, String), (u8, String)>;
-
-/// Where disposable state lives: `--store DIR`, else `<root>/.sigil`.
-pub fn store_dir(root: &Path, store: Option<&str>) -> PathBuf {
-    store.map_or_else(|| root.join(".sigil"), PathBuf::from)
-}
 
 // @sigil implements packages/sigilc/store.sigil::SigilProjectionStore::DesignCommands interface
 pub fn run(args: &[&str]) -> Output {
@@ -474,23 +468,6 @@ fn run_implementation(
         code,
         &serde_json::json!({"version":2,"design":design,"implementation":implementation,"comparison":comparison,"diagnostics":diagnostics}),
     )
-}
-
-pub fn read(path: &str, max_bytes: u64) -> Result<Vec<u8>, String> {
-    let reader: Box<dyn Read> = if path == "-" {
-        Box::new(io::stdin())
-    } else {
-        Box::new(fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?)
-    };
-    let mut bytes = Vec::new();
-    reader
-        .take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-        .map_err(|e| e.to_string())?;
-    if bytes.len() as u64 > max_bytes {
-        return Err(format!("input exceeds byte limit: {path}"));
-    }
-    Ok(bytes)
 }
 
 fn write_new(path: &Path, value: &impl Serialize) -> Result<(), String> {

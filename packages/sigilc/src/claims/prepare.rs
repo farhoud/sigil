@@ -11,7 +11,7 @@
 //! only there.
 use super::{guidance, identity::Grounding, vocabulary};
 use crate::{
-    inputs::DesignBasis,
+    basis::DesignBasis,
     sources,
     structure::{DesignInput, EntityType, ImportStatus, ReferenceStatus, SelectionStatus, Unit},
 };
