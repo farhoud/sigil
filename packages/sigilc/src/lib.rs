@@ -1,4 +1,5 @@
 //! Native Sigil compiler and claims checks. Model orchestration is external.
+pub mod align;
 pub mod claims;
 pub mod cli;
 pub mod language;
