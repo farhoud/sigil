@@ -2,7 +2,7 @@
  * Test helpers shared by the benchmark's tests. This file is not a test.
  *
  * `writeFakeHost` writes an executable that stands in for a coding-agent CLI.
- * It behaves like the sigil-compute orchestrator: it runs the pinned
+ * It behaves like the sigil-compute-design orchestrator: it runs the pinned
  * `sigil-claims` from PATH inside its pass directory, reads every unread source
  * with `(reading ...)` rows (or the planted contradiction), ingests them,
  * writes the readings back into the copied root, checks, and hands back a state.
@@ -61,7 +61,7 @@ with open('run/start-state.json', 'w') as f:
         'rootConfig': os.path.exists('root/.sigil/config.json'),
         'rootClaims': os.path.exists('root/.sigil/claims'),
         'skills': sorted(os.listdir('skills')),
-        'computeSkill': os.path.exists('skills/sigil-compute/SKILL.md'),
+        'computeSkill': os.path.exists('skills/sigil-compute-design/SKILL.md'),
     }, f)
 
 first = claims('check', '--root', 'root', '--store', 'store')

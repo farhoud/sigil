@@ -14,7 +14,7 @@ export const FOUNDATION_SKILLS: Readonly<Record<string, readonly string[]>> = {
   "sigil-evaluate": ["sigil-understand"],
   "sigil-write": ["sigil-understand", "sigil-evaluate"],
   "sigil-egglog": [],
-  "sigil-compute": ["sigil-understand", "sigil-egglog"],
+  "sigil-compute-design": ["sigil-understand", "sigil-egglog"],
 };
 
 async function requiredFile(path: string, label: string): Promise<string> {

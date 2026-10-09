@@ -17,7 +17,7 @@ Rebuild a report without launching an agent:
   deno task slotted-benchmark report DIR
 
 Each --agent selects one coding agent and requested model. Repeat it for more combinations.
-Each pass runs one orchestrator process that carries out sigil-compute's whole-design
+Each pass runs one orchestrator process that carries out sigil-compute-design's whole-design
 action in its own pass directory; the benchmark then runs the linked check itself and
 scores the planted problems from that report. --timeout-ms bounds one whole pass (default
 7200000). --reasoning sets the reasoning effort of the orchestrator and every child.

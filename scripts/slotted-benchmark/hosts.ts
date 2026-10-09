@@ -106,7 +106,7 @@ export async function buildHostLaunch(
       }
       // No `--ephemeral`: an ephemeral run records neither the child's model
       // nor its effort anywhere. `skip_host_skill_discovery` keeps Codex from
-      // reading the sigil-compute installed in ~/.agents/skills instead of the
+      // reading the sigil-compute-design installed in ~/.agents/skills instead of the
       // staged copy. The multi-agent effort key is
       // `agents.default_subagent_reasoning_effort`.
       const args = [

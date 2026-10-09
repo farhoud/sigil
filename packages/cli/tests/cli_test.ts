@@ -1824,7 +1824,7 @@ Deno.test("skill discovery resolves valid skills from the source installation", 
   assertEquals(listed.exitCode, EXIT_OK);
   assertEquals(
     parseJson(listed.stdout).skills.join(","),
-    "sigil,sigil-align,sigil-compute,sigil-egglog,sigil-evaluate,sigil-understand,sigil-write",
+    "sigil,sigil-align,sigil-compute-design,sigil-egglog,sigil-evaluate,sigil-understand,sigil-write",
   );
   const legacy = parseJson(listed.stdout).catalog.find((s: { name: string }) =>
     s.name === "sigil"

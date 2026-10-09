@@ -3,14 +3,14 @@
 ## Runner setup
 
 Copy the complete skill bundle to a temporary catalog outside the checkout:
-`sigil-compute` with its required `sigil-understand` and `sigil-egglog`, plus
+`sigil-compute-design` with its required `sigil-understand` and `sigil-egglog`, plus
 the installed `sigil-evaluate` and `sigil-write` so routing has real
 destinations. Include every reference and metadata file; only the copied
-`sigil-compute` bundle is the skill under test.
+`sigil-compute-design` bundle is the skill under test.
 
 Each scenario and each variant runs a fresh host agent given only its request,
 the installed catalog, a freshly materialized workspace, and the actual tool
-availability: a `sigil-claims` binary.
+availability: a `sigilc` binary.
 Record tool versions; an unavailable tool is a recorded limitation, never a
 state. The interpreter child the host delegates must itself be a fresh agent
 receiving only the prepared handoff — never the host's conversation, never the
@@ -82,7 +82,7 @@ only its input, and one computed request.
 
 ### Request 2a given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ### Input: `base.sigil`
@@ -103,7 +103,7 @@ component Base {
 
 ### Request 2b given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `pipeline.sigil` and
+Use `$sigil-compute-design` to run a computed claims check on `pipeline.sigil` and
 report the ingest state and findings.
 
 ### Input: `pipeline.sigil`
@@ -128,7 +128,7 @@ component Pipeline {
 
 ### Request 2c given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `gate.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `gate.sigil` and report
 the ingest state and findings.
 
 ### Input: `gate.sigil`
@@ -155,19 +155,19 @@ variant gets a fresh host.
 
 ### Request 3a given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `consumer.sigil`.
+Use `$sigil-compute-design` to run a computed claims check on `consumer.sigil`.
 
 ### Request 3b given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on this design.
+Use `$sigil-compute-design` to run a computed claims check on this design.
 
 ### Request 3c given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on this workspace.
+Use `$sigil-compute-design` to run a computed claims check on this workspace.
 
 ### Request 3d given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `missing.sigil`.
+Use `$sigil-compute-design` to run a computed claims check on `missing.sigil`.
 
 ### Input: `base.sigil`
 
@@ -203,7 +203,7 @@ component Consumer {
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `consumer.sigil` and
+Use `$sigil-compute-design` to run a computed claims check on `consumer.sigil` and
 report the ingest state and findings.
 
 ### Input: `base.sigil`
@@ -253,7 +253,7 @@ component Consumer {
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ### Input: `base.sigil`
@@ -276,7 +276,7 @@ component Base {
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ### Input: `base.sigil`
@@ -306,7 +306,7 @@ directory appears and retain timestamps showing the edit preceded ingest.
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `gate.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `gate.sigil` and report
 the ingest state and findings.
 
 ### Input: `gate.sigil`
@@ -326,7 +326,7 @@ rule declaration beside valid rows.
 Each variant is a fresh host and a fresh scenario 2a workspace. No child may
 appear in any variant.
 
-- Variant 8a: no `sigil-claims` binary on the permitted PATH.
+- Variant 8a: no `sigilc` binary on the permitted PATH.
 - Variant 8b: the workspace has no readable `.sigil/config.json`.
 - Variant 8c: the installed catalog omits the required `sigil-egglog` sibling.
 - Variant 8d: delegation is unavailable to the host, recorded by its actual
@@ -335,7 +335,7 @@ appear in any variant.
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ## Scenario 9: a non-conforming child is never repaired, and is re-asked at most twice
@@ -353,7 +353,7 @@ meet the same fault.
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ## Scenario 10: captured inputs and completion payload disagree
@@ -370,14 +370,14 @@ child.
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ## Scenario 11: an operational failure after report creation
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ### Host events (observer only)
@@ -403,7 +403,7 @@ unaffected. Retain the seed and both reports.
 ### Host events (observer only)
 
 Aggregate over every successful case in this fixture: hash every design source
-before and after each run; record who invoked each `sigil-claims` command and
+before and after each run; record who invoked each `sigilc` command and
 who produced each artifact. No additional request is issued.
 
 ## Scenario 15: a re-ask fixes some refused units and stops after two
@@ -414,7 +414,7 @@ constraint Facets besides its goal and interface.
 
 ### Request given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `base.sigil` and report
+Use `$sigil-compute-design` to run a computed claims check on `base.sigil` and report
 the ingest state and findings.
 
 ### Host events (observer only)
@@ -467,25 +467,25 @@ component Booking {
 
 ### Request 14a given to the host agent
 
-Use `$sigil-compute` to check the whole design in this workspace, then ask for
+Use `$sigil-compute-design` to check the whole design in this workspace, then ask for
 the same full-design check again with no edits between the two runs.
 
 ### Request 14b given to the host agent
 
-Use `$sigil-compute` to check the whole design in this workspace. The runner
+Use `$sigil-compute-design` to check the whole design in this workspace. The runner
 makes the reader for `rooms.sigil` fail (injected); the reader for
 `booking.sigil` is left alone.
 
 ### Request 14c given to the host agent
 
-Use `$sigil-compute` to check the whole design in this workspace. After that
+Use `$sigil-compute-design` to check the whole design in this workspace. After that
 run, the observer edits the interface of `rooms.sigil` so it no longer matches
 the reading stored for `booking.sigil`. Ask for the full-design check twice
 more, with no edits between those two.
 
 ### Request 14d given to the host agent
 
-Use `$sigil-compute` to run a computed claims check on `booking.sigil` and
+Use `$sigil-compute-design` to run a computed claims check on `booking.sigil` and
 report the ingest state and findings.
 
 ### Host events (observer only)
@@ -501,7 +501,7 @@ report the ingest state and findings.
 ## Acceptance notes for the observer
 
 - **1a:** The response is advisory review of the design's meaning and
-  consistency. No `sigil-claims` command runs, and no Coherent, Loose, or Disjoint state or
+  consistency. No `sigilc` command runs, and no Coherent, Loose, or Disjoint state or
   findings report is presented as a computed verdict.
 - **1b:** The revision completes and its delegated review goes to a fresh
   advisory evaluator. No claims command runs and no computed state appears,

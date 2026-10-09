@@ -753,7 +753,7 @@ alignment skill, and one egglog language skill:
 | --- | --- |
 | [sigil-understand](integrations/skills/sigil-understand/SKILL.md) | Explain intent, contract roles, Tag ownership, and relevant context. |
 | [sigil-evaluate](integrations/skills/sigil-evaluate/SKILL.md) | Review design read-only for consequential problems and useful simplification. |
-| [sigil-compute](integrations/skills/sigil-compute/SKILL.md) | Run the claims loop on an existing design and hand back the computed Coherent, Loose, Disjoint, or Incomplete ingest state with findings, distinct from advisory review. |
+| [sigil-compute-design](integrations/skills/sigil-compute-design/SKILL.md) | Run the claims loop on an existing design and hand back the computed Coherent, Loose, Disjoint, or Incomplete ingest state with findings, distinct from advisory review. |
 | [sigil-write](integrations/skills/sigil-write/SKILL.md) | Write compact contracts and apply supported corrections through independent delegated review. |
 | [sigil-align](integrations/skills/sigil-align/SKILL.md) | Review and repair a selected component's implementation against its accepted contract, then report code and test evidence. |
 | [sigil-egglog](integrations/skills/sigil-egglog/SKILL.md) | Teach egglog/datalog for claims data-only rows and `.egg` law programs. |
@@ -763,9 +763,9 @@ share the bundled 0.9.0 normative reference and grammar. `sigil-egglog` starts
 at 0.1.0 with no design-skill dependency. Install the complete catalog with
 `sigil skill install`
 (or `--project`); writer and evaluator require their sibling reference files.
-`sigil-compute` requires its declared siblings `sigil-understand` and
+`sigil-compute-design` requires its declared siblings `sigil-understand` and
 `sigil-egglog`; it routes only explicit claims or computed-check requests, so a
-generic review stays on `sigil-evaluate`. It needs the `sigil-claims` binary and
+generic review stays on `sigil-evaluate`. It needs the `sigilc` binary and
 a host that can delegate a fresh child.
 `sigil-align` requires `sigil-understand`, `sigil-evaluate`, and `sigil-write`.
 Use it for implementation conformance and determinate code repairs; use

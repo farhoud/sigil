@@ -14,10 +14,10 @@ only outputs are the ingest state and the findings report.
 ## The tool surface
 
 ```text
-sigil-claims prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
-sigil-claims ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
-sigil-claims check [--source PATH] [--root DIR] [--store DIR]
-sigil-claims extract-guidance --out DIR [--root DIR]
+sigilc prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
+sigilc ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
+sigilc check [--source PATH] [--root DIR] [--store DIR]
+sigilc extract-guidance --out DIR [--root DIR]
 ```
 
 `--root DIR` is the workspace, read directly (default `.`). `--store DIR`
@@ -57,7 +57,7 @@ Check prints a structured result with `version`, `scope`, `state`,
 `findings`, `unreadUnits`, `unresolvedImports`, `report`, `judgmentContext`,
 `workspaceDigest`, `vocabularyGeneration`, and `guidanceFingerprint`. Its state
 adds `incomplete`: some unit has no valid reading, or an import does not
-resolve. The report (version 5) lists `unread` units by source, component,
+resolve. The report (version 6) lists `unread` units by source, component,
 section, and Facet ids, and `unresolvedImports`. It is written to
 `<store>/claims/workspace.linked.json`, or `<store>/claims/<source>.linked.json`
 with `--source`, with a matching `.linked.context.json`; ingest's files are
@@ -144,7 +144,7 @@ reader can tell what the state covers.
 The full-design action reads every source that still has unread units, then
 links the whole workspace. It is an alternative to the one-source loop and
 follows the same rules for the private store, the child handoff, and
-recognizing a completed ingest, per source. `sigil-claims` still launches no
+recognizing a completed ingest, per source. `sigilc` still launches no
 model; the host orchestrates every reader.
 
 1. Seed the private store from the workspace's

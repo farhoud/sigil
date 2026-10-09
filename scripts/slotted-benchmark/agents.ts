@@ -39,7 +39,7 @@ export const ORCHESTRATOR_SHELL = [
 
 /** Where each part of a pass lives, relative to the pass directory. */
 export const PASS_LAYOUT = {
-  skill: "skills/sigil-compute/SKILL.md",
+  skill: "skills/sigil-compute-design/SKILL.md",
   root: "root",
   store: "store",
   run: "run",
@@ -129,7 +129,7 @@ export type HandbackState = typeof HANDBACK_STATES[number];
 
 /**
  * The orchestrator prompt. The child instructions (return nothing for context
- * rows, write the answer to a file) live in the sigil-compute skill's handoff,
+ * rows, write the answer to a file) live in the sigil-compute-design skill's handoff,
  * not here: this names the staged skill, where everything is, and what the
  * benchmark requires.
  */
@@ -139,9 +139,9 @@ export function orchestratorPrompt(input: OrchestratorPromptInput): string {
     : "the host's default reasoning effort";
   const { skill, root, store, run } = PASS_LAYOUT;
   return [
-    "Run the sigil-compute skill's full-design action on the Sigil design in this directory, end to end.",
+    "Run the sigil-compute-design skill's full-design action on the Sigil design in this directory, end to end.",
     "",
-    `Read ${skill} first, then the orchestration contract it names, skills/sigil-compute/references/computed-evaluation.md. Use only these staged copies: skills/sigil-compute, skills/sigil-understand and skills/sigil-egglog sit beside each other here, and the reading children load the last two from there. Do not use a copy of any of these skills installed elsewhere on this machine.`,
+    `Read ${skill} first, then the orchestration contract it names, skills/sigil-compute-design/references/computed-evaluation.md. Use only these staged copies: skills/sigil-compute-design, skills/sigil-understand and skills/sigil-egglog sit beside each other here, and the reading children load the last two from there. Do not use a copy of any of these skills installed elsewhere on this machine.`,
     "",
     `- The workspace root is \`${root}\`. Pass \`--root ${root}\` to every sigil-claims command. The workspace has no stored readings, so the seed the skill takes from its store is empty.`,
     `- The private store is \`${store}\`, not a directory inside \`${run}\`: this replaces the contract's default location. It starts empty. Pass \`--store ${store}\` to every sigil-claims command, including the final check.`,
@@ -175,7 +175,7 @@ export function parseHandbackState(text: string): HandbackState | null {
 
 /**
  * Launches one orchestrator process in its pass directory and retains its raw
- * evidence. The process runs the whole sigil-compute action; this function does
+ * evidence. The process runs the whole sigil-compute-design action; this function does
  * not read or judge what it produced.
  */
 export async function runOrchestrator(

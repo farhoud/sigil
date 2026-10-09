@@ -24,7 +24,7 @@ change, and a discrepancy is reported rather than silently patched.
 ## Prepare an observed run
 
 1. Copy the installed skill directories together to a temporary catalog
-   outside repository source discovery: `sigil-compute` with its required
+   outside repository source discovery: `sigil-compute-design` with its required
    `sigil-understand` and `sigil-egglog`, plus the installed `sigil-evaluate`
    and `sigil-write` so the routing cases have real destinations. Include
    every reference and metadata file.
@@ -32,8 +32,8 @@ change, and a discrepancy is reported rather than silently patched.
    workspace at their named paths. Preserve bytes and relative layout. Keep
    the fixture's observer notes out of the tested agents' accessible inputs.
 3. Give a fresh host agent the fixture request, the exact installed
-   `sigil-compute` entrypoint, the selected source location, and the actual
-   availability of the `sigil` and `sigil-claims` binaries. Keep variants
+   `sigil-compute-design` entrypoint, the selected source location, and the actual
+   availability of the `sigil` and `sigilc` binaries. Keep variants
    independent. The interpreter child must itself be a fresh agent receiving
    only the prepared handoff — the installed understanding and egglog
    entrypoints, the preparation directory, and its files — never the host's
@@ -76,9 +76,9 @@ code — but label that evidence **controlled replay**, never real delegation,
 and retain the original captures and the injected change. An interruption
 produced by instruction is recorded as instruction, not as a missing child or
 missing tool. Do not claim unobserved states, untested hosts, or coverage the
-captured preparation does not have. An unavailable `sigil-claims`
+captured preparation does not have. An unavailable `sigilc`
 binary is a recorded limitation, never a Coherent, Loose, or Disjoint.
 
-Repository observations live at `docs/skill-evaluation/sigil-compute.md`.
+Repository observations live at `docs/skill-evaluation/sigil-compute-design.md`.
 Update that report only from executed runs, with enough source identity,
 request detail, and retained artifacts for another host to reproduce the case.

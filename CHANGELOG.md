@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Rename `sigil-compute` to `sigil-compute-design` (0.4.0). Its reading,
+  re-ask and store write-back behavior stays the same; it now invokes the
+  merged `sigilc` binary. The installed catalog and live callers use the new name.
+
 - The `sigil-compute` skill (0.4.0) writes back what a one-source run read,
   under the same rules as the full-design action: only new or changed readings
   are copied, never one the workspace changed during the run, and a failed run

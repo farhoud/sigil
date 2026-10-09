@@ -65,7 +65,7 @@ Deno.test("foundation validates relocated catalog and rejects broken dependencie
     );
     await rejects(() => validateFoundation(catalog), /Required skills/);
     await Deno.writeTextFile(metadataPath, metadata);
-    const computeEntry = join(catalog, "sigil-compute/SKILL.md");
+    const computeEntry = join(catalog, "sigil-compute-design/SKILL.md");
     const computeOriginal = await Deno.readTextFile(computeEntry);
     await Deno.writeTextFile(
       computeEntry,
@@ -78,7 +78,7 @@ Deno.test("foundation validates relocated catalog and rejects broken dependencie
     await Deno.writeTextFile(computeEntry, computeOriginal);
     const computeMetadataPath = join(
       catalog,
-      "sigil-compute/compatibility.json",
+      "sigil-compute-design/compatibility.json",
     );
     const computeMetadata = await Deno.readTextFile(computeMetadataPath);
     await Deno.writeTextFile(

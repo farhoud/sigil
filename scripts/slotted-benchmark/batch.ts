@@ -28,7 +28,7 @@ export interface BatchSelection {
   readonly model: string;
 }
 
-/** One pass: one orchestrator runs sigil-compute's whole-design action, then the benchmark checks. */
+/** One pass: one orchestrator runs sigil-compute-design's whole-design action, then the benchmark checks. */
 export interface ScheduledAttempt extends BatchSelection {
   readonly id: string;
   readonly pass: number;
@@ -219,7 +219,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   const claims = options.claimsExecutable ??
     join(repoRoot, "packages/sigilc/target/debug/sigil-claims");
   const skills = options.skillDirs ?? {
-    computeDir: join(repoRoot, "integrations/skills/sigil-compute"),
+    computeDir: join(repoRoot, "integrations/skills/sigil-compute-design"),
     understandDir: join(repoRoot, "integrations/skills/sigil-understand"),
     egglogDir: join(repoRoot, "integrations/skills/sigil-egglog"),
   };
@@ -262,7 +262,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   await Deno.copyFile(claims, pinnedClaims);
   await Deno.chmod(pinnedClaims, 0o755);
   const pinnedSkills = {
-    computeDir: join(pinned, "sigil-compute"),
+    computeDir: join(pinned, "sigil-compute-design"),
     understandDir: join(pinned, "sigil-understand"),
     egglogDir: join(pinned, "sigil-egglog"),
   };
@@ -270,7 +270,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
   await copySkill(skills.understandDir, pinnedSkills.understandDir);
   await copySkill(skills.egglogDir, pinnedSkills.egglogDir);
   const skillSha256: Record<StagedSkill, string> = {
-    "sigil-compute": await treeSha256(pinnedSkills.computeDir),
+    "sigil-compute-design": await treeSha256(pinnedSkills.computeDir),
     "sigil-understand": await treeSha256(pinnedSkills.understandDir),
     "sigil-egglog": await treeSha256(pinnedSkills.egglogDir),
   };
@@ -384,7 +384,7 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
       claimsPath: "pinned/sigil-claims",
       claimsSha256: await sha256(await Deno.readFile(pinnedClaims)),
       sigilcSha256: await sha256(await Deno.readFile(sigilc)),
-      computeSha256: skillSha256["sigil-compute"],
+      computeSha256: skillSha256["sigil-compute-design"],
       understandSha256: skillSha256["sigil-understand"],
       egglogSha256: skillSha256["sigil-egglog"],
       promptSha256: await sha256(

@@ -64,7 +64,10 @@ Deno.test("a pass runs one orchestrator on a private copy, is scored from the be
     equal(start.rootConfig, true);
     equal(start.rootClaims, false);
     equal(start.storeEntries.length, 0);
-    equal(start.skills.join(), "sigil-compute,sigil-egglog,sigil-understand");
+    equal(
+      start.skills.join(),
+      "sigil-compute-design,sigil-egglog,sigil-understand",
+    );
     const argv = JSON.parse(await Deno.readTextFile(`${pass}/run/argv.json`));
     equal(
       argv.sigilClaims.endsWith("/attempts/000001/pass/bin/sigil-claims"),

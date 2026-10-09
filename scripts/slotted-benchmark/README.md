@@ -3,11 +3,11 @@
 The benchmark runs Sigil's computed-claims evaluation against the seven-source
 Slotted design. One **pass** launches one orchestrator process (Codex, Claude
 Code or Pi) in its own pass directory. The orchestrator carries out the
-`sigil-compute` skill's whole-design action end to end: it reads every source
-with fresh children, re-asks what ingest left unread (at most twice), writes the
-readings back, and runs the final check. The benchmark then runs the pinned
-`sigil-claims check` itself and scores the planted problems from that report.
-What the agent hands back is only cross-checked against it.
+`sigil-compute-design` skill's whole-design action end to end: it reads every
+source with fresh children, re-asks what ingest left unread (at most twice),
+writes the readings back, and runs the final check. The benchmark then runs the
+pinned `sigil-claims check` itself and scores the planted problems from that
+report. What the agent hands back is only cross-checked against it.
 
 The benchmark owns the Slotted fixture and its four planted problems in
 [`fixture.ts`](./fixture.ts). It checks their evidence against the workspace
@@ -77,13 +77,13 @@ minutes per call, and parallel runs make them worse.
 
 Each pass gets a directory, `attempts/<id>/pass/`, which is kept as evidence:
 
-| Part               | What it is                                                                                                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `root/`            | A copy of `examples/slotted` that keeps `.sigil/config.json` and has no `.sigil/claims/` store. It is the skill's `--root`, so the full-design write-back lands here, never in the fixture. |
-| `store/`           | The private store. It must be empty when the pass starts; a pass whose store is not empty is refused. Nothing from an earlier pass is reused.                                               |
-| `run/`             | The run directory: the orchestrator's preparations, seeds and the children's answer files.                                                                                                  |
-| `skills/`          | `sigil-compute`, `sigil-understand` and `sigil-egglog` staged as siblings. The prompt names `skills/sigil-compute/SKILL.md` by path, and their hashes are recorded in the manifest.         |
-| `bin/sigil-claims` | The pinned binary, first on the orchestrator's `PATH`.                                                                                                                                      |
+| Part               | What it is                                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root/`            | A copy of `examples/slotted` that keeps `.sigil/config.json` and has no `.sigil/claims/` store. It is the skill's `--root`, so the full-design write-back lands here, never in the fixture.       |
+| `store/`           | The private store. It must be empty when the pass starts; a pass whose store is not empty is refused. Nothing from an earlier pass is reused.                                                     |
+| `run/`             | The run directory: the orchestrator's preparations, seeds and the children's answer files.                                                                                                        |
+| `skills/`          | `sigil-compute-design`, `sigil-understand` and `sigil-egglog` staged as siblings. The prompt names `skills/sigil-compute-design/SKILL.md` by path, and their hashes are recorded in the manifest. |
+| `bin/sigil-claims` | The pinned binary, first on the orchestrator's `PATH`.                                                                                                                                            |
 
 Host output is kept beside it in `attempts/<id>/evidence/`: the prompt, raw
 events, the last message, and the benchmark's own check under `check/`.

@@ -125,14 +125,14 @@ async function setup(prefix: string): Promise<Setup> {
   const fixtureRoot = join(scratch, "fixture");
   await copyTree(slotted, fixtureRoot);
   const skillDirs = {
-    computeDir: join(scratch, "skills/sigil-compute"),
+    computeDir: join(scratch, "skills/sigil-compute-design"),
     understandDir: join(scratch, "skills/sigil-understand"),
     egglogDir: join(scratch, "skills/sigil-egglog"),
   };
   const hashes: Record<string, string> = {};
   for (
     const [name, dir] of [
-      ["sigil-compute", skillDirs.computeDir],
+      ["sigil-compute-design", skillDirs.computeDir],
       ["sigil-understand", skillDirs.understandDir],
       ["sigil-egglog", skillDirs.egglogDir],
     ]

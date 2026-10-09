@@ -147,7 +147,7 @@ export interface PassExpectations {
 }
 
 export const STAGED_SKILLS = [
-  "sigil-compute",
+  "sigil-compute-design",
   "sigil-understand",
   "sigil-egglog",
 ] as const;
@@ -264,7 +264,7 @@ export async function preparePass(
 
   const skillSha256: Record<string, string> = {};
   const sources: Record<StagedSkill, string> = {
-    "sigil-compute": input.skillDirs.computeDir,
+    "sigil-compute-design": input.skillDirs.computeDir,
     "sigil-understand": input.skillDirs.understandDir,
     "sigil-egglog": input.skillDirs.egglogDir,
   };
@@ -287,7 +287,7 @@ export async function preparePass(
 }
 
 /**
- * Run one pass: one orchestrator process runs the sigil-compute whole-design
+ * Run one pass: one orchestrator process runs the sigil-compute-design whole-design
  * action in the pass directory, then the benchmark runs the pinned linked check
  * itself and judges the pass from that report, never from the orchestrator's
  * hand-back. The hand-back only has to agree with it.

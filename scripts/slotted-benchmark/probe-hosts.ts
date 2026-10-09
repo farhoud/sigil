@@ -39,7 +39,7 @@ const DEFAULT_SIGIL_CLAIMS = join(
 const SKILL_MARKER = "STAGED-SKILL-MARKER-4471";
 const SECRET_WORD = "PLUM-7731";
 const SKILL_STUB =
-  `---\nname: sigil-compute\ndescription: probe stub\n---\nProbe stub SKILL.md. Marker: ${SKILL_MARKER}.\n`;
+  `---\nname: sigil-compute-design\ndescription: probe stub\n---\nProbe stub SKILL.md. Marker: ${SKILL_MARKER}.\n`;
 const CHILD_TASK =
   "Write the word OK to the file child.txt in your working directory. Then write to child-context.txt the secret word if you were told one earlier in this conversation, otherwise write NONE. Then reply DONE.";
 
@@ -198,10 +198,12 @@ async function probeHost(
 ): Promise<HostProbeResult> {
   const passDir = join(hostDir, "pass");
   const binDir = join(hostDir, "bin");
-  await Deno.mkdir(join(passDir, "skills/sigil-compute"), { recursive: true });
+  await Deno.mkdir(join(passDir, "skills/sigil-compute-design"), {
+    recursive: true,
+  });
   await Deno.mkdir(binDir, { recursive: true });
   await Deno.writeTextFile(
-    join(passDir, "skills/sigil-compute/SKILL.md"),
+    join(passDir, "skills/sigil-compute-design/SKILL.md"),
     SKILL_STUB,
   );
   await Deno.symlink(options.sigilClaims, join(binDir, "sigil-claims")).catch(
@@ -344,7 +346,7 @@ async function probeHost(
 function orchestratorPrompt(spawnStep: string): string {
   return [
     "You are the probe orchestrator. Do these steps in order.",
-    "1. Read skills/sigil-compute/SKILL.md (relative to your working directory) and note its marker.",
+    "1. Read skills/sigil-compute-design/SKILL.md (relative to your working directory) and note its marker.",
     "2. Run `sigil-claims --version` in the shell and note the output.",
     `3. Start exactly ONE fresh child sub-agent. ${spawnStep} Its task, verbatim: "${CHILD_TASK}"`,
     "4. Wait for the child, then reply with one line: marker, version, child result.",
@@ -400,7 +402,7 @@ function isStaged(path: string, passDir: string): boolean {
   })();
   const realPass = Deno.realPathSync(passDir);
   return real.startsWith(realPass + "/") ||
-    real === join(realPass, "skills/sigil-compute/SKILL.md");
+    real === join(realPass, "skills/sigil-compute-design/SKILL.md");
 }
 
 function summaryLine(result: HostProbeResult): string {
