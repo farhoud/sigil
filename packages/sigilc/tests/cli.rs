@@ -17,6 +17,8 @@ fn help_lists_design_commands_tree_and_clean() {
     assert!(help.contains("ingest --binding"));
     assert!(help.contains("  check "));
     assert!(help.contains("extract-guidance"));
+    assert!(help.contains("align prepare"));
+    assert!(help.contains("--implementation"));
     for retired in [
         "prepare design",
         "compile design",
@@ -25,7 +27,8 @@ fn help_lists_design_commands_tree_and_clean() {
         "ontology",
         "scope",
         "stale",
-        "implementation",
+        "compile implementation",
+        "prepare implementation",
     ] {
         assert!(
             !help.contains(retired),

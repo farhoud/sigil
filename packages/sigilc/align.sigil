@@ -1,0 +1,44 @@
+component SigilImplementationClaims {
+  goal {
+    Present whole code files for independent claims readings against the design
+    names inside configured promise scope.
+  }
+
+  interface {
+    CodeVocabulary {
+      Describe code elements, actions and measures in their own vocabulary.
+      Separate observations from interpreter-written realizes mappings.
+      Component realization establishes membership; Tag realization states delivery.
+      A test element's mappings account for its exercise of the design and never
+      establish implementation membership or delivery.
+    }
+
+    CodeGuidance {
+      Publish compiled code guidance under its own fingerprint and vocabulary
+      generation. Extract copies only outside the workspace under validation.
+      Teach unmapped elements as faithful readings of undesigned code.
+    }
+
+    FileRequests {
+      Present each selected whole file in a safe directory carrying full source,
+      qualified design names, admitted design claims, exact Facet context and code
+      guidance. Bind each request to its path, content, names, effective selection,
+      code guidance and vocabulary generation. List empty files, skipped symlinks,
+      automatic design exclusions and unpresentable files separately.
+    }
+
+    AlignCommands {
+      Offer align prepare in the single sigilc executable. Read selection from
+      workspace configuration, refuse nonempty output directories, and launch no
+      interpreter. Preparing an unchanged request reproduces its content identities.
+    }
+  }
+
+  constraints {
+    CodeVocabulary {
+      The unit of code is the whole file. No language parser or source annotation
+      supplies an implementation mapping. File location alone is no membership
+      evidence. An unmapped element must remain visible.
+    }
+  }
+}

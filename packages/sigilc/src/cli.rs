@@ -5,11 +5,14 @@ use std::path::Path;
 pub fn help() -> String {
     crate::claims::cli::help().replace(
         "Commands:\n",
-        "Commands:\n  tree [--source PATH] [--diff] [--root DIR] [--store DIR]\n  clean [--root DIR] [--store DIR]\n",
+        "Commands:\n  align prepare --out NEW_DIR [--root DIR] [--store DIR]\n  tree [--source PATH] [--diff] [--root DIR] [--store DIR]\n  clean [--root DIR] [--store DIR]\n",
     )
 }
 
 pub fn run(args: &[&str]) -> Output {
+    if args.first() == Some(&"align") {
+        return crate::align::cli::run(&args[1..]);
+    }
     if matches!(
         args.first(),
         Some(&("prepare" | "ingest" | "check" | "extract-guidance"))

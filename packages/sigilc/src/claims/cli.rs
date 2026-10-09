@@ -27,7 +27,7 @@ Commands:
   prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
   ingest --binding FILE --claims FILE|- [--claims-repeat FILE|-] [--root DIR] [--store DIR]
   check [--source PATH] [--root DIR] [--store DIR]
-  extract-guidance --out DIR [--root DIR]
+  extract-guidance [--implementation] --out DIR [--root DIR]
 
 --root DIR is the workspace; sigilc reads its .sigil configuration and
 sources directly (default: the current directory). --store DIR holds the stored
@@ -85,7 +85,7 @@ pub fn run(args: &[&str]) -> Output {
             "--store",
         ],
         "check" => &["--source", "--root", "--store"],
-        _ => &["--out", "--root"],
+        _ => &["--out", "--root", "--implementation"],
     };
     let options = parse(tail, allowed)?;
     if options.values().filter(|v| v.as_str() == "-").count() > 1 {
@@ -101,12 +101,24 @@ pub fn run(args: &[&str]) -> Output {
     match command {
         "extract-guidance" => {
             let out = required("--out")?;
-            let written = guidance::extract(Path::new(&out), Path::new(&root)).map_err(usage)?;
+            let implementation = options.contains_key("--implementation");
+            let (written, fingerprint) = if implementation {
+                (
+                    crate::align::guidance::extract(Path::new(&out), Path::new(&root))
+                        .map_err(usage)?,
+                    crate::align::guidance::fingerprint(),
+                )
+            } else {
+                (
+                    guidance::extract(Path::new(&out), Path::new(&root)).map_err(usage)?,
+                    guidance::fingerprint(),
+                )
+            };
             json(
                 0,
                 &serde_json::json!({
                     "version": findings::REPORT_VERSION,
-                    "guidanceFingerprint": guidance::fingerprint(),
+                    "guidanceFingerprint": fingerprint,
                     "written": written,
                 }),
             )
@@ -651,6 +663,11 @@ fn parse(tail: &[&str], allowed: &[&str]) -> Result<BTreeMap<String, String>, (u
                     allowed.join(" ")
                 ),
             ));
+        }
+        if *flag == "--implementation" {
+            options.insert((*flag).to_string(), "true".to_string());
+            rest = next;
+            continue;
         }
         let Some((value, remaining)) = next.split_first() else {
             return Err((2, format!("missing value for {flag}")));

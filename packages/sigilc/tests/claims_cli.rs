@@ -633,6 +633,7 @@ fn the_merged_compiler_exposes_design_commands_without_retired_worlds() {
     let help = String::from_utf8_lossy(&output.stdout);
     assert!(help.starts_with("sigilc"));
     for command in [
+        "align prepare --out",
         "prepare --source",
         "ingest --binding",
         "check",
@@ -642,6 +643,7 @@ fn the_merged_compiler_exposes_design_commands_without_retired_worlds() {
     ] {
         assert!(help.contains(command), "missing merged command: {command}");
     }
+    assert!(help.contains("extract-guidance [--implementation]"));
     for retired in [
         "prepare design",
         "compile design",
