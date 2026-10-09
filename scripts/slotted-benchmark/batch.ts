@@ -391,22 +391,23 @@ export async function runBatch(options: BatchOptions): Promise<BatchManifest> {
     ? await preflightImplementationFixture(workspaceDir, variant)
     : preflightSlottedFixture(design);
   if (action === "implementation") {
-    const prepared = await new Deno.Command(pinnedClaims, {
+    // A cold alignment check reports the code guidance identity even for an empty selection.
+    const checked = await new Deno.Command(pinnedClaims, {
       args: [
         "align",
-        "prepare",
+        "check",
         "--root",
         workspaceDir,
         "--store",
         join(outputDir, "align-preflight-store"),
-        "--out",
-        join(outputDir, "align-preflight"),
       ],
+      stdout: "piped",
+      stderr: "piped",
     }).output();
-    if (prepared.code !== 0) {
-      throw new Error(new TextDecoder().decode(prepared.stderr));
+    if (checked.code !== 0 && checked.code !== 1) {
+      throw new Error(new TextDecoder().decode(checked.stderr));
     }
-    const summary = JSON.parse(new TextDecoder().decode(prepared.stdout));
+    const summary = JSON.parse(new TextDecoder().decode(checked.stdout));
     guidanceFingerprint = summary.guidanceFingerprint;
     vocabularyGeneration = summary.vocabularyGeneration;
   }

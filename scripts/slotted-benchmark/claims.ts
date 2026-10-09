@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { captureStream, settleWithin, signalOwnedProcess } from "./process.ts";
 import {
@@ -764,7 +765,7 @@ export function validateAlignmentEvidence(
       JSON.stringify(report.incompleteReasons)
   ) errors.push("alignment findings/unread counts or reasons mismatch");
   if (
-    !identity || JSON.stringify(identity) !== JSON.stringify(context.identity)
+    !identity || !isDeepStrictEqual(identity, context.identity)
   ) errors.push("alignment context identity mismatch");
   for (
     const key of [
