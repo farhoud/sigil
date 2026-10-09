@@ -12,3 +12,4 @@ pub mod tree;
 pub mod basis;
 pub mod command;
 pub mod engine;
+pub mod locations;

@@ -54,6 +54,7 @@ fn on_list<'a>(names: &'a [DesignName], reference: &str) -> Result<&'a DesignNam
 pub fn admit(request: &Request, rows: &[Row]) -> Result<Admitted, String> {
     let mut elements = BTreeMap::new();
     for row in rows {
+        row.validate()?;
         if let Row::Element { name, kind } = row {
             if let Some(prior) = elements.insert(name.clone(), kind.clone())
                 && prior != *kind

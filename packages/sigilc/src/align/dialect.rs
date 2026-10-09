@@ -37,6 +37,29 @@ impl Row {
         }
     }
 
+    /// Stored rows enter through admission too; deserialization alone proves
+    /// their enum shape, not their vocabulary or numeric grammar.
+    pub fn validate(&self) -> Result<(), String> {
+        if self.element().trim().is_empty() {
+            return Err("code row requires a nonempty local element name".into());
+        }
+        match self {
+            Self::Element { kind, .. } => expect(kind, vocabulary::ELEMENT_KINDS, "element kind"),
+            Self::Act { relation, .. } => {
+                expect(relation, vocabulary::RELATIONS, "action relation")
+            }
+            Self::Measure {
+                measure_name,
+                number,
+                ..
+            } => {
+                expect(measure_name, vocabulary::MEASURES, "measure name")?;
+                numeric(measure_name, number).map(|_| ())
+            }
+            Self::Realizes { .. } => Ok(()),
+        }
+    }
+
     pub fn design_name(&self) -> Option<&str> {
         match self {
             Self::Realizes { design_name, .. } | Self::Act { design_name, .. } => Some(design_name),
@@ -94,18 +117,7 @@ pub fn parse(source: &str, limits: Limits) -> Result<Vec<Row>, String> {
                 }
                 "measure" => {
                     expect(&get(1), vocabulary::MEASURES, "measure name")?;
-                    let number: f64 = get(2)
-                        .parse()
-                        .map_err(|_| format!("{:?} is not a number", get(2)))?;
-                    if !number.is_finite() || number < 0.0 || number > 9_007_199_254_740_991.0 {
-                        return Err(format!(
-                            "{:?} must be finite, nonnegative and within the exact integer range",
-                            get(2)
-                        ));
-                    }
-                    if get(1) != "latencyMs" && number.fract() != 0.0 {
-                        return Err(format!("{} is measured in whole days", get(1)));
-                    }
+                    let number = numeric(&get(1), &get(2))?;
                     Ok(Row::Measure {
                         element: get(0),
                         measure_name: get(1),
@@ -127,4 +139,19 @@ fn expect(value: &str, allowed: &[&str], column: &str) -> Result<(), String> {
             allowed.join(", ")
         ))
     }
+}
+
+fn numeric(measure: &str, raw: &str) -> Result<f64, String> {
+    let number: f64 = raw
+        .parse()
+        .map_err(|_| format!("{raw:?} is not a number"))?;
+    if !number.is_finite() || !(0.0..=9_007_199_254_740_991.0).contains(&number) {
+        return Err(format!(
+            "{raw:?} must be finite, nonnegative and within the exact integer range"
+        ));
+    }
+    if measure != "latencyMs" && number.fract() != 0.0 {
+        return Err(format!("{measure} is measured in whole days"));
+    }
+    Ok(number)
 }

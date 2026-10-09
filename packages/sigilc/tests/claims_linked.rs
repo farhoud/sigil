@@ -296,7 +296,7 @@ fn a_dependents_ownership_claim_meets_its_dependencys_private_reading() {
     assert_eq!(code, 1, "{summary}{stderr}");
     assert_eq!(summary["state"], "disjoint");
     let report = run.report(&summary);
-    assert_eq!(report["version"], 5);
+    assert_eq!(report["version"], 6);
     assert!(laws(&report).contains(&"exclusive-ownership".to_owned()));
 
     // Both authors see the finding in their own view.

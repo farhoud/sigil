@@ -1,7 +1,8 @@
 component SigilImplementationClaims {
   goal {
     Present whole code files for independent claims readings against the design
-    names inside configured promise scope.
+    names inside configured promise scope, and judge the implementation against
+    those promises after the full design check.
   }
 
   interface {
@@ -28,11 +29,41 @@ component SigilImplementationClaims {
     }
 
     AlignCommands {
-      Offer align prepare and align ingest in the single sigilc executable. Read selection from
+      Offer align prepare, align ingest and align check in the single sigilc executable. Read selection from
       workspace configuration, refuse nonempty output directories, and launch no
       interpreter. Present only files with stale or unread readings, and report reuse.
       Ingest one file against its own binding; name every field that changed.
       Accept either binding or rows from standard input, never both at once.
+    }
+
+    ImplementationLaws {
+      Judge only scoped design commitments against independent production code
+      observations. Component membership and Tag delivery answer provides;
+      dependencies on components or their Tags can answer requires through a
+      delivering service. Enforce exclusions, required state owners, exclusive
+      ownership and latency or calendar-day budgets. Keep unmapped writers visible
+      and count multiple members of one rightful component as one owner.
+      Test elements never establish production membership, delivery or ownership.
+      Logic, Cases and negative claims can breach but never demand an answer.
+    }
+
+    AlignCheck {
+      Gate the implementation laws on the complete linked design, including
+      sources outside configured promise roots. An incomplete or disjoint design,
+      unread code or an unpresentable file makes alignment Incomplete. Otherwise
+      disagreements, undesigned files or elements, and unanswered required promises
+      make Drift. Clean coherent design is Closed; clean loose design is Converged.
+      Closed and Converged exit zero, Drift and Incomplete exit one, usage exits
+      two and operational failure exits three. No command launches an interpreter.
+    }
+
+    LocatedFindings {
+      Write the versioned workspace report and judgment context under claims.
+      Each finding names its law, design claims and Facet spans, and code rows
+      with whole-file locations. Locations use UTF-8 byte offsets and a SHA256
+      digest of captured source bytes. Report incomplete reasons, unread files,
+      undesigned code, unanswered promises, active exclusion counts, components
+      outside promise scope and identity digests.
     }
 
     FileReadings {

@@ -595,7 +595,7 @@ fn an_off_list_name_refuses_its_unit_and_is_never_reported_as_ungrounded() {
     assert_eq!(code, 1, "{summary}{stderr}");
     assert_eq!(summary["refusalCount"], 1, "{summary}");
     let report = report_of(&run, "rooms.sigil.json");
-    assert_eq!(report["version"], 5);
+    assert_eq!(report["version"], 6);
     assert!(
         !laws_of(&report)
             .iter()

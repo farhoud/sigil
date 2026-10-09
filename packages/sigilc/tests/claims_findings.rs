@@ -527,7 +527,7 @@ fn two_runs_over_one_unchanged_interpretation_report_identically() {
     assert_eq!(a.findings, b.findings);
     assert_eq!(a.state, b.state);
     assert_eq!(
-        a.version, 5,
+        a.version, 6,
         "the report version moved with ingest's incomplete state"
     );
 }

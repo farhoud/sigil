@@ -323,5 +323,5 @@ fn the_context_round_trips_through_its_serialized_form() {
     // classes, 3 replaced the export digest with the tree binding's digest, 4
     // added the linked check's report, 5 reports an ingest with unread units as
     // incomplete and adds the gap class.
-    assert_eq!(findings::REPORT_VERSION, 5);
+    assert_eq!(findings::REPORT_VERSION, 6);
 }

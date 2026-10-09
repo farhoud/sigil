@@ -201,6 +201,8 @@ component SigilComputedClaims {
     }
 
     ComputedFindings {
+      Attach each finding's Facet source spans as UTF-8 byte ranges with SHA256
+      source digests for editor projection, without changing claim or memo identities.
       Report contradictions, ownership conflicts and unmet obligations with the
       law that produced each one, with the claims it rests on where it rests on
       any, and with the *steps* and the graph where steps produced it. Report a

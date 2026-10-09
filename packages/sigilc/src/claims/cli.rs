@@ -198,7 +198,8 @@ fn check(source: Option<&str>, root: &str, store: &Path) -> Output {
     let linked = link::link(&input, &basis, store).map_err(operational)?;
     let world = program::saturate(&linked.request, &linked.facts, engine::Limits::default())
         .map_err(gate)?;
-    let report = findings::linked_report(&linked, &world, source);
+    let mut report = findings::linked_report(&linked, &world, source);
+    findings::locate(&mut report, &input, &linked.facts);
     let mut context = context::build(
         &linked.request,
         &linked.facts,
@@ -476,6 +477,7 @@ fn ingest(options: &BTreeMap<String, String>, root: &str, store: &Path) -> Outpu
 
     let world = program::saturate(&request, &facts, engine::Limits::default()).map_err(gate)?;
     let mut report = findings::report(&request, &facts, &world, &digests);
+    findings::locate(&mut report, &input, &facts);
     let mut disagreements = Vec::new();
     for repeat in &comparisons {
         disagreements.extend(findings::disagreements(&facts, repeat));

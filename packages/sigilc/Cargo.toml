@@ -10,6 +10,7 @@ egglog = { git = "https://github.com/egraphs-good/egglog.git", rev = "9063586039
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 regex = "1"
+sha2 = "0.11"
 snapdir-core = { git = "https://github.com/qoherent/snapdir.git", rev = "b5e5780" }
 # Keep hashing cross-compilable without platform-specific assembler tools.
 blake3 = { version = "1.8.5", features = ["pure"] }

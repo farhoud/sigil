@@ -4,7 +4,7 @@ use crate::command::{Output, json, store_dir};
 use std::{collections::BTreeMap, path::Path};
 
 pub fn help() -> String {
-    "sigilc align — implementation claims\n\nCommands:\n  prepare --out NEW_DIR [--root DIR] [--store DIR]\n  ingest --binding FILE --claims FILE [--root DIR] [--store DIR]\n\nReads tools.sigilc.implementation from workspace configuration. Each selected\nwhole file is presented in its own directory with names, claims and code guidance.\nThe presentation limit is 1000000 bytes per file. These commands launch no model.\nEither ingest input may be '-' to read standard input, but only one at a time.\n".into()
+    "sigilc align — implementation claims\n\nCommands:\n  check [--root DIR] [--store DIR]\n  prepare --out NEW_DIR [--root DIR] [--store DIR]\n  ingest --binding FILE --claims FILE [--root DIR] [--store DIR]\n\nReads tools.sigilc.implementation from workspace configuration. Each selected\nwhole file is presented in its own directory with names, claims and code guidance.\nThe presentation limit is 1000000 bytes per file. These commands launch no model.\nEither ingest input may be '-' to read standard input, but only one at a time.\n".into()
 }
 
 // @sigil implements packages/sigilc/align.sigil::SigilImplementationClaims::AlignCommands interface
@@ -12,11 +12,13 @@ pub fn run(args: &[&str]) -> Output {
     if matches!(args, [] | ["--help"] | ["-h"]) {
         return Ok((0, help()));
     }
-    let [command @ ("prepare" | "ingest"), tail @ ..] = args else {
+    let [command @ ("prepare" | "ingest" | "check"), tail @ ..] = args else {
         return Err((2, "Invalid align command. Run sigilc align --help.".into()));
     };
     let allowed: &[&str] = if *command == "prepare" {
         &["--out", "--root", "--store"]
+    } else if *command == "check" {
+        &["--root", "--store"]
     } else {
         &["--binding", "--claims", "--root", "--store"]
     };
@@ -40,6 +42,9 @@ pub fn run(args: &[&str]) -> Output {
     };
     let root = Path::new(options.get("--root").copied().unwrap_or("."));
     let store = store_dir(root, options.get("--store").copied());
+    if *command == "check" {
+        return super::check::run(root, &store);
+    }
     if *command == "prepare" {
         let out = Path::new(required("--out")?);
         prepare::empty_output(out).map_err(|e| (2, e))?;

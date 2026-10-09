@@ -30,7 +30,8 @@ pub fn fingerprint() -> String {
             include_str!("guidance/rows.md"),
             include_str!("guidance/examples.md"),
             include_str!("guidance/rejected.md"),
-            include_str!("vocabulary.rs")
+            include_str!("vocabulary.rs"),
+            include_str!("laws.egg")
         )
         .as_bytes(),
     )
