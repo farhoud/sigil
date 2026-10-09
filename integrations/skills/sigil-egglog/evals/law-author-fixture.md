@@ -24,6 +24,6 @@ Use `$sigil-egglog` to extend this tiny law so a `known` fact is derived from ea
 
 ## Acceptance notes for the observer
 
-- The agent adds a `(rule ... :ruleset closure)` that writes `known` from `edge`, matching the in-bundle kernel pattern rather than a birewrite or Turtle loader.
+- The agent adds a `(rule ... :ruleset closure)` that writes `known` from `edge`, matching the in-bundle relation rule pattern rather than a birewrite or input loader.
 - The agent does not invoke `sigil-claims` or open `packages/sigilc`.
 - Absence of a row is not treated as negation.

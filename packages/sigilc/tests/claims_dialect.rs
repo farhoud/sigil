@@ -7,7 +7,6 @@ use sigilc::{
         vocabulary,
     },
     structure::DesignInput,
-    turtle,
 };
 
 mod support;
@@ -205,22 +204,6 @@ fn numeric_measures_follow_the_ontology_bounds() {
         )
         .is_ok()
     );
-}
-
-#[test]
-fn the_published_relations_are_read_through_the_compilers_public_accessor() {
-    // KTD8: widening this would mean editing turtle.rs, whose text
-    // eqval::fingerprint() hashes, invalidating every stored world.
-    let expected: std::collections::BTreeSet<&str> =
-        turtle::ENTITY_PREDICATES.iter().copied().collect();
-    assert_eq!(vocabulary::relations(), &expected);
-    let all = turtle::vocabulary();
-    for name in vocabulary::boolean_properties() {
-        assert_eq!(all.get(name), Some(&"boolean"));
-    }
-    for name in vocabulary::numeric_properties() {
-        assert_eq!(all.get(name), Some(&"number"));
-    }
 }
 
 // ----------------------------------------------------------------- identity

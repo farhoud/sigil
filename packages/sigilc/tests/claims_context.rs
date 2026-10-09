@@ -7,7 +7,7 @@ use sigilc::{
         prepare::Request,
         program,
     },
-    eqval,
+    engine,
     structure::DesignInput,
 };
 use std::{fs, path::PathBuf};
@@ -23,7 +23,7 @@ fn run_on(input: DesignInput, source: &str, artifact: &str) -> (Request, Vec<Fac
     let request = support::project(&input, source).unwrap();
     let rows = dialect::parse(artifact, Limits::default()).unwrap();
     let facts = identity::admit(&request, &input, &rows).unwrap();
-    let world = program::saturate(&request, &facts, eqval::Limits::default()).unwrap();
+    let world = program::saturate(&request, &facts, engine::Limits::default()).unwrap();
     let identity = Identity {
         binding_digest: request.binding.digest(),
         interpretations: vec!["artifact".into()],

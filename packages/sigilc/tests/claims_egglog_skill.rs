@@ -127,9 +127,6 @@ fn named_law_excerpts_occur_in_the_named_source() {
             continue;
         };
         let relative = match name {
-            "kernel.egg" => "src/kernel.egg",
-            "design.egg" => "src/design.egg",
-            "comparison.egg" => "src/comparison.egg",
             "claims.egg" => "src/claims/claims.egg",
             other => panic!("skill names unknown law file {other}"),
         };
@@ -163,6 +160,6 @@ fn named_law_excerpts_occur_in_the_named_source() {
     }
     assert!(
         named >= 4,
-        "expected excerpts named to each law file, found {named}"
+        "expected source-checked examples of the active laws, found {named}"
     );
 }

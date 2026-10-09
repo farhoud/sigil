@@ -242,16 +242,6 @@ fn runtime_identity_covers_the_guidance_the_vocabulary_and_the_laws() {
         hash(files_only.as_bytes()),
         "the runtime identity must hash exactly the guidance, the vocabulary and the laws.          The compiler's ontology is deliberately not folded in: the accepted set is this          component's own, so an unrelated compiler edit must not invalidate prepared requests"
     );
-    // The inverse of what this once asserted. The compiler's ontology used to be
-    // folded in, defensively, because `vocabulary::relations()` read it at
-    // runtime. It no longer does, so an edit to the compiler's predicate list
-    // must leave every prepared interpretation directory valid.
-    let with_ontology = format!("{files_only}{}", sigilc::turtle::ontology_fingerprint());
-    assert_ne!(
-        guidance::fingerprint(),
-        hash(with_ontology.as_bytes()),
-        "the compiler's ontology must not reach the runtime identity: the accepted set          is this component's own, and folding the ontology in would make an unrelated          compiler edit invalidate every prepared request"
-    );
 }
 
 #[test]

@@ -624,20 +624,14 @@ fn guidance_is_refused_when_it_would_land_in_the_workspace_under_validation() {
 // ---------------------------------------------------------- the compiler
 
 #[test]
-fn the_compilers_own_command_surface_is_unchanged() {
+fn the_compilers_command_surface_keeps_tree_and_clean() {
     let output = Command::new(env!("CARGO_BIN_EXE_sigilc"))
         .arg("--help")
         .output()
         .unwrap();
     let help = String::from_utf8_lossy(&output.stdout);
-    assert!(help.starts_with("sigilc — deterministic Semantic Worlds compiler"));
-    for command in [
-        "prepare design",
-        "ingest design",
-        "compile design",
-        "compare",
-        "clean",
-    ] {
+    assert!(help.starts_with("sigilc — native Sigil compiler"));
+    for command in ["tree", "clean"] {
         assert!(
             help.contains(command),
             "{command} vanished from sigilc help"
