@@ -29,7 +29,7 @@ and records admitted readings under `claims/interpretations/`. Check links all
 stored readings and runs the design laws. `check --source PATH` narrows the
 reported findings while checking completeness across the workspace.
 
-Design reports have version 5. Exits are 0 for coherent or loose, 1 for disjoint
+Design reports have version 6. Exits are 0 for coherent or loose, 1 for disjoint
 or incomplete and refused readings, 2 for usage, and 3 for operational failure.
 Reports and judgment contexts live under `claims/` in the chosen store.
 
@@ -59,3 +59,35 @@ private sections does not change its importers.
 `sigilc clean` removes generated `worlds/` and `trees/` caches from the store,
 preserving stored claims readings, authored sources, configuration and caller
 preparations. Version 0.3.0 retires Turtle worlds and their commands.
+
+## Implementation alignment
+
+Configure `tools.sigilc.implementation` in `.sigil/config.json` (or `.sigil/local.json`):
+
+```json
+{"dirs":["src"],"exclude":["**/generated/**"],"design":["architecture/a.sigil"]}
+```
+
+The optional design roots expand through required imports and owners; omitting
+`design` judges the whole workspace. The full design check still gates alignment.
+
+```sh
+sigilc align prepare --root . --out code-readings
+# A fresh external reader supplies each requested file's answer.egg.
+sigilc align ingest --root . --binding code-readings/FILE/binding.json --claims answer.egg
+sigilc align check --root .
+sigilc extract-guidance --implementation --out /tmp/sigil-code-guidance
+```
+
+Each file is captured whole. Rows describe elements, actions and measures;
+`realizes` maps elements to presented design names. Annotations are not evidence.
+Unread or unpresentable files keep the result Incomplete. Otherwise breaches,
+undesigned files/elements and unanswered promises produce Drift. Clean code
+returns Closed for a coherent design or Converged for a loose one. Closed and
+Converged exit 0; Drift and Incomplete exit 1. Usage exits 2 and operational
+failures exit 3. Version-1 reports and contexts live at `claims/workspace.align.json`
+and `claims/workspace.align.context.json`; readings live in `claims/implementation/`.
+
+Use [sigil-compute-design](../../integrations/skills/sigil-compute-design/SKILL.md)
+and [sigil-compute-align](../../integrations/skills/sigil-compute-align/SKILL.md)
+for the interpretation loops and guarded write-back.

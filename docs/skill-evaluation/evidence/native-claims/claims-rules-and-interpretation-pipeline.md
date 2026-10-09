@@ -7,7 +7,7 @@ subject: "Preprocessing child interpretations and the 36 rules in claims.egg"
 
 # How Interpretation Rows Become Egglog Results
 
-This is a source-level guide to the boundary between the child model, the Rust `sigil-claims` host, and Egglog. It explains the preprocessing applied to returned interpretation rows and every rule in [`claims.egg`](../packages/sigilc/src/claims/claims.egg). The rule numbers below follow source order; the file itself does not attach numbers to the rules.
+This is a source-level guide to the boundary between the child model, the Rust `sigil-claims` host, and Egglog. It explains the preprocessing applied to returned interpretation rows and every rule in [`claims.egg`](../../../../packages/sigilc/src/claims/claims.egg). The rule numbers below follow source order; the file itself does not attach numbers to the rules.
 
 Related reports: [How SigilC Claims Computes Findings](sigilc-claims-explainer.md) and [From a Sigil Facet to a Computed Finding](sigil-line-to-compute.md).
 
@@ -17,7 +17,7 @@ The core distinction is:
 - The **Rust host** validates the row format, resolves identity and grounding, emits facts, drives the Egglog engine, and builds the report.
 - **`claims.egg`** contains the rule code. The embedded **Egglog engine** executes those rules over the facts supplied by Rust.
 
-There is no rule that reads Sigil prose or asks the model a follow-up question. Egglog computes only from the admitted rows, tool supplied design metadata, and laws that are actually present in `claims.egg`. The command boundary is documented in [`cli.rs`](../packages/sigilc/src/claims/cli.rs#L21-L34); the rule program is assembled in [`program.rs`](../packages/sigilc/src/claims/program.rs#L85-L260).
+There is no rule that reads Sigil prose or asks the model a follow-up question. Egglog computes only from the admitted rows, tool supplied design metadata, and laws that are actually present in `claims.egg`. The command boundary is documented in [`cli.rs`](../../../../packages/sigilc/src/claims/cli.rs#L21-L34); the rule program is assembled in [`program.rs`](../../../../packages/sigilc/src/claims/program.rs#L85-L260).
 
 ## From the child result to Egglog input
 
@@ -48,13 +48,13 @@ flowchart TD
     O --> H[Rust findings.rs and context.rs build report and judgment context]
 ```
 
-The diagram separates the **iteration controller** from the **rule executor**. Rust calls `EGraph::step_rules("closure")` until Egglog reports no update, then does the same for `diagnostics`. Egglog performs each rule match and derives table rows. See [`program.rs`](../packages/sigilc/src/claims/program.rs#L265-L288), [`eqval.rs`](../packages/sigilc/src/eqval.rs#L181-L233), and the two ruleset declarations in [`claims.egg`](../packages/sigilc/src/claims/claims.egg#L92-L96).
+The diagram separates the **iteration controller** from the **rule executor**. Rust calls `EGraph::step_rules("closure")` until Egglog reports no update, then does the same for `diagnostics`. Egglog performs each rule match and derives table rows. See [`program.rs`](../../../../packages/sigilc/src/claims/program.rs#L265-L288), [`eqval.rs`](../../../../packages/sigilc/src/eqval.rs#L181-L233), and the two ruleset declarations in [`claims.egg`](../../../../packages/sigilc/src/claims/claims.egg#L92-L96).
 
 ### 1. Prepare the scope and binding
 
-`sigil export design` supplies the frontend export; `prepare` does not reopen `.sigil` files. Rust builds a request for one selected source and its resolved import closure. It includes Facet prose and identities, admissible Components and Tags, Logic Facets in source order, and a binding to the export digest, source, closure, guidance fingerprint, vocabulary generation, and Facet scope. [Request construction](../packages/sigilc/src/claims/prepare.rs#L158-L240)
+`sigil export design` supplies the frontend export; `prepare` does not reopen `.sigil` files. Rust builds a request for one selected source and its resolved import closure. It includes Facet prose and identities, admissible Components and Tags, Logic Facets in source order, and a binding to the export digest, source, closure, guidance fingerprint, vocabulary generation, and Facet scope. [Request construction](../../../../packages/sigilc/src/claims/prepare.rs#L158-L240)
 
-The binding is not a claim and Egglog does not read the JSON. At ingest, Rust recomputes the request from the supplied frontend export and rejects a binding mismatch before saturation. This prevents a result prepared for a different export, scope, guidance, or vocabulary from being silently applied. [Binding check](../packages/sigilc/src/claims/cli.rs#L127-L149)
+The binding is not a claim and Egglog does not read the JSON. At ingest, Rust recomputes the request from the supplied frontend export and rejects a binding mismatch before saturation. This prevents a result prepared for a different export, scope, guidance, or vocabulary from being silently applied. [Binding check](../../../../packages/sigilc/src/claims/cli.rs#L127-L149)
 
 ### 2. The model proposes rows; it does not write rules
 
@@ -95,27 +95,27 @@ Here is one example of each row shape:
 
 These are shape examples, not a ready-to-ingest artifact: replace each Facet placeholder with an ID from the prepared request, and use entity labels that resolve and are grounded for that Facet. In the `guard`, the last value is a Constraints **Facet ID**. A `step` Facet must be in Logic, and its ordinal must be unique in that Logic section.
 
-The model does the semantic extraction from prose. It may choose the wrong relation or entity, omit a statement, or return a different set of rows on a fresh call. The Rust host checks the returned structure and referents; it does not prove that the prose was interpreted faithfully. The package source does not select or identify the model/provider for a captured run. [CLI boundary](../packages/sigilc/src/claims/cli.rs#L21-L34) [Allowed row shapes](../packages/sigilc/src/claims/vocabulary.rs#L52-L160)
+The model does the semantic extraction from prose. It may choose the wrong relation or entity, omit a statement, or return a different set of rows on a fresh call. The Rust host checks the returned structure and referents; it does not prove that the prose was interpreted faithfully. The package source does not select or identify the model/provider for a captured run. [CLI boundary](../../../../packages/sigilc/src/claims/cli.rs#L21-L34) [Allowed row shapes](../../../../packages/sigilc/src/claims/vocabulary.rs#L52-L160)
 
 ### 3. Parse the result as data, all or nothing
 
-`dialect.rs` reads the artifact with Egglog's AST parser, but **does not evaluate it**. Rust then accepts only top-level calls whose arguments are quoted string literals, checks every row name and arity against the published vocabulary, and converts them into typed `Row` values. A rule, ruleset, schedule, arbitrary command, nested expression, numeric literal, unknown row name, or malformed row refuses the whole artifact; valid rows beside a bad row are not partly ingested. [Parser boundary](../packages/sigilc/src/claims/dialect.rs#L97-L202) [Row checks](../packages/sigilc/src/claims/dialect.rs#L206-L359)
+`dialect.rs` reads the artifact with Egglog's AST parser, but **does not evaluate it**. Rust then accepts only top-level calls whose arguments are quoted string literals, checks every row name and arity against the published vocabulary, and converts them into typed `Row` values. A rule, ruleset, schedule, arbitrary command, nested expression, numeric literal, unknown row name, or malformed row refuses the whole artifact; valid rows beside a bad row are not partly ingested. [Parser boundary](../../../../packages/sigilc/src/claims/dialect.rs#L97-L202) [Row checks](../../../../packages/sigilc/src/claims/dialect.rs#L206-L359)
 
-The parser also applies size limits before admission: at most 1,000,000 document bytes, 100,000 row calls, and nesting depth 8. Claim modality must be `required`, `permitted`, or `assumed`; expected values must be `true` or `false`; relations and property names must belong to the explicit vocabulary. Boolean property names are `required`, `exclusive`, `assumed`, and `expected`; measure names are `cost`, `latencyBudgetMs`, `latencyMs`, and `risk`. Measures must be finite, non-negative, within the safe integer range, and `risk` cannot exceed 1. Step and Guard ordinals start at 1. A claim that mentions a `step:N` or `graph` reference must be `required true`, because flow edges are positive facts. [Limits and value checks](../packages/sigilc/src/claims/dialect.rs#L13-L25) [Nesting bound](../packages/sigilc/src/claims/dialect.rs#L122-L153) [Vocabulary](../packages/sigilc/src/claims/vocabulary.rs#L52-L160)
+The parser also applies size limits before admission: at most 1,000,000 document bytes, 100,000 row calls, and nesting depth 8. Claim modality must be `required`, `permitted`, or `assumed`; expected values must be `true` or `false`; relations and property names must belong to the explicit vocabulary. Boolean property names are `required`, `exclusive`, `assumed`, and `expected`; measure names are `cost`, `latencyBudgetMs`, `latencyMs`, and `risk`. Measures must be finite, non-negative, within the safe integer range, and `risk` cannot exceed 1. Step and Guard ordinals start at 1. A claim that mentions a `step:N` or `graph` reference must be `required true`, because flow edges are positive facts. [Limits and value checks](../../../../packages/sigilc/src/claims/dialect.rs#L13-L25) [Nesting bound](../../../../packages/sigilc/src/claims/dialect.rs#L122-L153) [Vocabulary](../../../../packages/sigilc/src/claims/vocabulary.rs#L52-L160)
 
 ### 4. Resolve identity, role, flow references, and grounding
 
-After parsing, `identity::admit` attaches each row to the Facet named by its ID. The Facet's Component and role come from the export, not from the child. Rust mints a deterministic fact ID from the Facet, Component, role, and normalized row body. [Admission and fact IDs](../packages/sigilc/src/claims/identity.rs#L68-L91) [Admission](../packages/sigilc/src/claims/identity.rs#L245-L418)
+After parsing, `identity::admit` attaches each row to the Facet named by its ID. The Facet's Component and role come from the export, not from the child. Rust mints a deterministic fact ID from the Facet, Component, role, and normalized row body. [Admission and fact IDs](../../../../packages/sigilc/src/claims/identity.rs#L68-L91) [Admission](../../../../packages/sigilc/src/claims/identity.rs#L245-L418)
 
-Entity labels resolve only when unique in the selected closure; an exact entity ID also resolves. An unknown label or a label shared by multiple entities refuses ingestion instead of guessing. Labels do not create entities. [Name resolver](../packages/sigilc/src/claims/identity.rs#L420-L459)
+Entity labels resolve only when unique in the selected closure; an exact entity ID also resolves. An unknown label or a label shared by multiple entities refuses ingestion instead of guessing. Labels do not create entities. [Name resolver](../../../../packages/sigilc/src/claims/identity.rs#L420-L459)
 
 This is also why the earlier Auth `UserProfile` collision stopped before Egglog: that label named both a Component and a Tag in the request, so identity resolution refused it. A rule cannot disambiguate a label because the rules receive IDs, not unresolved names.
 
-Grounding is narrower than “the entity exists somewhere.” An entity must be available to that Facet through its owning Component, a provider in its resolved imports, a resolved Tag reference on the Facet, or a Tag introduction there. An ambiguous Tag reference is not grounding evidence. A row can therefore name a real entity and still be ungrounded for that particular Facet. [Grounding construction](../packages/sigilc/src/claims/identity.rs#L95-L155)
+Grounding is narrower than “the entity exists somewhere.” An entity must be available to that Facet through its owning Component, a provider in its resolved imports, a resolved Tag reference on the Facet, or a Tag introduction there. An ambiguous Tag reference is not grounding evidence. A row can therefore name a real entity and still be ungrounded for that particular Facet. [Grounding construction](../../../../packages/sigilc/src/claims/identity.rs#L95-L155)
 
-Flow identities must be prepared before claims can refer to them. Rust scans all `step` rows first, requires them to be in Logic Facets, rejects duplicate ordinals within a Component's Logic section, and mints one Step ID per ordinal plus one Graph ID for that Component's Logic section. It then resolves `step:N` and `graph` references in other rows against those IDs. [Flow identity pass](../packages/sigilc/src/claims/identity.rs#L157-L243)
+Flow identities must be prepared before claims can refer to them. Rust scans all `step` rows first, requires them to be in Logic Facets, rejects duplicate ordinals within a Component's Logic section, and mints one Step ID per ordinal plus one Graph ID for that Component's Logic section. It then resolves `step:N` and `graph` references in other rows against those IDs. [Flow identity pass](../../../../packages/sigilc/src/claims/identity.rs#L157-L243)
 
-For a `guard`, the Step ordinal must resolve in that Component. A `state` operand resolves to an entity ID and must be grounded; an `input` operand remains a literal string; a `constraint` operand must name a Facet in the prepared request. The current admission path does not independently require the Guard row itself to come from a Logic Facet. Rule 15 later only treats a guard as satisfying an obligation when its `constraint` value equals the Facet ID of that obligation's actual Constraints claim. [Guard admission](../packages/sigilc/src/claims/identity.rs#L357-L399) [Rule 15](../packages/sigilc/src/claims/claims.egg#L178-L184)
+For a `guard`, the Step ordinal must resolve in that Component. A `state` operand resolves to an entity ID and must be grounded; an `input` operand remains a literal string; a `constraint` operand must name a Facet in the prepared request. The current admission path does not independently require the Guard row itself to come from a Logic Facet. Rule 15 later only treats a guard as satisfying an obligation when its `constraint` value equals the Facet ID of that obligation's actual Constraints claim. [Guard admission](../../../../packages/sigilc/src/claims/identity.rs#L357-L399) [Rule 15](../../../../packages/sigilc/src/claims/claims.egg#L178-L184)
 
 ### 5. Re-emit normalized facts; do not run the returned file
 
@@ -145,7 +145,7 @@ The same adapter converts all row forms. This table shows the forms written into
 | `Step` | An `entity` row with kind `Step`, plus `(flow-step step-id component-id facet)`; rules use the `entity` row, not `flow-step` |
 | `Guard` | `(flow-guard guard-id step-ordinal operand value)` |
 
-The request also contributes `(facet ...)`, `(section-declared ...)`, `(entity ...)`, and `(commits ...)` metadata. All contract roles except `decisions` receive `commits`; the child cannot choose this. Rust mints one Graph entity per Component with a valid Step, or with a defective Logic fact so the suppression diagnostic can be represented. The program starts with the fixed source text in `claims.egg`, then Rust appends metadata and admitted facts. [Program builder](../packages/sigilc/src/claims/program.rs#L85-L260)
+The request also contributes `(facet ...)`, `(section-declared ...)`, `(entity ...)`, and `(commits ...)` metadata. All contract roles except `decisions` receive `commits`; the child cannot choose this. Rust mints one Graph entity per Component with a valid Step, or with a defective Logic fact so the suppression diagnostic can be represented. The program starts with the fixed source text in `claims.egg`, then Rust appends metadata and admitted facts. [Program builder](../../../../packages/sigilc/src/claims/program.rs#L85-L260)
 
 ### What the `commits` gate means
 
@@ -164,18 +164,18 @@ For example, the child returns a six-column row. Rust determines that its Facet 
 (claim "<claim-id>" "<facet-id>" "interface" "<booking-id>" "provides" "<series-tag-id>" "required" "true")
 ```
 
-Rule 17 joins the claim's `interface` role with `(commits "interface")`; because the modality is `required true`, it derives `(holds "<booking-id>" "provides" "<series-tag-id>")`. Rule 18 does the same for `permitted true`. A committed `assumed true` claim does **not** become `holds`; rule 30 makes it an obligation instead. A committed `required false` claim can participate in negative-claim contradiction checks. A `decisions` claim stays in the admitted claim table, but the commitment-gated laws do not match it. Rule 36 is an exception: it has no `commits` condition, so it can still identify the same proposition across different Facets as a review candidate. [Role facts in the builder](../packages/sigilc/src/claims/program.rs#L90-L108) [Commitment rules](../packages/sigilc/src/claims/claims.egg#L186-L192) [Decision and duplicate behavior](../packages/sigilc/src/claims/claims.egg#L257-L260)
+Rule 17 joins the claim's `interface` role with `(commits "interface")`; because the modality is `required true`, it derives `(holds "<booking-id>" "provides" "<series-tag-id>")`. Rule 18 does the same for `permitted true`. A committed `assumed true` claim does **not** become `holds`; rule 30 makes it an obligation instead. A committed `required false` claim can participate in negative-claim contradiction checks. A `decisions` claim stays in the admitted claim table, but the commitment-gated laws do not match it. Rule 36 is an exception: it has no `commits` condition, so it can still identify the same proposition across different Facets as a review candidate. [Role facts in the builder](../../../../packages/sigilc/src/claims/program.rs#L90-L108) [Commitment rules](../../../../packages/sigilc/src/claims/claims.egg#L186-L192) [Decision and duplicate behavior](../../../../packages/sigilc/src/claims/claims.egg#L257-L260)
 
 Defects divide into two paths:
 
 - **Refused before Egglog:** unknown Facet, unknown entity, ambiguous label, invalid Step/Graph reference, invalid row shape, and other transport/identity errors stop ingestion. No saturation occurs.
-- **Accepted but withheld from rules:** a degenerate claim (same subject and object, except when both endpoints are tool-minted flow references) or an ungrounded entity reference is retained as a `Fact` with a defect. Rust reports it as an Interpretation finding, but `program.rs` does not emit the defective fact as an Egglog fact. If the defective fact belongs to Logic, Rust sets that Component's `graph-suppressed` function to 1 and emits the Graph entity; this prevents dropping a bad edge from inventing dead ends in the remaining graph. [Defect handling](../packages/sigilc/src/claims/identity.rs#L245-L418) [Fact emission and graph suppression](../packages/sigilc/src/claims/program.rs#L127-L258) [Interpretation findings](../packages/sigilc/src/claims/findings.rs#L253-L299)
+- **Accepted but withheld from rules:** a degenerate claim (same subject and object, except when both endpoints are tool-minted flow references) or an ungrounded entity reference is retained as a `Fact` with a defect. Rust reports it as an Interpretation finding, but `program.rs` does not emit the defective fact as an Egglog fact. If the defective fact belongs to Logic, Rust sets that Component's `graph-suppressed` function to 1 and emits the Graph entity; this prevents dropping a bad edge from inventing dead ends in the remaining graph. [Defect handling](../../../../packages/sigilc/src/claims/identity.rs#L245-L418) [Fact emission and graph suppression](../../../../packages/sigilc/src/claims/program.rs#L127-L258) [Interpretation findings](../../../../packages/sigilc/src/claims/findings.rs#L253-L299)
 
-When memoized interpretations are enabled, ingest may reuse stored rows by interpretation unit: each non-Logic Facet is one unit, while a whole Logic section is one unit. If the new artifact contains any row from a unit, ingest skips that unit's cached rows and uses the supplied rows for it; the two interpretations are not combined. This cache replacement is separate from row deduplication. Sorting and `dedup` remove only identical typed rows (for example, the same row present in both the supplied and reused data); distinct claims from the same Facet remain. Admission also removes identical `Fact` values, whose IDs are minted from the Facet and row content. Stored rows are re-admitted against the current export, so their old identities are not trusted. An optional `--claims-repeat` artifact is parsed and admitted separately for disagreement reporting; it is not merged into the fact set saturated by Egglog. [Ingest and reuse](../packages/sigilc/src/claims/cli.rs#L127-L195) [Fact identity and deduplication](../packages/sigilc/src/claims/identity.rs#L81-L87) [Admitted fact deduplication](../packages/sigilc/src/claims/identity.rs#L404-L417)
+When memoized interpretations are enabled, ingest may reuse stored rows by interpretation unit: each non-Logic Facet is one unit, while a whole Logic section is one unit. If the new artifact contains any row from a unit, ingest skips that unit's cached rows and uses the supplied rows for it; the two interpretations are not combined. This cache replacement is separate from row deduplication. Sorting and `dedup` remove only identical typed rows (for example, the same row present in both the supplied and reused data); distinct claims from the same Facet remain. Admission also removes identical `Fact` values, whose IDs are minted from the Facet and row content. Stored rows are re-admitted against the current export, so their old identities are not trusted. An optional `--claims-repeat` artifact is parsed and admitted separately for disagreement reporting; it is not merged into the fact set saturated by Egglog. [Ingest and reuse](../../../../packages/sigilc/src/claims/cli.rs#L127-L195) [Fact identity and deduplication](../../../../packages/sigilc/src/claims/identity.rs#L81-L87) [Admitted fact deduplication](../../../../packages/sigilc/src/claims/identity.rs#L404-L417)
 
 ### 6. Egglog runs two fixed-point phases
 
-`program.rs` creates an embedded `EGraph`, parses/runs the assembled program, calls the Rust `eqval::fixedpoint` loop, then exports selected tables. The loop runs exactly the named rulesets `closure` and `diagnostics`, in that order. Within each ruleset it calls `step_rules` until Egglog reports no update. [Saturation](../packages/sigilc/src/claims/program.rs#L265-L288) [Fixed-point loop](../packages/sigilc/src/eqval.rs#L181-L233)
+`program.rs` creates an embedded `EGraph`, parses/runs the assembled program, calls the Rust `eqval::fixedpoint` loop, then exports selected tables. The loop runs exactly the named rulesets `closure` and `diagnostics`, in that order. Within each ruleset it calls `step_rules` until Egglog reports no update. [Saturation](../../../../packages/sigilc/src/claims/program.rs#L265-L288) [Fixed-point loop](../../../../packages/sigilc/src/eqval.rs#L181-L233)
 
 ```mermaid
 flowchart LR
@@ -327,7 +327,7 @@ The source anchors below point to the actual rule bodies. Rule numbers are label
 
 ### Flow shape: rules 1–8
 
-Source: [`claims.egg`, rules 1–8](../packages/sigilc/src/claims/claims.egg#L98-L136).
+Source: [`claims.egg`, rules 1–8](../../../../packages/sigilc/src/claims/claims.egg#L98-L136).
 
 | # / set | What must match | What the rule derives and what that means |
 | --- | --- | --- |
@@ -344,7 +344,7 @@ These rules check whether each Step reaches an explicitly declared end. They do 
 
 ### Constraint reach and flow checks: rules 9–16
 
-Source: [`claims.egg`, rules 9–16](../packages/sigilc/src/claims/claims.egg#L138-L184).
+Source: [`claims.egg`, rules 9–16](../../../../packages/sigilc/src/claims/claims.egg#L138-L184).
 
 | # / set | What must match | What the rule derives and what that means |
 | --- | --- | --- |
@@ -361,7 +361,7 @@ Source: [`claims.egg`, rules 9–16](../packages/sigilc/src/claims/claims.egg#L1
 
 ### Commitments and consequences: rules 17–21
 
-Source: [`claims.egg`, rules 17–21](../packages/sigilc/src/claims/claims.egg#L186-L200).
+Source: [`claims.egg`, rules 17–21](../../../../packages/sigilc/src/claims/claims.egg#L186-L200).
 
 | # / set | What must match | What the rule derives and what that means |
 | --- | --- | --- |
@@ -375,7 +375,7 @@ Rules 19 and 20 form the interpreted dependency graph used by rule 10. The Sigil
 
 ### Contradictions and exclusive ownership: rules 22–28
 
-Source: [`claims.egg`, rules 22–28](../packages/sigilc/src/claims/claims.egg#L202-L229).
+Source: [`claims.egg`, rules 22–28](../../../../packages/sigilc/src/claims/claims.egg#L202-L229).
 
 | # / set | What must match | What the rule derives and what that means |
 | --- | --- | --- |
@@ -387,11 +387,11 @@ Source: [`claims.egg`, rules 22–28](../packages/sigilc/src/claims/claims.egg#L
 | 27 / closure | Two committed measure rows have the same entity and measure name but different numeric values. | Adds `violation("conflicting-measure", entity, measure, first-claim-id)`. There is no budget or threshold comparison here. |
 | 28 / closure | A committed property says `exclusive=true`; two `holds` rows say different subjects `owns` the same object. | Adds `violation("exclusive-ownership", owner-a, owner-b, property-claim-id)`. The finding is classified as OwnershipConflict. The rule does not explicitly check that the owned object is a Tag. |
 
-The general rules map every `violation` except `exclusive-ownership` to a Contradiction finding. This is report classification in Rust `findings.rs`; Egglog supplies the law name, objects, and witness. [Mapping](../packages/sigilc/src/claims/findings.rs#L111-L153)
+The general rules map every `violation` except `exclusive-ownership` to a Contradiction finding. This is report classification in Rust `findings.rs`; Egglog supplies the law name, objects, and witness. [Mapping](../../../../packages/sigilc/src/claims/findings.rs#L111-L153)
 
 ### Obligations and duplicates: rules 29–36
 
-Source: [`claims.egg`, rules 29–36](../packages/sigilc/src/claims/claims.egg#L231-L260).
+Source: [`claims.egg`, rules 29–36](../../../../packages/sigilc/src/claims/claims.egg#L231-L260).
 
 | # / set | What must match | What the rule derives and what that means |
 | --- | --- | --- |
@@ -408,7 +408,7 @@ Source: [`claims.egg`, rules 29–36](../packages/sigilc/src/claims/claims.egg#L
 
 ## A complete example: missing time-zone provider
 
-The U5 child returned a `required true` `requires` claim for regional time-zone rules. The source row is in the copied [pass 1 result](slotted-u5-final.SARS1Y/pass-1/scheduling-and-recurrence.sigil/child-result.egg#L7); the same interpretation appears in [pass 2](slotted-u5-final.SARS1Y/pass-2/scheduling-and-recurrence.sigil/child-result.egg#L88).
+The U5 child returned a `required true` `requires` claim for regional time-zone rules. The source row is in the copied [pass 1 result](../../../../analyze-demo/slotted-u5-final.SARS1Y/pass-1/scheduling-and-recurrence.sigil/child-result.egg#L7); the same interpretation appears in [pass 2](../../../../analyze-demo/slotted-u5-final.SARS1Y/pass-2/scheduling-and-recurrence.sigil/child-result.egg#L88).
 
 ```mermaid
 flowchart LR
@@ -424,7 +424,7 @@ flowchart LR
     R35 --> F[Rust findings.rs: UnmetObligation; report state Loose]
 ```
 
-The source sentence does not cause rules 32–33 to search the prose. They see only the claim fact, `holds` rows, and obligation generated by rule 29. With no exact or one-hop provider fact, `filled` remains zero; rule 35 creates the diagnostic row. Rust maps it to an UnmetObligation finding. A missing provider is a Loose result, not a contradiction. [Rules 17–18](../packages/sigilc/src/claims/claims.egg#L186-L200) [Rules 29–35](../packages/sigilc/src/claims/claims.egg#L231-L255) [Finding mapping](../packages/sigilc/src/claims/findings.rs#L237-L250)
+The source sentence does not cause rules 32–33 to search the prose. They see only the claim fact, `holds` rows, and obligation generated by rule 29. With no exact or one-hop provider fact, `filled` remains zero; rule 35 creates the diagnostic row. Rust maps it to an UnmetObligation finding. A missing provider is a Loose result, not a contradiction. [Rules 17–18](../../../../packages/sigilc/src/claims/claims.egg#L186-L200) [Rules 29–35](../../../../packages/sigilc/src/claims/claims.egg#L231-L255) [Finding mapping](../../../../packages/sigilc/src/claims/findings.rs#L237-L250)
 
 ## How the rules treat the four deliberate fixture problems
 
@@ -456,7 +456,7 @@ Several possible output gaps are intentional: there is no rule that reads prose;
 
 ## From Egglog tables to the final report
 
-After saturation, Rust `findings.rs` maps `violation` rows to Contradiction or OwnershipConflict, `unmet-obligation` to UnmetObligation, flow outputs to Flow findings, and identity/coverage defects to Interpretation findings. It then filters the findings to the selected source and any findings that name that source. Flow and Interpretation findings do not by themselves make the state Disjoint. The state is `Disjoint` when a contradiction or ownership conflict exists, `Loose` when there are findings but no such conflict, and `Coherent` when there are no findings. `context.rs` separately packages each Facet's admitted facts, coverage, derived `because` witnesses, obligations, and duplicate-proposition candidates for the next judge. [Finding construction and source filter](../packages/sigilc/src/claims/findings.rs#L139-L357) [Judgment context](../packages/sigilc/src/claims/context.rs#L119-L320)
+After saturation, Rust `findings.rs` maps `violation` rows to Contradiction or OwnershipConflict, `unmet-obligation` to UnmetObligation, flow outputs to Flow findings, and identity/coverage defects to Interpretation findings. It then filters the findings to the selected source and any findings that name that source. Flow and Interpretation findings do not by themselves make the state Disjoint. The state is `Disjoint` when a contradiction or ownership conflict exists, `Loose` when there are findings but no such conflict, and `Coherent` when there are no findings. `context.rs` separately packages each Facet's admitted facts, coverage, derived `because` witnesses, obligations, and duplicate-proposition candidates for the next judge. [Finding construction and source filter](../../../../packages/sigilc/src/claims/findings.rs#L139-L357) [Judgment context](../../../../packages/sigilc/src/claims/context.rs#L119-L320)
 
 ## Check yourself
 
@@ -469,3 +469,6 @@ After saturation, Rust `findings.rs` maps `violation` rows to Contradiction or O
 1. `dialect.rs` checks the row's syntax and vocabulary; `identity.rs` resolves labels and checks Facet grounding; rule 29 creates the `provides` obligation. Saying Egglog resolves names confuses admission with rule execution.
 2. Rules 19–20 derive transitive `reachable`, but rule 33 checks only one direct dependency hop for provider fulfillment. Reusing `reachable` as though rule 33 consumed it would overstate the law.
 3. Dropping an edge can sever a valid path and create a false `reaches-end=0` result. The host sets `graph-suppressed=1`, and diagnostics emits `suppressed-graph` rather than manufacturing `unreached-step` findings.
+
+
+This is archived evidence from the pre-merge native claims implementation and its recorded runs. Current commands and formats are documented in [the native guide](../../../../packages/sigilc/README.md).

@@ -381,10 +381,10 @@ Sigil deliberately splits fuzzy interpretation from deterministic reasoning.
                  LLM territory
                       │
                       ▼
-source ───────→ Turtle generators
+source ───────→ data-only claims readers
                       │
                       ▼
-                semantic objects
+                admitted claims
                       │
                  compiler territory
                       ▼
@@ -424,7 +424,7 @@ Design and Implementation are separate universes.
     ↓
 semanticize
     ↓
-Design semantic objects
+Design admitted claims
     ↓
 D
     ↓
@@ -435,7 +435,7 @@ source code
     ↓
 independent semanticize
     ↓
-Implementation semantic objects
+Implementation admitted claims
     ↓
 I
     ↓
@@ -693,9 +693,7 @@ high-level project summary for this configured boundary.
   documents.
 - `examples/` contains independently configured Sigil projects used as
   design-pressure fixtures.
-- `packages/` contains the implemented `sigil-core`, `sigil-compiler`,
-  standalone Claude, OpenCode, and Pi compiler adapters, `sigil-cli`, and
-  initial `sigil-lsp`.
+- `packages/` contains the shared core, language CLI, native `sigilc` and language server.
 - `integrations/` contains host adapters such as coding-agent skills, the
   initial VS Code extension, and future editor integrations.
 
@@ -876,8 +874,8 @@ use those shared results. VS Code provides navigation, diagnostics, highlighting
 whole-document preview and direct native compilation with verified source ranges.
 
 Independent interpretation remains external to deterministic tooling. Native
-states describe the supplied projections and compiler laws; successful language
-checks, fixed-Turtle protocol tests and design reviews make different claims.
+states describe admitted readings and compiler laws; successful language
+checks, canned-claims protocol tests and advisory design reviews establish different facts.
 The retained 0.7 skill is historical and excluded from active workspace discovery.
 The 0.9 understanding, writing and evaluation skills provide the current design
 workflow without requiring compiler-based proof.
