@@ -492,10 +492,9 @@ fn complete_slotted_design_and_implementation_saturate_with_default_limits() {
             number,
             ..
         } = row
+            && measure_name == "leadDays"
         {
-            if measure_name == "leadDays" {
-                *number = "365".into();
-            }
+            *number = "365".into();
         }
     }
     let planted = align::admit::admit(booking, &admitted.rows).unwrap();

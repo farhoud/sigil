@@ -14,7 +14,7 @@ use crate::{
     structure::{Severity, Stage},
 };
 use serde_json::json;
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 // @sigil implements packages/sigilc/align.sigil::SigilImplementationClaims::AlignCheck interface
 pub fn run(root: &Path, store: &Path) -> Output {
     let workspace = prepare::load(root, store).map_err(prepare::LoadError::output)?;
@@ -120,11 +120,19 @@ pub fn run(root: &Path, store: &Path) -> Output {
         findings.clear();
     }
     // Code locations use the exact whole-file bytes captured for this check.
+    let code_locations: BTreeMap<_, _> = requests
+        .iter()
+        .map(|r| {
+            (
+                r.binding.path.as_str(),
+                Location::element(&r.binding.path, r.source.as_bytes()),
+            )
+        })
+        .collect();
     for f in &mut findings {
         for row in &f.code_rows {
-            if let Some(r) = requests.iter().find(|r| r.binding.path == row.path) {
-                f.locations
-                    .push(Location::element(&row.path, r.source.as_bytes()));
+            if let Some(location) = code_locations.get(row.path.as_str()) {
+                f.locations.push(location.clone());
             }
         }
         f.locations.sort();

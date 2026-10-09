@@ -105,7 +105,7 @@ pub fn program(entities: &[AdmissibleEntity], design: &[Fact], code: &[CodeFact]
     }
     for f in design
         .iter()
-        .filter(|f| f.defects.is_empty() && f.section != "decisions")
+        .filter(|f| f.defects.is_empty() && crate::claims::program::commits(&f.section))
     {
         let required = !matches!(f.section.as_str(), "logic" | "cases");
         match &f.body {
@@ -213,26 +213,25 @@ pub fn program(entities: &[AdmissibleEntity], design: &[Fact], code: &[CodeFact]
     }
     for f in design
         .iter()
-        .filter(|f| f.defects.is_empty() && f.section != "decisions")
+        .filter(|f| f.defects.is_empty() && crate::claims::program::commits(&f.section))
     {
         if let Body::Measure {
             subject,
             property,
             number,
         } = &f.body
+            && let Some(p) = measure(property)
         {
-            if let Some(p) = measure(property) {
-                if !matches!(f.section.as_str(), "logic" | "cases") {
-                    out.push_str(&format!("\n(required-budget {})", quote(&f.id)));
-                }
-                out.push_str(&format!(
-                    "\n(budget {} {} {} {:?})",
-                    quote(&f.id),
-                    quote(subject),
-                    quote(p),
-                    number.parse::<f64>().expect("admitted design measure")
-                ));
+            if !matches!(f.section.as_str(), "logic" | "cases") {
+                out.push_str(&format!("\n(required-budget {})", quote(&f.id)));
             }
+            out.push_str(&format!(
+                "\n(budget {} {} {} {:?})",
+                quote(&f.id),
+                quote(subject),
+                quote(p),
+                number.parse::<f64>().expect("admitted design measure")
+            ));
         }
     }
     out

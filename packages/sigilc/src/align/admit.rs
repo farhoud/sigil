@@ -55,14 +55,13 @@ pub fn admit(request: &Request, rows: &[Row]) -> Result<Admitted, String> {
     let mut elements = BTreeMap::new();
     for row in rows {
         row.validate()?;
-        if let Row::Element { name, kind } = row {
-            if let Some(prior) = elements.insert(name.clone(), kind.clone())
-                && prior != *kind
-            {
-                return Err(format!(
-                    "element {name:?} has conflicting kinds {prior:?} and {kind:?}"
-                ));
-            }
+        if let Row::Element { name, kind } = row
+            && let Some(prior) = elements.insert(name.clone(), kind.clone())
+            && prior != *kind
+        {
+            return Err(format!(
+                "element {name:?} has conflicting kinds {prior:?} and {kind:?}"
+            ));
         }
     }
     if elements.is_empty() {

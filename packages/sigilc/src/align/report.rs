@@ -111,7 +111,7 @@ pub fn derive(
         let mut witnesses = vec![f.clone()];
         if law == "exclusive-ownership" {
             witnesses.extend(
-                design.iter().filter(|f| f.defects.is_empty() && f.section != "decisions" && matches!(
+                design.iter().filter(|f| f.defects.is_empty() && crate::claims::program::commits(&f.section) && matches!(
                     &f.body,
                     Body::Claim { relation, object: owned, expected, modality, .. }
                         if relation == "owns" && owned == &object && expected == "true" && modality != "assumed"

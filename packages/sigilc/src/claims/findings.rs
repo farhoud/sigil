@@ -686,11 +686,8 @@ pub fn locate(report: &mut Report, input: &crate::structure::DesignInput, facts:
                     .iter()
                     .filter(|u| {
                         u.owner.as_deref() == Some(finding.component.as_str())
-                            && serde_json::to_value(u.section)
-                                .ok()
-                                .and_then(|v| v.as_str().map(str::to_owned))
-                                .as_deref()
-                                == Some(finding.section.as_str())
+                            && super::vocabulary::section_name(&u.section)
+                                == finding.section.as_str()
                     })
                     .map(|u| u.id.as_str()),
             );

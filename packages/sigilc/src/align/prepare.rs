@@ -8,7 +8,7 @@ use crate::{
     claims::{
         identity::{Body, Fact},
         link::{self, Linked},
-        prepare::FacetRow,
+        prepare::{FacetRow, json},
     },
     sources::{self, SourceIdentity},
     structure::DesignInput,
@@ -148,6 +148,7 @@ pub fn design_names(
         })
         .collect();
     let mut names = Vec::new();
+    let mut membership_digests = BTreeMap::new();
     for entity in &entities {
         let component = entity.owner.as_deref().unwrap_or(&entity.id);
         let qualified_label = if entity.kind == "Tag" {
@@ -195,29 +196,35 @@ pub fn design_names(
             ))
             .map_err(|e| e.to_string())?,
         );
-        let component_names: Vec<_> = entities
-            .iter()
-            .filter(|e| e.id == component || e.owner.as_deref() == Some(component))
-            .collect();
-        let component_claims: Vec<_> = scoped_facts
-            .iter()
-            .filter(|f| f.component == component)
-            .collect();
-        let component_facets: Vec<_> = linked
-            .request
-            .rows
-            .iter()
-            .filter(|r| r.component == component)
-            .collect();
-        let membership_digest = sources::hash(
-            &serde_json::to_vec(&(
-                "sigil-align-membership-v1",
-                component_names,
-                grounding_claims(component_claims.into_iter().copied()),
-                grounding_facets(&component_facets.into_iter().cloned().collect::<Vec<_>>()),
-            ))
-            .map_err(|e| e.to_string())?,
-        );
+        let membership_digest = if let Some(digest) = membership_digests.get(component) {
+            String::clone(digest)
+        } else {
+            let component_names: Vec<_> = entities
+                .iter()
+                .filter(|e| e.id == component || e.owner.as_deref() == Some(component))
+                .collect();
+            let component_claims: Vec<_> = scoped_facts
+                .iter()
+                .filter(|f| f.component == component)
+                .collect();
+            let component_facets: Vec<_> = linked
+                .request
+                .rows
+                .iter()
+                .filter(|r| r.component == component)
+                .collect();
+            let digest = sources::hash(
+                &serde_json::to_vec(&(
+                    "sigil-align-membership-v1",
+                    component_names,
+                    grounding_claims(component_claims.into_iter().copied()),
+                    grounding_facets(&component_facets.into_iter().cloned().collect::<Vec<_>>()),
+                ))
+                .map_err(|e| e.to_string())?,
+            );
+            membership_digests.insert(component.to_owned(), digest.clone());
+            digest
+        };
         names.push(DesignName {
             id: entity.id.clone(),
             kind: entity.kind.clone(),
@@ -362,10 +369,4 @@ pub fn write(requests: &[Request], out: &Path) -> Result<Vec<PathBuf>, String> {
         directories.push(directory);
     }
     Ok(directories)
-}
-
-fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
-    let mut bytes = serde_json::to_vec_pretty(value).map_err(|e| e.to_string())?;
-    bytes.push(b'\n');
-    Ok(bytes)
 }

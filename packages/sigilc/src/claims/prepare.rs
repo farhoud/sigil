@@ -602,7 +602,7 @@ pub fn write(request: &Request, out: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(written)
 }
 
-fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
+pub(crate) fn json<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
     let mut bytes = serde_json::to_vec_pretty(value).map_err(|e| e.to_string())?;
     bytes.push(b'\n');
     Ok(bytes)
