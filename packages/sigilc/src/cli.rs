@@ -1,5 +1,5 @@
 //! The deterministic command boundary. No process launchers or model options.
-use crate::command::{Output, store_dir};
+use crate::command::{Output, json, store_dir};
 use std::path::Path;
 
 pub fn help() -> String {
@@ -31,11 +31,7 @@ pub fn run(args: &[&str]) -> Output {
         let store = store_dir(Path::new(root), store);
         let removed =
             crate::store::clean_in(Path::new(root), &store).map_err(|message| (3, message))?;
-        let output = serde_json::to_string_pretty(&serde_json::json!({
-            "version": 2, "removed": removed
-        }))
-        .map_err(|error| (3, error.to_string()))?;
-        return Ok((0, output + "\n"));
+        return json(0, &serde_json::json!({"version": 2, "removed": removed}));
     }
     Err((2, "Invalid command or options. Run sigilc --help.".into()))
 }

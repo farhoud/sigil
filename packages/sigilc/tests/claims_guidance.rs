@@ -525,3 +525,13 @@ fn accepted_vocabulary_carries_every_name_the_laws_read() {
     // list above is the honest check, and it fails if a name leaves the set.
     let _ = (&quoted, numerics);
 }
+
+#[test]
+fn day_count_guidance_and_generation_are_published() {
+    assert_eq!(vocabulary::VOCABULARY_GENERATION, 5);
+    let text = guidance::document("vocabulary.md").unwrap().text;
+    for name in ["maxDurationDays", "maxLeadDays", "maxSpanDays"] {
+        assert!(vocabulary::numeric_properties().contains(name));
+        assert!(text.contains(name), "guidance must teach {name}");
+    }
+}

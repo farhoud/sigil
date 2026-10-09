@@ -316,8 +316,9 @@ fn the_context_round_trips_through_its_serialized_form() {
     // prepared directory that what it may return has changed. 2 is the step and
     // guard rows and the step and graph reference forms; 3 numbers steps within
     // their Facet, adds the end and undeclared rows and names Facets by handle;
-    // 4 refuses a Tag as the subject of an acting relation.
-    assert_eq!(context.identity.vocabulary_generation, 4);
+    // 4 refuses a Tag as the subject of an acting relation; 5 adds distinct
+    // duration, lead and span bounds in days.
+    assert_eq!(context.identity.vocabulary_generation, 5);
     // Pinned and moved with what changed the report's shape: 2 added the flow
     // classes, 3 replaced the export digest with the tree binding's digest, 4
     // added the linked check's report, 5 reports an ingest with unread units as

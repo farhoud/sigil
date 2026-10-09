@@ -62,7 +62,8 @@ component SigilComputedClaims {
       compiled into the binary and released with it; an operator may write an
       editable copy to a named path outside the workspace under validation.
       Fingerprint the guidance text, the vocabulary and the laws as one runtime
-      identity. Guidance changes what the interpreter is told and never what the
+      identity. Day-count bounds use distinct maximum duration, lead and span
+      measures in whole days. Guidance changes what the interpreter is told and never what the
       tool accepts.
     }
 

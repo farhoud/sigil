@@ -8,7 +8,7 @@ use super::{
 };
 use crate::{
     basis::DesignBasis,
-    command::{Output, store_dir},
+    command::{Output, json, store_dir},
     engine,
     structure::{DesignInput, Severity, Stage},
     tree::design_input::load_design,
@@ -671,11 +671,4 @@ fn gate(message: String) -> (u8, String) {
 
 fn operational(message: String) -> (u8, String) {
     (3, message)
-}
-
-fn json(code: u8, value: &impl serde::Serialize) -> Output {
-    Ok((
-        code,
-        serde_json::to_string_pretty(value).map_err(|e| operational(e.to_string()))? + "\n",
-    ))
 }

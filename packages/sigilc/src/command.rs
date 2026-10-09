@@ -28,3 +28,11 @@ pub fn read(path: &str, max_bytes: u64) -> Result<Vec<u8>, String> {
     }
     Ok(bytes)
 }
+
+/// Serialize a deterministic command response with its exit code.
+pub fn json(code: u8, value: &impl serde::Serialize) -> Output {
+    Ok((
+        code,
+        serde_json::to_string_pretty(value).map_err(|error| (3, error.to_string()))? + "\n",
+    ))
+}
