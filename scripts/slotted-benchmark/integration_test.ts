@@ -70,7 +70,7 @@ Deno.test("a pass runs one orchestrator on a private copy, is scored from the be
     );
     const argv = JSON.parse(await Deno.readTextFile(`${pass}/run/argv.json`));
     equal(
-      argv.sigilClaims.endsWith("/attempts/000001/pass/bin/sigil-claims"),
+      argv.sigilc.endsWith("/attempts/000001/pass/bin/sigilc"),
       true,
     );
     // The skill's write-back landed in the copy, not in the fixture.

@@ -79,7 +79,7 @@ Deno.test("frozen batch retains one pending pass record when cancelled before la
     const retained = await readBatch(outputDir);
     equal(manifest.schedule.length, 1);
     equal(retained.records.length, 1);
-    equal(manifest.version, 2);
+    equal(manifest.version, 3);
     equal(
       retained.records.every((record) => record.status === "pending"),
       true,

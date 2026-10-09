@@ -120,8 +120,8 @@ printf '%s\\n' '{"type":"result","result":"Final: ok\\nHand-back state: loose\\n
     );
     for (
       const entry of [
-        "Bash(sigil-claims *)",
-        "Bash(./bin/sigil-claims *)",
+        "Bash(sigilc *)",
+        "Bash(./bin/sigilc *)",
         "Bash(cp *)",
         "Bash(mv *)",
         "Bash(mkdir *)",

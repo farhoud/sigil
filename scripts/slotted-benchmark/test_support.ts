@@ -3,7 +3,7 @@
  *
  * `writeFakeHost` writes an executable that stands in for a coding-agent CLI.
  * It behaves like the sigil-compute-design orchestrator: it runs the pinned
- * `sigil-claims` from PATH inside its pass directory, reads every unread source
+ * `sigilc` from PATH inside its pass directory, reads every unread source
  * with `(reading ...)` rows (or the planted contradiction), ingests them,
  * writes the readings back into the copied root, checks, and hands back a state.
  */
@@ -46,13 +46,13 @@ if sys.argv[1:2] == ['--version']:
 argv = sys.argv[1:]
 with open(os.path.join(os.getcwd(), 'run', 'argv.json'), 'w') as f:
     json.dump({'argv': argv, 'cwd': os.getcwd(), 'codexHome': os.environ.get('CODEX_HOME'),
-               'sigilClaims': shutil.which('sigil-claims')}, f)
+               'sigilc': shutil.which('sigilc')}, f)
 
 if OPTIONS.get('sleepSeconds'):
     time.sleep(OPTIONS['sleepSeconds'])
 
 def claims(*args):
-    return subprocess.run(['sigil-claims', *args], capture_output=True, text=True)
+    return subprocess.run(['sigilc', *args], capture_output=True, text=True)
 
 store_entries = os.listdir('store')
 with open('run/start-state.json', 'w') as f:
