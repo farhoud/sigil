@@ -28,9 +28,22 @@ component SigilImplementationClaims {
     }
 
     AlignCommands {
-      Offer align prepare in the single sigilc executable. Read selection from
+      Offer align prepare and align ingest in the single sigilc executable. Read selection from
       workspace configuration, refuse nonempty output directories, and launch no
-      interpreter. Preparing an unchanged request reproduces its content identities.
+      interpreter. Present only files with stale or unread readings, and report reuse.
+      Ingest one file against its own binding; name every field that changed.
+      Accept either binding or rows from standard input, never both at once.
+    }
+
+    FileReadings {
+      Admit data-only code rows against the file's presented names. Resolve
+      qualified labels and unique bare labels to design identities. Refuse only
+      this file on a defect; empty or elementless answers keep it unread.
+      Store local element names under claims/implementation using content, code
+      guidance and vocabulary identities, so a path rename reuses the reading.
+      Ask again for changed code, changed cited names, changed component membership
+      promises, or newly added names when elements remain undesigned. Unrelated
+      design edits leave the reading fresh. An identical ingest makes no write.
     }
   }
 
@@ -39,6 +52,13 @@ component SigilImplementationClaims {
       The unit of code is the whole file. No language parser or source annotation
       supplies an implementation mapping. File location alone is no membership
       evidence. An unmapped element must remain visible.
+    }
+
+    FileReadings {
+      Rules and nested expressions refuse the whole answer. An action target is
+      a presented design name, never another file's element. Each referenced
+      element must be declared within this file. Ambiguous labels list qualified
+      alternatives, and every mapping originates in the interpreter's rows.
     }
   }
 }

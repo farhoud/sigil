@@ -5,7 +5,7 @@ use std::path::Path;
 pub fn help() -> String {
     crate::claims::cli::help().replace(
         "Commands:\n",
-        "Commands:\n  align prepare --out NEW_DIR [--root DIR] [--store DIR]\n  tree [--source PATH] [--diff] [--root DIR] [--store DIR]\n  clean [--root DIR] [--store DIR]\n",
+        "Commands:\n  align prepare --out NEW_DIR [--root DIR] [--store DIR]\n  align ingest --binding FILE --claims FILE [--root DIR] [--store DIR]\n  tree [--source PATH] [--diff] [--root DIR] [--store DIR]\n  clean [--root DIR] [--store DIR]\n",
     )
 }
 

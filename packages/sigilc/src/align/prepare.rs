@@ -191,8 +191,7 @@ pub fn design_names(
             &serde_json::to_vec(&(
                 "sigil-align-name-v1",
                 entity,
-                &claims,
-                grounding_facets(&facets),
+                grounding_claims(claims.iter()),
             ))
             .map_err(|e| e.to_string())?,
         );
@@ -214,7 +213,7 @@ pub fn design_names(
             &serde_json::to_vec(&(
                 "sigil-align-membership-v1",
                 component_names,
-                component_claims,
+                grounding_claims(component_claims.into_iter().copied()),
                 grounding_facets(&component_facets.into_iter().cloned().collect::<Vec<_>>()),
             ))
             .map_err(|e| e.to_string())?,
@@ -234,6 +233,31 @@ pub fn design_names(
     }
     names.sort_by(|a, b| (&a.qualified_label, &a.id).cmp(&(&b.qualified_label, &b.id)));
     Ok(names)
+}
+
+/// Provenance changes when another name in a shared Facet changes. The
+/// semantic claim body, role and defects are the cited name's meaning.
+fn grounding_claims<'a>(
+    facts: impl Iterator<Item = &'a Fact>,
+) -> Vec<(
+    &'a str,
+    &'a str,
+    &'a Body,
+    &'a [crate::claims::identity::Defect],
+)> {
+    let mut claims: Vec<_> = facts
+        .map(|fact| {
+            (
+                fact.component.as_str(),
+                fact.section.as_str(),
+                &fact.body,
+                fact.defects.as_slice(),
+            )
+        })
+        .collect();
+    claims.sort();
+    claims.dedup();
+    claims
 }
 
 /// Handles number presentation rows, not design meaning. An unrelated Facet
@@ -263,6 +287,15 @@ fn cites(fact: &Fact, name: &str) -> bool {
 }
 
 impl Workspace {
+    pub fn requests(&self, root: &Path) -> Result<Vec<Request>, String> {
+        self.selection
+            .implementation
+            .files
+            .iter()
+            .map(|file| self.request(root, file))
+            .collect()
+    }
+
     pub fn request(&self, root: &Path, file: &SourceIdentity) -> Result<Request, String> {
         let captured = sources::capture(root, &file.path, MAX_FILE_BYTES)?;
         if captured.identity != *file {
