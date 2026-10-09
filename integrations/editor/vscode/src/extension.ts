@@ -543,7 +543,9 @@ async function projectCompilationReport(
         diagnostic.code = item.code;
         diagnostic.source = "sigilc";
         const key = uri.toString();
-        byUri.set(key, [...(byUri.get(key) ?? []), diagnostic]);
+        const diagnostics = byUri.get(key);
+        if (diagnostics) diagnostics.push(diagnostic);
+        else byUri.set(key, [diagnostic]);
       }
       collection.set(
         [...byUri].map(([uri, items]) => [vscode.Uri.parse(uri), items]),
@@ -553,12 +555,8 @@ async function projectCompilationReport(
         ? "$(pass-filled)"
         : state === "Loose" || state === "Converged"
         ? "$(warning)"
-        : state
-        ? "$(error)"
-        : "$(circle-slash)";
-      status.text = `${icon} Sigil ${compilationFocusLabel(focus)}: ${
-        state ?? "unavailable"
-      }`;
+        : "$(error)";
+      status.text = `${icon} Sigil ${compilationFocusLabel(focus)}: ${state}`;
       status.tooltip = `${target}\n${state}${
         sourceFilter ? `\nShowing findings for ${sourceFilter}.` : ""
       }\n${

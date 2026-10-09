@@ -56,7 +56,6 @@ export interface NativeFinding {
 }
 export interface NativeDiagnostics {
   readonly items: readonly NativeFinding[];
-  readonly omitted: number;
 }
 export interface DesignReport {
   readonly version: 6;
@@ -414,7 +413,6 @@ export function diagnosticGroups(
   report: NativeReport,
 ): readonly NativeDiagnostics[] {
   const design = (findings: readonly DesignFinding[]): NativeDiagnostics => ({
-    omitted: 0,
     items: findings.map((f) => ({
       code: f.law,
       side: "design",
@@ -429,7 +427,6 @@ export function diagnosticGroups(
   const implementation = (
     findings: readonly ImplementationFinding[],
   ): NativeDiagnostics => ({
-    omitted: 0,
     items: findings.map((f) => ({
       code: f.law,
       side: "implementation",

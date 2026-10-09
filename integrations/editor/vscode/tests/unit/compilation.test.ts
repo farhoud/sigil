@@ -73,7 +73,7 @@ test("rejects legacy, wrong-version, malformed and unsafe reports", () => {
       {
         version: 2,
         world: { state: "Coherent" },
-        diagnostics: { items: [], omitted: 0 },
+        diagnostics: { items: [] },
       },
       { ...design("coherent"), findings: 0 },
       design("green"),

@@ -203,12 +203,12 @@ test("implementation file diagnostics filter to that code file and verify its di
   const host = {
     sourceFilter: "src/a.ts",
     isCurrent: () => true,
-    async loadSource(source: string) {
+    loadSource(source: string) {
       loaded.push(source);
-      return {
+      return Promise.resolve({
         bytes,
         document: { version: 1, isDirty: false, getText: () => text },
-      };
+      });
     },
     publish(diagnostics: readonly ProjectedDiagnostic[]) {
       published = diagnostics;
@@ -267,11 +267,11 @@ test("an unanswered promise included in native findings projects once as a Drift
   let projected: readonly ProjectedDiagnostic[] = [];
   await publishCompilationDiagnostics(report, {
     isCurrent: () => true,
-    async loadSource() {
-      return {
+    loadSource() {
+      return Promise.resolve({
         bytes,
         document: { version: 1, isDirty: false, getText: () => "promise" },
-      };
+      });
     },
     publish(value) {
       projected = value;
