@@ -44,8 +44,8 @@ change, and a discrepancy is reported rather than silently patched.
    contents: the seeded store, the preparation
    directory, the child's captured artifact bytes, and the report ingest
    wrote. Hash the workspace's `.sigil/claims/interpretations/` before and
-   after each run; the one-source loop must not write there, and only the
-   full-design action's write-back may.
+   after each run; either action may write there only through its write-back,
+   and a failed run writes nothing.
 5. Compare the observed result with the fixture's observer notes. Preserve
    failed attempts and reruns. A final clean handback does not prove the loop
    ran, the child was fresh, or the state came from a matched report; check
@@ -66,7 +66,7 @@ Use this fixture:
   the full-design action: a second run with no edits launching no reader, a
   failed reader leaving an `incomplete` handback that names its source, a
   refused dependent reading re-read once and not again, and the one-source loop
-  staying unchanged and never writing to the workspace store.
+  running no linked check while writing back what it read.
 
 ## Fault injection and limits
 

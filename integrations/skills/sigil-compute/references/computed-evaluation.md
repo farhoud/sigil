@@ -125,11 +125,11 @@ One run uses one preparation and a private claims store.
   `.sigil/claims/interpretations/` into `claims/interpretations/` under a
   private store directory: the one the request names when it names one,
   otherwise one in the run directory. An absent store starts empty. Retain the
-  seed as evidence.
+  seed as evidence, and keep it to compare against at write-back.
 - Pass the workspace as `--root` and this same private directory as `--store`
-  to both prepare and ingest. Memo writes stay private: in the one-source loop, never merge them back
-  into the workspace, and never write to the workspace's own store. The
-  full-design action's write-back below is the only exception.
+  to both prepare and ingest. Never prepare or ingest against the workspace's
+  own store: readings reach it only through the write-back below, in either
+  action.
 - Retain prepare's structured result: its `bindingDigest` and `workspaceDigest`
   identify what the result covers.
 
@@ -148,8 +148,7 @@ recognizing a completed ingest, per source. `sigil-claims` still launches no
 model; the host orchestrates every reader.
 
 1. Seed the private store from the workspace's
-   `.sigil/claims/interpretations/`, as above, and retain the seed as
-   evidence. Keep a copy of it to compare against at the end.
+   `.sigil/claims/interpretations/`, as above.
 2. Run `check` with the workspace as `--root` and the private store as
    `--store`. Its `unread` list is the work queue: group it by source. A
    check that already reports a state with nothing unread and no unresolved
@@ -170,11 +169,12 @@ unread in step 2, so the run re-reads it once. The next run finds it valid and
 launches no reader for it. With no edits since the last full run, the queue is
 empty, no reader launches, and the check hands back the same report.
 
-### Write back what the run read
+## Write back what the run read
 
-After the final check, copy readings from the private store into the workspace
-store. This is the one exception to the private-store rule, and it belongs to
-the full-design action alone. For each file under the private store's
+Both actions end by copying readings from the private store into the workspace
+store, so the next run asks only about what changed. The one-source loop does
+it after its last ingest completes, re-asks included; the full-design action
+does it after its final check. For each file under the private store's
 `claims/interpretations/`, copy it into the workspace's
 `.sigil/claims/interpretations/` when:
 
@@ -186,7 +186,9 @@ A re-read unit keeps its old memo key, so copying only absent files would leave
 the stale entry in place. Write each copy to a temporary file in the same
 directory and rename it into place. A workspace entry that changed since
 seeding is left alone. Reports and judgment context are not copied. A run
-that stops before the final check writes nothing back.
+that stops on a failure writes nothing back. An `incomplete` result is not a
+failure: the units it stored are written back, and the unread ones are asked
+for again next time.
 
 ## Re-ask what ingest left unread
 

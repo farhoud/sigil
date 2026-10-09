@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The `sigil-compute` skill (0.4.0) writes back what a one-source run read,
+  under the same rules as the full-design action: only new or changed readings
+  are copied, never one the workspace changed during the run, and a failed run
+  writes nothing. The next run of either action asks only about what changed.
 - `sigil-claims` refuses a unit whose `requires`, `provides`, `owns`,
   `dependsOn` or `excludes` row has a Tag as its subject, and asks for it
   again. A step-level ban now binds only its subject's flows and those of the

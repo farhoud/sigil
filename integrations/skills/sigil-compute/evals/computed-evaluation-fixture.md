@@ -510,8 +510,8 @@ report the ingest state and findings.
   preparation directory, one fresh child, and one ingest exiting 0 with a
   structured result whose state is `coherent`. The handback presents Coherent,
   the report's findings (expected to be none), the selected source
-  `base.sigil`, and the preparation identity (binding digest). The workspace store is
-  untouched by the run.
+  `base.sigil`, and the preparation identity (binding digest). The workspace store
+  gains the readings this run stored and nothing else.
 - **2b:** Ingest exits 0 with state `loose`. The report's findings are
   flow-class only — a step whose edges reach none of the flow's declared ends —
   and the handback presents Loose with those findings as warnings, never
@@ -621,5 +621,6 @@ report the ingest state and findings.
   matches that file.
 - **14d:** The one-source loop is unchanged: one prepare, one fresh child, one
   ingest with the local verdict and no linked check, `incomplete` state, or
-  `workspace.linked.json`. The workspace store hash is identical before and
-  after; every artifact stays under the private store.
+  `workspace.linked.json`. The readings it stored are copied into the
+  workspace store, which started empty; no report or judgment context is, and
+  every other artifact stays under the private store.
