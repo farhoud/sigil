@@ -21,7 +21,7 @@ use std::{
 const MAX_BINDING_BYTES: u64 = 16_000_000;
 
 pub fn help() -> String {
-    r#"sigil-claims — computed design validation
+    r#"sigilc — computed design validation
 
 Commands:
   prepare --source PATH --out NEW_DIR [--root DIR] [--store DIR]
@@ -29,15 +29,15 @@ Commands:
   check [--source PATH] [--root DIR] [--store DIR]
   extract-guidance --out DIR [--root DIR]
 
---root DIR is the workspace; sigil-claims reads its .sigil configuration and
+--root DIR is the workspace; sigilc reads its .sigil configuration and
 sources directly (default: the current directory). --store DIR holds the stored
 interpretations and the reports (default: ROOT/.sigil).
 
 Flow:
-  1. Prepare one source:       sigil-claims prepare --root . \
+  1. Prepare one source:       sigilc prepare --root . \
                                  --source a.sigil --out claims-a
   2. An external interpreter reads claims-a and writes Datalog claims.
-  3. Ingest the result:        sigil-claims ingest --root . \
+  3. Ingest the result:        sigilc ingest --root . \
                                  --binding claims-a/binding.json --claims claims-a/result.egg
 
 This command never launches a model. Step 3 is the caller's, and passing the
@@ -61,16 +61,16 @@ breach), 2 = usage, 3 = operational failure.
 // @sigil implements packages/sigilc/claims.sigil::SigilComputedClaims::ClaimsCommands interface,constraints
 pub fn run(args: &[&str]) -> Output {
     let (command, tail) = match args {
-        [] => return Err((2, "Expected a command. Run sigil-claims --help.".into())),
+        [] => return Err((2, "Expected a command. Run sigilc --help.".into())),
         ["--help"] | ["-h"] => return Ok((0, help())),
         ["--version"] => {
-            return Ok((0, format!("sigil-claims {}\n", env!("CARGO_PKG_VERSION"))));
+            return Ok((0, format!("sigilc {}\n", env!("CARGO_PKG_VERSION"))));
         }
         [
             command @ ("prepare" | "ingest" | "check" | "extract-guidance"),
             tail @ ..,
         ] => (*command, tail),
-        _ => return Err((2, "Invalid command. Run sigil-claims --help.".into())),
+        _ => return Err((2, "Invalid command. Run sigilc --help.".into())),
     };
 
     let allowed: &[&str] = match command {
@@ -647,7 +647,7 @@ fn parse(tail: &[&str], allowed: &[&str]) -> Result<BTreeMap<String, String>, (u
             return Err((
                 2,
                 format!(
-                    "unknown or duplicate option: {flag} (accepted: {}; sigil-claims reads the workspace from --root DIR)",
+                    "unknown or duplicate option: {flag} (accepted: {}; sigilc reads the workspace from --root DIR)",
                     allowed.join(" ")
                 ),
             ));

@@ -23,11 +23,8 @@ component SigilComputedClaims {
     }
 
     SectionAwareClosure {
-      Workers supply no laws and fill no tool-owned table. The compiler's stored
-      projections, its world cache and the files its runtime identity
-      fingerprints are read-only to this component; writing any of them would
-      invalidate every stored world. Findings and stores live under a path this
-      component owns.
+      Workers supply no laws and fill no tool-owned table. The source trees are read-only to this component. Findings and stored
+      readings live under claims in the chosen store.
     }
 
     CompiledGuidance {
@@ -237,8 +234,8 @@ component SigilComputedClaims {
     }
 
     ClaimsCommands {
-      Offer preparation, ingestion, a linked check and guidance extraction as a
-      separate executable beside the compiler. Refuse a binding that does not
+      Offer preparation, ingestion, a linked check and guidance extraction in the single native sigilc
+      executable. Refuse a binding that does not
       match the running *invocation* on any of its four parts. Exit zero for pass and
       warning, one for a gate failure, two for usage and a refused input, and
       three for operational failure. Only a contradiction or an ownership

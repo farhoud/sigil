@@ -1,8 +1,21 @@
 //! The deterministic command boundary. No process launchers or model options.
-pub use crate::command::{Output, read, store_dir};
+use crate::command::{Output, store_dir};
 use std::path::Path;
 
+pub fn help() -> String {
+    crate::claims::cli::help().replace(
+        "Commands:\n",
+        "Commands:\n  tree [--source PATH] [--diff] [--root DIR] [--store DIR]\n  clean [--root DIR] [--store DIR]\n",
+    )
+}
+
 pub fn run(args: &[&str]) -> Output {
+    if matches!(
+        args.first(),
+        Some(&("prepare" | "ingest" | "check" | "extract-guidance"))
+    ) {
+        return crate::claims::cli::run(args);
+    }
     if args.first() == Some(&"tree") {
         return crate::tree::command::run(&args[1..]);
     }
