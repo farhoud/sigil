@@ -262,6 +262,7 @@ interface ClaimsTaken {
   readonly readings: ReadingsIdentity | null;
   readonly state: string | null;
   readonly unreadUnits: number | null;
+  readonly denials: readonly string[];
 }
 
 /**
@@ -290,6 +291,7 @@ async function takeClaims(
       readerSkillsDir,
       design: input.design,
       sigilc: context.sigilc,
+      sigil: context.sigil,
       passDir,
       evidenceDir,
       host: context.host,
@@ -308,8 +310,24 @@ async function takeClaims(
     join(input.storeOut, INTERPRETATIONS_DIR),
   );
   const none = { readings: null, state: null, unreadUnits: null };
+  const denials = reading.permissionDenials;
   if (reading.outcome.status !== "done") {
-    return { outcome: reading.outcome, handback: reading.handback, ...none };
+    return { outcome: reading.outcome, handback: reading.handback, ...none, denials };
+  }
+  // A reader that ends without a usable hand-back did not finish its reading,
+  // even though its process completed.
+  if (reading.handback === null || reading.handback === "failed") {
+    return {
+      outcome: {
+        status: "failed",
+        error: `the claims reader handed back ${
+          reading.handback ?? "no state"
+        }`,
+      },
+      handback: reading.handback,
+      ...none,
+      denials,
+    };
   }
   const claims = await measureClaims(
     context.sigilc,
@@ -321,6 +339,7 @@ async function takeClaims(
       outcome: { status: "failed", error: claims.reason },
       handback: reading.handback,
       ...none,
+      denials,
     };
   }
   return {
@@ -332,6 +351,7 @@ async function takeClaims(
     },
     state: claims.value.state,
     unreadUnits: claims.value.unreadUnits,
+    denials,
   };
 }
 
@@ -363,6 +383,7 @@ async function takeCoverage(
       readerSkillsDir,
       design: input.design,
       sigilc: context.sigilc,
+      sigil: context.sigil,
       passDir,
       evidenceDir,
       host: context.host,
@@ -866,10 +887,18 @@ export interface RereadBatchResult {
   readonly reportError: string | null;
 }
 
+/** One attempt's retake: its new record, or why its old readings were kept. */
+type RetakeResult =
+  | { readonly record: PassRecord; readonly readings: ReadingsIdentity }
+  | { readonly reason: string };
+
 /**
  * Retake the claims readings, and with `coverage` the coverage readings, of
- * every scored pass of a batch. The old readings move into the attempt's
- * `evidence/superseded-<time>/`; the designs are not touched.
+ * every scored pass of a batch. While the new readings are taken the old ones
+ * sit in the attempt's `evidence/superseded-<time>/`. An attempt whose reading
+ * does not finish gets its old readings and record back and is listed as
+ * skipped with the reason; only finished attempts are reread. The designs are
+ * not touched.
  */
 export async function rereadBatch(
   options: RereadBatchOptions,
@@ -915,6 +944,60 @@ export async function rereadBatch(
       });
     }
   }
+  // Takes one attempt's new readings in a fresh directory.
+  const retake = async (
+    scheduled: PassRecord,
+    paths: ReturnType<typeof attemptPaths>,
+  ): Promise<RetakeResult> =>
+    await withTempDir(`design-benchmark-reread-${scheduled.id}-`, async (temp) => {
+      let record: PassRecord = { ...scheduled, reader };
+      const set = (stage: StageName, state: StageState) => {
+        record = withStage(record, stage, state);
+      };
+      try {
+        set("claims", { status: "running", error: null });
+        await writeJson(paths.record, record);
+        const claims = await takeClaims(context, reader, readerSkillsDir, {
+          design: paths.design,
+          storeOut: paths.store,
+          evidenceOut: join(paths.evidence, `reread-${when}`, "claims"),
+          workDir: temp,
+        });
+        set("claims", claims.outcome);
+        record = { ...record, claimsHandback: claims.handback };
+        if (claims.outcome.status !== "done" || claims.readings === null) {
+          return {
+            reason: `claims ${claims.outcome.status}: ${
+              claims.outcome.error ?? "no readings"
+            }`,
+          };
+        }
+        if (options.coverage) {
+          set("coverage", { status: "running", error: null });
+          await writeJson(paths.record, record);
+          const coverage = await takeCoverage(context, reader, readerSkillsDir, {
+            design: paths.design,
+            requirementFile: join(context.packageDir, definition.requirementFile),
+            list: requirements.list,
+            header,
+            coverageOut: paths.coverage,
+            evidenceOut: join(paths.evidence, `reread-${when}`, "coverage"),
+            workDir: temp,
+          });
+          set("coverage", coverage.outcome);
+          if (coverage.outcome.status !== "done") {
+            return {
+              reason: `coverage ${coverage.outcome.status}: ${
+                coverage.outcome.error ?? "no reading"
+              }`,
+            };
+          }
+        }
+        return { record, readings: claims.readings };
+      } catch (cause) {
+        return { reason: errorMessage(cause) };
+      }
+    });
   for (const scheduled of batch.records) {
     if (context.host.signal?.aborted) break;
     const paths = attemptPaths(batchDir, scheduled.id);
@@ -933,7 +1016,10 @@ export async function rereadBatch(
       continue;
     }
     context.log(`reread ${scheduled.id}`);
-    if (context.host.signal?.aborted) break;
+    const previous: PassRecord = {
+      ...scheduled,
+      reader: scheduled.reader ?? batch.manifest.reader,
+    };
     const superseded = join(paths.evidence, `superseded-${when}`);
     await mkdir(superseded, { recursive: true });
     if (await exists(paths.store)) {
@@ -942,62 +1028,19 @@ export async function rereadBatch(
     if (options.coverage && await exists(paths.coverage)) {
       await rename(paths.coverage, join(superseded, "coverage.json"));
     }
-    let record: PassRecord = { ...scheduled, reader };
-    const set = (stage: StageName, state: StageState) => {
-      record = withStage(record, stage, state);
-    };
-    const prefix = `design-benchmark-reread-${scheduled.id}-`;
-    await withTempDir(prefix, async (temp) => {
-      try {
-        set("claims", { status: "running", error: null });
-        await writeJson(paths.record, record);
-        const claims = await takeClaims(context, reader, readerSkillsDir, {
-          design: paths.design,
-          storeOut: paths.store,
-          evidenceOut: join(paths.evidence, `reread-${when}`, "claims"),
-          workDir: temp,
-        });
-        set("claims", claims.outcome);
-        record = { ...record, claimsHandback: claims.handback };
-        readings ??= claims.readings;
-        if (options.coverage) {
-          if (claims.outcome.status !== "done") {
-            set("coverage", {
-              status: "unavailable",
-              error: `the claims stage ${claims.outcome.status}`,
-            });
-          } else {
-            set("coverage", { status: "running", error: null });
-            await writeJson(paths.record, record);
-            const coverage = await takeCoverage(
-              context,
-              reader,
-              readerSkillsDir,
-              {
-                design: paths.design,
-                requirementFile: join(
-                  context.packageDir,
-                  definition.requirementFile,
-                ),
-                list: requirements.list,
-                header,
-                coverageOut: paths.coverage,
-                evidenceOut: join(paths.evidence, `reread-${when}`, "coverage"),
-                workDir: temp,
-              },
-            );
-            set("coverage", coverage.outcome);
-          }
-        }
-        reread.push(scheduled.id);
-      } catch (cause) {
-        set(runningStage(record, "claims"), {
-          status: "failed",
-          error: errorMessage(cause),
-        });
-      }
-    });
-    await writeJson(paths.record, record);
+    const retaken = await retake(scheduled, paths);
+    if ("reason" in retaken) {
+      await restoreReadings(paths, superseded, options.coverage);
+      await writeJson(paths.record, previous);
+      skipped.push({
+        id: scheduled.id,
+        reason: `reread failed, kept its old readings: ${retaken.reason}`,
+      });
+      continue;
+    }
+    await writeJson(paths.record, retaken.record);
+    reread.push(scheduled.id);
+    readings ??= retaken.readings;
   }
   const manifest: BatchManifest = {
     ...batch.manifest,
@@ -1009,14 +1052,16 @@ export async function rereadBatch(
         store: await referenceStoreDigest(location.dir),
       }
       : batch.manifest.reference,
-    rereads: [
-      ...(batch.manifest.rereads ?? []),
-      {
-        at: new Date().toISOString(),
-        coverage: options.coverage,
-        previous: batch.manifest.readings,
-      },
-    ],
+    rereads: reread.length > 0
+      ? [
+        ...(batch.manifest.rereads ?? []),
+        {
+          at: new Date().toISOString(),
+          coverage: options.coverage,
+          previous: batch.manifest.readings,
+        },
+      ]
+      : batch.manifest.rereads,
   };
   await writeJson(join(batchDir, "manifest.json"), manifest);
   return {
@@ -1025,6 +1070,28 @@ export async function rereadBatch(
     skipped,
     ...await writeReport(context, batchDir),
   };
+}
+
+/**
+ * Put the old readings of an attempt back after a reread that did not finish:
+ * whatever the reread wrote is dropped, and the superseded copies return.
+ */
+async function restoreReadings(
+  paths: ReturnType<typeof attemptPaths>,
+  superseded: string,
+  coverage: boolean,
+): Promise<void> {
+  await rm(paths.store, { recursive: true, force: true });
+  if (await exists(join(superseded, "store"))) {
+    await rename(join(superseded, "store"), paths.store);
+  }
+  if (coverage) {
+    await rm(paths.coverage, { force: true });
+    if (await exists(join(superseded, "coverage.json"))) {
+      await rename(join(superseded, "coverage.json"), paths.coverage);
+    }
+  }
+  await rm(superseded, { recursive: true, force: true });
 }
 
 export interface RereadReferenceOptions extends Environment {
@@ -1048,6 +1115,8 @@ export interface RereadReferenceResult {
   readonly coverage:
     | { answered: number; none: number; notRead: number }
     | null;
+  /** Tool calls the claims reader was refused; its readings were still taken. */
+  readonly deniedToolCalls: readonly string[];
 }
 
 /**
@@ -1101,6 +1170,15 @@ export async function rereadReference(
         }. Evidence is in ${join(outDir, "evidence")}.`,
       );
     }
+    // A reference is the yardstick, so every unit must be read before it is
+    // stored; an incomplete reading is refused rather than written.
+    if (claims.state === "incomplete" || (claims.unreadUnits ?? 0) > 0) {
+      throw new Error(
+        `The claims reading of ${location.root} is incomplete: ${
+          claims.unreadUnits ?? "unknown"
+        } unit(s) unread. Evidence is in ${join(outDir, "evidence")}; readings.json was not written.`,
+      );
+    }
     await writeJson(out.readings, claims.readings);
     let coverage: RereadReferenceResult["coverage"] = null;
     if (options.coverage) {
@@ -1140,6 +1218,7 @@ export async function rereadReference(
       state: claims.state,
       unreadUnits: claims.unreadUnits,
       coverage,
+      deniedToolCalls: claims.denials,
     };
   });
 }
