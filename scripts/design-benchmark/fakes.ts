@@ -50,6 +50,8 @@ export interface FakeReaderOptions {
   readonly handback?: string;
   /** Skip the claims readings, so every unit stays unread. */
   readonly skipClaims?: boolean;
+  /** Write no coverage answer, so the coverage stage fails. */
+  readonly skipCoverage?: boolean;
 }
 
 const HEADER =
@@ -143,7 +145,7 @@ if (existsSync("facets.md")) {
   const entries = list.requirements.map((requirement) => cited[requirement.id]
     ? { id: requirement.id, verdict: "answered", facets: cited[requirement.id] }
     : { id: requirement.id, verdict: "none", facets: [] });
-  write("answer/coverage.json", JSON.stringify({ entries }));
+  if (!O.skipCoverage) write("answer/coverage.json", JSON.stringify({ entries }));
   result("Coverage: written");
 } else {
   write("run/start-state.json", JSON.stringify({

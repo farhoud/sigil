@@ -985,7 +985,9 @@ export async function rereadBatch(
             workDir: temp,
           });
           set("coverage", coverage.outcome);
-          if (coverage.outcome.status !== "done") {
+          // A coverage reader that fails still reports `done` with an error and
+          // stores every requirement as not read; that is not a finished reading.
+          if (coverage.outcome.status !== "done" || coverage.outcome.error !== null) {
             return {
               reason: `coverage ${coverage.outcome.status}: ${
                 coverage.outcome.error ?? "no reading"
@@ -1179,7 +1181,6 @@ export async function rereadReference(
         } unit(s) unread. Evidence is in ${join(outDir, "evidence")}; readings.json was not written.`,
       );
     }
-    await writeJson(out.readings, claims.readings);
     let coverage: RereadReferenceResult["coverage"] = null;
     if (options.coverage) {
       const benchmark = benchmarkNamed(definition.coverageBenchmark);
@@ -1201,14 +1202,20 @@ export async function rereadReference(
         evidenceOut: join(outDir, "evidence", "coverage"),
         workDir: temp,
       });
-      if (taken.coverage === null) {
-        throw new Error(`The coverage reading ${taken.outcome.status}`);
+      if (taken.coverage === null || taken.outcome.error !== null) {
+        throw new Error(
+          `The coverage reading ${taken.outcome.status}: ${
+            taken.outcome.error ?? "no reading"
+          }. Evidence is in ${join(outDir, "evidence")}; readings.json was not written.`,
+        );
       }
       coverage = countVerdicts(taken.coverage.entries);
     } else if (await exists(source.coverage)) {
       // Coverage cites Facet ids, so it survives a law-only change.
       await copyFile(source.coverage, out.coverage);
     }
+    // Written only once every reading the reference needs has finished.
+    await writeJson(out.readings, claims.readings);
     await copyFile(source.reader, out.reader);
     return {
       list,
